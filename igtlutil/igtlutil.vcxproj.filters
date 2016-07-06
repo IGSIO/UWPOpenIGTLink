@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="igtl_qtdata.c" />
+    <ClCompile Include="igtl_qtrans.c" />
+    <ClCompile Include="igtl_sensor.c" />
+    <ClCompile Include="igtl_status.c" />
+    <ClCompile Include="igtl_string.c" />
+    <ClCompile Include="igtl_tdata.c" />
+    <ClCompile Include="igtl_trajectory.c" />
+    <ClCompile Include="igtl_transform.c" />
+    <ClCompile Include="igtl_unit.c" />
+    <ClCompile Include="igtl_util.c" />
+    <ClCompile Include="igtl_bind.c" />
+    <ClCompile Include="igtl_capability.c" />
+    <ClCompile Include="igtl_colortable.c" />
+    <ClCompile Include="igtl_command.c" />
+    <ClCompile Include="igtl_header.c" />
+    <ClCompile Include="igtl_image.c" />
+    <ClCompile Include="igtl_imgmeta.c" />
+    <ClCompile Include="igtl_lbmeta.c" />
+    <ClCompile Include="igtl_ndarray.c" />
+    <ClCompile Include="igtl_point.c" />
+    <ClCompile Include="igtl_polydata.c" />
+    <ClCompile Include="igtl_position.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="igtl_position.h" />
+    <ClInclude Include="igtl_qtdata.h" />
+    <ClInclude Include="igtl_qtrans.h" />
+    <ClInclude Include="igtl_sensor.h" />
+    <ClInclude Include="igtl_status.h" />
+    <ClInclude Include="igtl_string.h" />
+    <ClInclude Include="igtl_tdata.h" />
+    <ClInclude Include="igtl_trajectory.h" />
+    <ClInclude Include="igtl_transform.h" />
+    <ClInclude Include="igtl_types.h" />
+    <ClInclude Include="igtl_unit.h" />
+    <ClInclude Include="igtl_util.h" />
+    <ClInclude Include="igtl_win32header.h" />
+    <ClInclude Include="igtl_bind.h" />
+    <ClInclude Include="igtl_capability.h" />
+    <ClInclude Include="igtl_colortable.h" />
+    <ClInclude Include="igtl_command.h" />
+    <ClInclude Include="igtl_header.h" />
+    <ClInclude Include="igtl_image.h" />
+    <ClInclude Include="igtl_imgmeta.h" />
+    <ClInclude Include="igtl_lbmeta.h" />
+    <ClInclude Include="igtl_ndarray.h" />
+    <ClInclude Include="igtl_point.h" />
+    <ClInclude Include="igtl_polydata.h" />
+    <ClInclude Include="igtl_typeconfig.h" />
+    <ClInclude Include="igtlConfigure.h" />
+  </ItemGroup>
+</Project>

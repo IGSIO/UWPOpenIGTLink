@@ -1,0 +1,27 @@
+﻿<Page
+    x:Class="UWPOpenIGTLinkUI.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:UWPOpenIGTLinkUI"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d" Width="1280" Height="720">
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0.5*"/>
+            <ColumnDefinition Width="0.5*"/>
+            <ColumnDefinition Width="2*"/>
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="serverHostnameTextBlock" HorizontalAlignment="Left" Margin="10,16,0,0" TextWrapping="Wrap" Text="IGTL Server Hostname" VerticalAlignment="Top" Height="20" Width="180"/>
+        <TextBox x:Name="serverHostnameTextBox" HorizontalAlignment="Left" Margin="0,10,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="139" Grid.Column="1" Height="32" ToolTipService.ToolTip="Enter the hostname or IP of the IGTL server" PlaceholderText="127.0.0.1"/>
+        <TextBlock x:Name="serverPortTextBlock" HorizontalAlignment="Left" Margin="10,53,0,0" TextWrapping="Wrap" Text="IGTL Server Port" VerticalAlignment="Top" Width="185"/>
+        <TextBox x:Name="serverPortTextBox" Grid.Column="1" HorizontalAlignment="Left" Margin="0,47,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="139" PlaceholderText="18944" ToolTipService.ToolTip="Enter the port number of the IGTL server"/>
+        <Image x:Name="imageDisplay" Grid.Column="2" HorizontalAlignment="Left" Height="700" Margin="10,10,0,0" VerticalAlignment="Top" Width="833"/>
+        <Border BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Left" Height="1" Margin="10,384,0,0" VerticalAlignment="Top" Width="407" Grid.ColumnSpan="2"/>
+        <Button x:Name="applyButton" Content="Apply" Grid.Column="1" HorizontalAlignment="Left" Margin="138,347,0,0" VerticalAlignment="Top" IsEnabled="False"/>
+        <Border BorderBrush="Black" BorderThickness="1" Grid.ColumnSpan="2" HorizontalAlignment="Left" Margin="10,682,0,37" Width="407"/>
+        <TextBlock x:Name="statusBarTextBlock" Margin="55,688,10,10" Text="Not connected." Grid.ColumnSpan="2" TextTrimming="WordEllipsis" MaxLines="1" TextAlignment="Right"/>
+        <Image x:Name="statusIcon" HorizontalAlignment="Left" Height="25" Margin="10,687,0,0" VerticalAlignment="Top" Width="25" Source="Assets/glossy-green-button-2400px.png"/>
+    </Grid>
+</Page>

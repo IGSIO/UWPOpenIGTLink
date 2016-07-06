@@ -1,0 +1,10 @@
+/.vs/UWPOpenIGTLink/v14/*.suo
+Debug
+ipch
+Release
+Win32
+x64
+.vs
+*.opendb
+*.db
+Generated Files

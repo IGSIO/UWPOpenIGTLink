@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="igtlStatusMessage.cxx" />
+    <ClCompile Include="igtlStringMessage.cxx" />
+    <ClCompile Include="igtlTimeStamp.cxx" />
+    <ClCompile Include="igtlTrackingDataMessage.cxx" />
+    <ClCompile Include="igtlTrajectoryMessage.cxx" />
+    <ClCompile Include="igtlTransformMessage.cxx" />
+    <ClCompile Include="igtlUnit.cxx" />
+    <ClCompile Include="igtlBindMessage.cxx" />
+    <ClCompile Include="igtlCapabilityMessage.cxx" />
+    <ClCompile Include="igtlClientSocket.cxx" />
+    <ClCompile Include="igtlColorTableMessage.cxx" />
+    <ClCompile Include="igtlCommandMessage.cxx" />
+    <ClCompile Include="igtlConditionVariable.cxx" />
+    <ClCompile Include="igtlFastMutexLock.cxx" />
+    <ClCompile Include="igtlImageMessage.cxx" />
+    <ClCompile Include="igtlImageMessage2.cxx" />
+    <ClCompile Include="igtlImageMetaMessage.cxx" />
+    <ClCompile Include="igtlLabelMetaMessage.cxx" />
+    <ClCompile Include="igtlLightObject.cxx" />
+    <ClCompile Include="igtlMath.cxx" />
+    <ClCompile Include="igtlMessageBase.cxx" />
+    <ClCompile Include="igtlMessageFactory.cxx" />
+    <ClCompile Include="igtlMultiThreader.cxx" />
+    <ClCompile Include="igtlMutexLock.cxx" />
+    <ClCompile Include="igtlNDArrayMessage.cxx" />
+    <ClCompile Include="igtlObject.cxx" />
+    <ClCompile Include="igtlObjectFactoryBase.cxx" />
+    <ClCompile Include="igtlOSUtil.cxx" />
+    <ClCompile Include="igtlPointMessage.cxx" />
+    <ClCompile Include="igtlPolyDataMessage.cxx" />
+    <ClCompile Include="igtlPositionMessage.cxx" />
+    <ClCompile Include="igtlQuaternionTrackingDataMessage.cxx" />
+    <ClCompile Include="igtlSensorMessage.cxx" />
+    <ClCompile Include="igtlServerSocket.cxx" />
+    <ClCompile Include="igtlSessionManager.cxx" />
+    <ClCompile Include="igtlSimpleFastMutexLock.cxx" />
+    <ClCompile Include="igtlSocket.cxx" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="igtlStatusMessage.h" />
+    <ClInclude Include="igtlStringMessage.h" />
+    <ClInclude Include="igtlTimeStamp.h" />
+    <ClInclude Include="igtlTrackingDataMessage.h" />
+    <ClInclude Include="igtlTrajectoryMessage.h" />
+    <ClInclude Include="igtlTransformMessage.h" />
+    <ClInclude Include="igtlTypes.h" />
+    <ClInclude Include="igtlUnit.h" />
+    <ClInclude Include="igtlWin32Header.h" />
+    <ClInclude Include="igtlWindows.h" />
+    <ClInclude Include="igtlBindMessage.h" />
+    <ClInclude Include="igtlCapabilityMessage.h" />
+    <ClInclude Include="igtlClientSocket.h" />
+    <ClInclude Include="igtlColorTableMessage.h" />
+    <ClInclude Include="igtlCommandMessage.h" />
+    <ClInclude Include="igtlCommon.h" />
+    <ClInclude Include="igtlConditionVariable.h" />
+    <ClInclude Include="igtlCreateObjectFunction.h" />
+    <ClInclude Include="igtlFastMutexLock.h" />
+    <ClInclude Include="igtlImageMessage.h" />
+    <ClInclude Include="igtlImageMessage2.h" />
+    <ClInclude Include="igtlImageMetaMessage.h" />
+    <ClInclude Include="igtlLabelMetaMessage.h" />
+    <ClInclude Include="igtlLightObject.h" />
+    <ClInclude Include="igtlMacro.h" />
+    <ClInclude Include="igtlMath.h" />
+    <ClInclude Include="igtlMessageBase.h" />
+    <ClInclude Include="igtlMessageDebugFunction.h" />
+    <ClInclude Include="igtlMessageFactory.h" />
+    <ClInclude Include="igtlMessageHandler.h" />
+    <ClInclude Include="igtlMessageHandlerMacro.h" />
+    <ClInclude Include="igtlMessageHeader.h" />
+    <ClInclude Include="igtlMultiThreader.h" />
+    <ClInclude Include="igtlMutexLock.h" />
+    <ClInclude Include="igtlNDArrayMessage.h" />
+    <ClInclude Include="igtlObject.h" />
+    <ClInclude Include="igtlObjectFactory.h" />
+    <ClInclude Include="igtlObjectFactoryBase.h" />
+    <ClInclude Include="igtlOSUtil.h" />
+    <ClInclude Include="igtlPointMessage.h" />
+    <ClInclude Include="igtlPolyDataMessage.h" />
+    <ClInclude Include="igtlPositionMessage.h" />
+    <ClInclude Include="igtlQuaternionTrackingDataMessage.h" />
+    <ClInclude Include="igtlSensorMessage.h" />
+    <ClInclude Include="igtlServerSocket.h" />
+    <ClInclude Include="igtlSessionManager.h" />
+    <ClInclude Include="igtlSimpleFastMutexLock.h" />
+    <ClInclude Include="igtlSmartPointer.h" />
+    <ClInclude Include="igtlSocket.h" />
+  </ItemGroup>
+</Project>
