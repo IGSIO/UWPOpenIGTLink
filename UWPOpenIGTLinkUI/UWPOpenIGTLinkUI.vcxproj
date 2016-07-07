@@ -13,10 +13,6 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|ARM">
-      <Configuration>Debug</Configuration>
-      <Platform>ARM</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
@@ -24,10 +20,6 @@
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|ARM">
-      <Configuration>Release</Configuration>
-      <Platform>ARM</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
@@ -123,40 +115,56 @@
     <ClCompile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="MainPage.xaml.h">
-      <DependentUpon>MainPage.xaml</DependentUpon>
+    <ClInclude Include="IGTLConnectorPage.xaml.h">
+      <DependentUpon>IGTLConnectorPage.xaml</DependentUpon>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Page Include="MainPage.xaml">
+    <Page Include="IGTLConnectorPage.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
@@ -182,8 +190,8 @@
     <ClCompile Include="App.xaml.cpp">
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="MainPage.xaml.cpp">
-      <DependentUpon>MainPage.xaml</DependentUpon>
+    <ClCompile Include="IGTLConnectorPage.xaml.cpp">
+      <DependentUpon>IGTLConnectorPage.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -197,6 +205,8 @@
   <ItemGroup>
     <ProjectReference Include="..\UWPOpenIGTLink\UWPOpenIGTLink.vcxproj">
       <Project>{341616a4-cfc4-47cf-87e3-58d619b8475a}</Project>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

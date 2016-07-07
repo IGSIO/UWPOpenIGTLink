@@ -1,280 +1,314 @@
+#include "IGTLinkClient.h"
+#include "TrackedFrameMessage.h"
 #include "igtlCommandMessage.h"
 #include "igtlCommon.h"
 #include "igtlMessageHeader.h"
 #include "igtlOSUtil.h"
 #include "igtlServerSocket.h"
 #include "igtlTrackingDataMessage.h"
-#include "IGTLinkClient.h"
+
 #include <chrono>
+#include <collection.h>
+#include <ppltasks.h>
 
 static const int CLIENT_SOCKET_TIMEOUT_MSEC = 500;
 
-namespace uwpigtl
+namespace UWPOpenIGTLink
 {
 
-//----------------------------------------------------------------------------
-IGTLinkClient::IGTLinkClient()
-  : IgtlMessageFactory( igtl::MessageFactory::New() )
-  , ClientSocket( igtl::ClientSocket::New() )
-  , ServerHost( NULL )
-  , ServerPort( -1 )
-  , ServerIGTLVersion( IGTL_HEADER_VERSION_1 )
-{
-
-}
-
-//----------------------------------------------------------------------------
-IGTLinkClient::~IGTLinkClient()
-{
-}
-
-//----------------------------------------------------------------------------
-void IGTLinkClient::SetServerPort( int arg )
-{
-  this->ServerPort = arg;
-}
-
-//----------------------------------------------------------------------------
-void IGTLinkClient::SetServerHost( const std::string& host )
-{
-  this->ServerHost = host;
-}
-
-//----------------------------------------------------------------------------
-void IGTLinkClient::SetServerIGTLVersion( int arg )
-{
-  this->ServerIGTLVersion = arg;
-}
-
-//----------------------------------------------------------------------------
-int IGTLinkClient::GetServerIGTLVersion() const
-{
-  return this->ServerIGTLVersion;
-}
-
-//----------------------------------------------------------------------------
-bool IGTLinkClient::Connect( double timeoutSec/*=-1*/ )
-{
-  const int retryDelaySec = 1.0;
-  int errorCode = 1;
-  auto start = std::chrono::system_clock::now();
-  while ( errorCode != 0 )
+  //----------------------------------------------------------------------------
+  IGTLinkClient::IGTLinkClient()
+    : IgtlMessageFactory( igtl::MessageFactory::New() )
+    , ClientSocket( igtl::ClientSocket::New() )
   {
-    errorCode = this->ClientSocket->ConnectToServer( this->ServerHost.c_str(), this->ServerPort );
-    if ( ( std::chrono::system_clock::now() - start ).count() > timeoutSec )
-    {
-      // time is up
-      break;
-    }
-    std::this_thread::sleep_for( std::chrono::seconds( retryDelaySec ) );
+    IgtlMessageFactory->AddMessageType( "TRACKEDFRAME", ( igtl::MessageFactory::PointerToMessageBaseNew )&igtl::TrackedFrameMessage::New );
+    this->ServerHost = L"127.0.0.1";
+    this->ServerPort = 18944;
+    this->ServerIGTLVersion = IGTL_HEADER_VERSION_2;
   }
 
-  if ( errorCode != 0 )
+  //----------------------------------------------------------------------------
+  IGTLinkClient::~IGTLinkClient()
   {
-    std::cerr << "Cannot connect to the server." << std::endl;
-    return false;
   }
-  std::cout << "Client successfully connected to server." << std::endl;
 
-  this->ClientSocket->SetTimeout( CLIENT_SOCKET_TIMEOUT_MSEC );
-
-  auto token = this->CancellationTokenSource.get_token();
-
-  this->DataReceiverTask = concurrency::create_task( [self = this, cancelToken = token]
+  //----------------------------------------------------------------------------
+  Windows::Foundation::IAsyncOperation<Platform::String^>^ IGTLinkClient::ConnectAsync( double timeoutSec )
   {
-    while ( !cancelToken.is_canceled() )
+    auto token = this->CancellationTokenSource.get_token();
+
+    return concurrency::create_async( [this, timeoutSec, token]() -> Platform::String^
     {
-      igtl::MessageHeader::Pointer headerMsg;
+      auto connectTask = concurrency::create_task( [this, timeoutSec, token]() -> Platform::String^
       {
-        igtl::MessageFactory::Pointer factory = igtl::MessageFactory::New();
-        headerMsg = factory->CreateHeaderMessage( IGTL_HEADER_VERSION_1 );
-      }
-
-      // Receive generic header from the socket
-      int numOfBytesReceived = 0;
-      {
-        Concurrency::critical_section::scoped_lock lock( self->SocketMutex );
-        numOfBytesReceived = self->ClientSocket->Receive( headerMsg->GetBufferPointer(), headerMsg->GetBufferSize() );
-      }
-      if ( numOfBytesReceived == 0 // No message received
-           || numOfBytesReceived != headerMsg->GetPackSize() // Received data is not as we expected
-         )
-      {
-        // Failed to receive data, maybe the socket is disconnected
-        std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
-        continue;
-      }
-
-      int c = headerMsg->Unpack( 1 );
-      if ( !( c & igtl::MessageHeader::UNPACK_HEADER ) )
-      {
-        std::cerr << "Failed to receive reply (invalid header)" << std::endl;
-        continue;
-      }
-
-      if ( self->OnMessageReceived( headerMsg.GetPointer() ) )
-      {
-        // The message body is read and processed
-        continue;
-      }
-
-      igtl::MessageBase::Pointer bodyMsg = self->IgtlMessageFactory->CreateReceiveMessage( headerMsg );
-      if ( bodyMsg.IsNull() )
-      {
-        std::cerr << "Unable to create message of type: " << headerMsg->GetMessageType() << std::endl;
-        continue;
-      }
-
-      // Only accept string messages if they have a deviceName of the format ACK_xyz
-      if ( typeid( *bodyMsg ) == typeid( igtl::RTSTrackingDataMessage ) )
-      {
-        bodyMsg->SetMessageHeader( headerMsg );
-        bodyMsg->AllocateBuffer();
+        const int retryDelaySec = 1.0;
+        int errorCode = 1;
+        auto start = std::chrono::system_clock::now();
+        while ( errorCode != 0 )
         {
-          Concurrency::critical_section::scoped_lock lock( self->SocketMutex );
-          self->ClientSocket->Receive( bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize() );
+          std::wstring wideStr( this->ServerHost->Begin() );
+          std::string str( wideStr.begin(), wideStr.end() );
+          errorCode = this->ClientSocket->ConnectToServer( str.c_str(), this->ServerPort );
+          if ( ( std::chrono::system_clock::now() - start ).count() > timeoutSec )
+          {
+            // time is up
+            break;
+          }
+          std::this_thread::sleep_for( std::chrono::seconds( retryDelaySec ) );
         }
 
-        int c = bodyMsg->Unpack( 1 );
-        if ( !( c & igtl::MessageHeader::UNPACK_BODY ) )
+        if ( errorCode != 0 )
         {
-          std::cerr << "Failed to receive reply (invalid body)" << std::endl;
-          continue;
+          this->Connected = false;
+          return ref new Platform::String( L"Unable to connect." );
         }
-        {
-          // save command reply
-          Concurrency::critical_section::scoped_lock lock( self->Mutex );
-          self->Replies.push_back( bodyMsg );
-        }
+
+        this->ClientSocket->SetTimeout( CLIENT_SOCKET_TIMEOUT_MSEC );
+        this->Connected = true;
+        return ref new Platform::String( L"Success! Connected to " ) + this->ServerHost + ref new Platform::String( L":" ) + ref new Platform::String( std::to_wstring( this->ServerPort ).c_str() );
+      } );
+      Platform::String^ result = connectTask.get();
+
+      if ( !this->Connected )
+      {
+        return result;
       }
       else
       {
-        // if the incoming message is not a reply to a command, we discard it and continue
-        std::cout << "Received message: " << headerMsg->GetMessageType() << " (not processed)" << std::endl;
+        concurrency::create_task( [this, token]( void )
         {
-          Concurrency::critical_section::scoped_lock lock( self->SocketMutex );
-          self->ClientSocket->Skip( headerMsg->GetBodySizeToRead(), 0 );
-        }
+          while ( !token.is_canceled() )
+          {
+            igtl::MessageHeader::Pointer headerMsg;
+            {
+              igtl::MessageFactory::Pointer factory = igtl::MessageFactory::New();
+              headerMsg = factory->CreateHeaderMessage( IGTL_HEADER_VERSION_1 );
+            }
+
+            // Receive generic header from the socket
+            int numOfBytesReceived = 0;
+            {
+              Concurrency::critical_section::scoped_lock lock( this->SocketMutex );
+              numOfBytesReceived = this->ClientSocket->Receive( headerMsg->GetBufferPointer(), headerMsg->GetBufferSize() );
+            }
+            if ( numOfBytesReceived == 0 // No message received
+                 || numOfBytesReceived != headerMsg->GetPackSize() // Received data is not as we expected
+               )
+            {
+              // Failed to receive data, maybe the socket is disconnected
+              std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
+              continue;
+            }
+
+            int c = headerMsg->Unpack( 1 );
+            if ( !( c & igtl::MessageHeader::UNPACK_HEADER ) )
+            {
+              std::cerr << "Failed to receive reply (invalid header)" << std::endl;
+              continue;
+            }
+
+            igtl::MessageBase::Pointer bodyMsg = this->IgtlMessageFactory->CreateReceiveMessage( headerMsg );
+            if ( bodyMsg.IsNull() )
+            {
+              std::cerr << "Unable to create message of type: " << headerMsg->GetMessageType() << std::endl;
+              continue;
+            }
+
+            // Only accept string messages if they have a deviceName of the format ACK_xyz
+            if ( typeid( *bodyMsg ) == typeid( igtl::RTSTrackingDataMessage ) )
+            {
+              bodyMsg->SetMessageHeader( headerMsg );
+              bodyMsg->AllocateBuffer();
+              {
+                Concurrency::critical_section::scoped_lock lock( this->SocketMutex );
+                this->ClientSocket->Receive( bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize() );
+              }
+
+              int c = bodyMsg->Unpack( 1 );
+              if ( !( c & igtl::MessageHeader::UNPACK_BODY ) )
+              {
+                std::cerr << "Failed to receive reply (invalid body)" << std::endl;
+                continue;
+              }
+              {
+                // save command reply
+                Concurrency::critical_section::scoped_lock lock( this->Mutex );
+                this->Replies.push_back( bodyMsg );
+              }
+            }
+            else
+            {
+              // if the incoming message is not a reply to a command, we discard it and continue
+              std::cout << "Received message: " << headerMsg->GetMessageType() << " (not processed)" << std::endl;
+              {
+                Concurrency::critical_section::scoped_lock lock( this->SocketMutex );
+                this->ClientSocket->Skip( headerMsg->GetBodySizeToRead(), 0 );
+              }
+            }
+          }
+
+          return;
+        } );
       }
-    }
 
-    // Close thread
-    return;
-  }, token );
-
-  return true;
-}
-
-//----------------------------------------------------------------------------
-bool IGTLinkClient::Disconnect()
-{
-  {
-    Concurrency::critical_section::scoped_lock lock( SocketMutex );
-    this->ClientSocket->CloseSocket();
+      return result;
+    } );
   }
 
-  this->CancellationTokenSource.cancel();
-  this->DataReceiverTask.wait();
-
-  return true;
-}
-
-//----------------------------------------------------------------------------
-bool IGTLinkClient::SendMessage( igtl::MessageBase::Pointer packedMessage )
-{
-  int success = 0;
+  //----------------------------------------------------------------------------
+  Windows::Foundation::IAsyncOperation<bool>^ IGTLinkClient::DisconnectAsync()
   {
-    Concurrency::critical_section::scoped_lock lock( SocketMutex );
-    success = this->ClientSocket->Send( packedMessage->GetBufferPointer(), packedMessage->GetBufferSize() );
-  }
-  if ( !success )
-  {
-    std::cerr << "OpenIGTLink client couldn't send message to server." << std::endl;
-    return false;
-  }
-  return true;
-}
-
-//----------------------------------------------------------------------------
-bool IGTLinkClient::ReceiveReply( bool& result, int32_t& outOriginalCommandId, std::string& outErrorString,
-                                  std::string& outContent, std::map<std::string, std::string>& outParameters,
-                                  std::string& outCommandName, double timeoutSec/*=0*/ )
-{
-  auto start = std::chrono::system_clock::now();
-
-  while ( 1 )
-  {
+    return concurrency::create_async( [this]() -> bool
     {
-      // save command reply
-      Concurrency::critical_section::scoped_lock lock( Mutex );
-      if ( !this->Replies.empty() )
       {
-        igtl::MessageBase::Pointer message = this->Replies.front();
-        if ( typeid( *message ) == typeid( igtl::RTSCommandMessage ) )
-        {
-          // Process the command as v3 RTS_Command
-          igtl::RTSCommandMessage::Pointer rtsCommandMsg = dynamic_cast<igtl::RTSCommandMessage*>( message.GetPointer() );
-
-          //vtkSmartPointer<vtkXMLDataElement> cmdElement = vtkSmartPointer<vtkXMLDataElement>::Take( vtkXMLUtilities::ReadElementFromString( rtsCommandMsg->GetCommandContent().c_str() ) );
-
-          outCommandName = rtsCommandMsg->GetCommandName();
-          outOriginalCommandId = rtsCommandMsg->GetCommandId();
-
-          //XML_FIND_NESTED_ELEMENT_OPTIONAL( resultElement, cmdElement, "Result" );
-          //if( resultElement != NULL )
-          //{
-          //result = STRCASECMP( resultElement->GetCharacterData(), "true" ) == 0 ? PLUS_SUCCESS : PLUS_FAIL;
-          //}
-          //XML_FIND_NESTED_ELEMENT_OPTIONAL( errorElement, cmdElement, "Error" );
-          //if( !result && errorElement == NULL )
-          //{
-          //LOG_ERROR( "Server sent error without reason. Notify server developers." );
-          //}
-          //else if( !result && errorElement != NULL )
-          //{
-          //outErrorString = errorElement->GetCharacterData();
-          //}
-          //XML_FIND_NESTED_ELEMENT_REQUIRED( messageElement, cmdElement, "Message" );
-          //outContent = messageElement->GetCharacterData();
-
-          outParameters = rtsCommandMsg->GetMetaData();
-        }
-        else if ( typeid( *message ) == typeid( igtl::RTSTrackingDataMessage ) )
-        {
-          igtl::RTSTrackingDataMessage* rtsTrackingMsg = dynamic_cast<igtl::RTSTrackingDataMessage*>( message.GetPointer() );
-
-          result = rtsTrackingMsg->GetStatus() == 0 ? true : false;
-          outContent = ( rtsTrackingMsg->GetStatus() == 0 ? "SUCCESS" : "FAILURE" );
-          outCommandName = "RTSTrackingDataMessage";
-          outOriginalCommandId = -1;
-        }
-
-        this->Replies.pop_front();
-        return true;
+        Concurrency::critical_section::scoped_lock lock( this->SocketMutex );
+        this->ClientSocket->CloseSocket();
       }
-    }
 
-    if ( ( std::chrono::system_clock::now() - start ).count() > timeoutSec )
+      this->CancellationTokenSource.cancel();
+      this->DataReceiverTask.wait();
+
+      return true;
+    } );
+  }
+
+  //----------------------------------------------------------------------------
+  bool IGTLinkClient::SendMessage( igtl::MessageBase::Pointer packedMessage )
+  {
+    int success = 0;
     {
-      std::cerr << "vtkPlusOpenIGTLinkClient::ReceiveReply timeout passed (" << timeoutSec << "sec)" << std::endl;
+      Concurrency::critical_section::scoped_lock lock( SocketMutex );
+      success = this->ClientSocket->Send( packedMessage->GetBufferPointer(), packedMessage->GetBufferSize() );
+    }
+    if ( !success )
+    {
+      std::cerr << "OpenIGTLink client couldn't send message to server." << std::endl;
       return false;
     }
-    std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
+    return true;
   }
-  return false;
-}
 
-//----------------------------------------------------------------------------
-bool IGTLinkClient::OnMessageReceived( igtl::MessageHeader::Pointer messageHeader )
-{
-  return true;
-}
+  //----------------------------------------------------------------------------
+  bool IGTLinkClient::ReceiveReply( bool* result,
+                                    int32_t* outOriginalCommandId,
+                                    Platform::String^ outErrorString,
+                                    Platform::String^ outContent,
+                                    Platform::String^ outCommandContent,
+                                    Windows::Foundation::Collections::IMap<Platform::String^, Platform::String^>^ outParameters,
+                                    Platform::String^ outCommandName,
+                                    double timeoutSec )
+  {
+    auto start = std::chrono::system_clock::now();
 
-//----------------------------------------------------------------------------
-int IGTLinkClient::SocketReceive( void* data, int length )
-{
-  Concurrency::critical_section::scoped_lock lock( SocketMutex );
-  return ClientSocket->Receive( data, length );
-}
+    while ( 1 )
+    {
+      {
+        // save command reply
+        Concurrency::critical_section::scoped_lock lock( Mutex );
+        if ( !this->Replies.empty() )
+        {
+          igtl::MessageBase::Pointer message = this->Replies.front();
+          if ( typeid( *message ) == typeid( igtl::RTSCommandMessage ) )
+          {
+            // Process the command as v3 RTS_Command
+            igtl::RTSCommandMessage::Pointer rtsCommandMsg = dynamic_cast<igtl::RTSCommandMessage*>( message.GetPointer() );
+
+            std::wstring wideStr( rtsCommandMsg->GetCommandName().begin(), rtsCommandMsg->GetCommandName().end() );
+            outCommandName = ref new Platform::String( wideStr.c_str() );
+            *outOriginalCommandId = rtsCommandMsg->GetCommandId();
+
+            std::wstring wideContentStr( rtsCommandMsg->GetCommandContent().begin(), rtsCommandMsg->GetCommandContent().end() );
+            outCommandContent = ref new Platform::String( wideContentStr.c_str() );
+
+            for ( std::map< std::string, std::string>::const_iterator it = rtsCommandMsg->GetMetaData().begin(); it != rtsCommandMsg->GetMetaData().end(); ++it )
+            {
+              std::wstring keyWideStr( it->first.begin(), it->first.end() );
+              std::wstring valueWideStr( it->second.begin(), it->second.end() );
+              outParameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+            }
+          }
+          else if ( typeid( *message ) == typeid( igtl::RTSTrackingDataMessage ) )
+          {
+            igtl::RTSTrackingDataMessage* rtsTrackingMsg = dynamic_cast<igtl::RTSTrackingDataMessage*>( message.GetPointer() );
+
+            *result = rtsTrackingMsg->GetStatus() == 0 ? true : false;
+            outContent = ( rtsTrackingMsg->GetStatus() == 0 ? L"SUCCESS" : L"FAILURE" );
+            outCommandName = L"RTSTrackingDataMessage";
+            *outOriginalCommandId = -1;
+          }
+          else if ( typeid( *message ) == typeid( igtl::TrackedFrameMessage ) )
+          {
+
+          }
+
+          this->Replies.pop_front();
+          return true;
+        }
+      }
+
+      if ( ( std::chrono::system_clock::now() - start ).count() > timeoutSec )
+      {
+        std::cerr << "vtkPlusOpenIGTLinkClient::ReceiveReply timeout passed (" << timeoutSec << "sec)" << std::endl;
+        return false;
+      }
+      std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
+    }
+    return false;
+  }
+
+  //----------------------------------------------------------------------------
+  int IGTLinkClient::SocketReceive( void* data, int length )
+  {
+    Concurrency::critical_section::scoped_lock lock( SocketMutex );
+    return ClientSocket->Receive( data, length );
+  }
+
+  //----------------------------------------------------------------------------
+  int IGTLinkClient::ServerPort::get()
+  {
+    return this->m_ServerPort;
+  }
+
+  //----------------------------------------------------------------------------
+  void IGTLinkClient::ServerPort::set( int arg )
+  {
+    this->m_ServerPort = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  Platform::String^ IGTLinkClient::ServerHost::get()
+  {
+    return this->m_ServerHost;
+  }
+
+  //----------------------------------------------------------------------------
+  void IGTLinkClient::ServerHost::set( Platform::String^ arg )
+  {
+    this->m_ServerHost = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  int IGTLinkClient::ServerIGTLVersion::get()
+  {
+    return this->m_ServerIGTLVersion;
+  }
+
+  //----------------------------------------------------------------------------
+  void IGTLinkClient::ServerIGTLVersion::set( int arg )
+  {
+    this->m_ServerIGTLVersion = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  bool IGTLinkClient::Connected::get()
+  {
+    return m_Connected;
+  }
+
+  //----------------------------------------------------------------------------
+  void IGTLinkClient::Connected::set( bool arg )
+  {
+    m_Connected = arg;
+  }
 
 }

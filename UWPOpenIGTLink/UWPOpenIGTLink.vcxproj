@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|ARM">
-      <Configuration>Debug</Configuration>
-      <Platform>ARM</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
@@ -12,10 +8,6 @@
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|ARM">
-      <Configuration>Release</Configuration>
-      <Platform>ARM</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
@@ -29,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{341616a4-cfc4-47cf-87e3-58d619b8475a}</ProjectGuid>
     <Keyword>DynamicLibrary</Keyword>
-    <RootNamespace>OpenIGTLinkClient</RootNamespace>
+    <RootNamespace>UWPOpenIGTLink</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
     <AppContainerApplication>true</AppContainerApplication>
@@ -45,23 +37,12 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -84,12 +65,6 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -101,20 +76,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <GenerateManifest>false</GenerateManifest>
     <IgnoreImportLibrary>false</IgnoreImportLibrary>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>
-    <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <GenerateManifest>false</GenerateManifest>
-    <IgnoreImportLibrary>false</IgnoreImportLibrary>
-    <IntDir>$(Platform)\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
-    <GenerateManifest>false</GenerateManifest>
-    <IgnoreImportLibrary>false</IgnoreImportLibrary>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <GenerateManifest>false</GenerateManifest>
     <IgnoreImportLibrary>false</IgnoreImportLibrary>
   </PropertyGroup>
@@ -129,95 +92,66 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(SolutionDir)igtlutil;$(SolutionDir)OpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>Server_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAsWinRT>true</CompileAsWinRT>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WINRT_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+      <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
+      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(SolutionDir)igtlutil;$(SolutionDir)OpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>Server_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAsWinRT>true</CompileAsWinRT>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WINRT_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|arm'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(SolutionDir)igtlutil;$(SolutionDir)OpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>Server_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|arm'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(SolutionDir)igtlutil;$(SolutionDir)OpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>Server_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+      <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
+      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(SolutionDir)igtlutil;$(SolutionDir)OpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>Server_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAsWinRT>true</CompileAsWinRT>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WINRT_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+      <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
+      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(SolutionDir)igtlutil;$(SolutionDir)OpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>Server_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAsWinRT>true</CompileAsWinRT>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WINRT_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+      <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
+      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="..\igtlutil\igtlutil.vcxproj">
-      <Project>{05e4439a-3dcf-4dee-a7b3-b8271c249caf}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\OpenIGTLink\OpenIGTLink.vcxproj">
-      <Project>{f50c8cbe-8dcd-4ba2-bc59-dc7aaa9d4478}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="IGTLinkClient.h" />
-    <ClInclude Include="ServerExport.h" />
+    <ClInclude Include="TrackedFrameMessage.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="IGTLinkClient.cxx" />
+    <ClCompile Include="TrackedFrameMessage.cxx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
