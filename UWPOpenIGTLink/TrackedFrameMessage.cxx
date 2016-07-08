@@ -50,7 +50,7 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  std::map<std::string, std::string>& TrackedFrameMessage::GetCustomFrameFields()
+  const std::map<std::string, std::string>& TrackedFrameMessage::GetCustomFrameFields()
   {
     return this->CustomFrameFields;
   }
@@ -62,21 +62,27 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  igtl::US_IMAGE_ORIENTATION TrackedFrameMessage::GetImageOrientation()
-  {
-    return this->ImageOrientation;
-  }
-
-  //----------------------------------------------------------------------------
-  igtl::Matrix4x4* TrackedFrameMessage::GetIJKToRAS()
-  {
-    return &( this->IJKtoRAS );
-  }
-
-  //----------------------------------------------------------------------------
-  igtl::TimeStamp::Pointer TrackedFrameMessage::GetTimestamp()
+  double TrackedFrameMessage::GetTimestamp()
   {
     return this->Timestamp;
+  }
+
+  //----------------------------------------------------------------------------
+  const std::vector<int>& TrackedFrameMessage::GetFrameSize()
+  {
+    return this->FrameSize;
+  }
+
+  //----------------------------------------------------------------------------
+  int TrackedFrameMessage::GetNumberOfComponents()
+  {
+    return this->NumberOfComponents;
+  }
+
+  //----------------------------------------------------------------------------
+  int TrackedFrameMessage::GetImageSizeInBytes()
+  {
+    return this->ImageSizeInBytes;
   }
 
   //----------------------------------------------------------------------------
@@ -115,19 +121,41 @@ namespace igtl
     char* xmlData = ( char* )( this->m_Content + header->GetMessageHeaderSize() );
     this->TrackedFrameXmlData.assign( xmlData, header->m_XmlDataSizeInBytes );
 
-    // TODO : copy custom frame fields from xml data
+    Windows::Data::Xml::Dom::XmlDocument document;
+    document.LoadXml( ref new Platform::String( std::wstring( TrackedFrameXmlData.begin(), TrackedFrameXmlData.end() ).c_str() ) );
 
-    // Copy image data
-    void* imageData = ( void* )( this->m_Content + header->GetMessageHeaderSize() + header->m_XmlDataSizeInBytes );
-    int frameSize[3] = { header->m_FrameSize[0], header->m_FrameSize[1], header->m_FrameSize[2] };
-    this->Image = ( unsigned char* )malloc( frameSize[0] * frameSize[1] * frameSize[2] * igtl_get_scalar_size( header->m_ScalarType ) * header->m_NumberOfComponents );
-    this->ImageType = ( US_IMAGE_TYPE )header->m_ImageType;
+    auto rootAttributes = document.GetElementsByTagName( L"TrackedFrame" )->Item( 0 )->Attributes;
 
-    memcpy( ( void* )( this->Image ), imageData, header->m_ImageDataSizeInBytes );
+    this->Timestamp = _wtof( dynamic_cast<Platform::String^>( rootAttributes->GetNamedItem( L"Timestamp" )->NodeValue )->Data() );
+    this->ImageValid = dynamic_cast<Platform::String^>( rootAttributes->GetNamedItem( L"ImageDataValid" )->NodeValue ) == L"true";
 
-    // Set timestamp
-    this->Timestamp = igtl::TimeStamp::New();
-    this->GetTimeStamp( this->Timestamp );
+    if ( this->ImageValid )
+    {
+      void* imageData = ( void* )( this->m_Content + header->GetMessageHeaderSize() + header->m_XmlDataSizeInBytes );
+      FrameSize.clear();
+      FrameSize.push_back( header->m_FrameSize[0] );
+      FrameSize.push_back( header->m_FrameSize[1] );
+      FrameSize.push_back( header->m_FrameSize[2] );
+      this->NumberOfComponents = header->m_NumberOfComponents;
+      this->ImageSizeInBytes = header->m_ImageDataSizeInBytes;
+      this->Image = ( unsigned char* )malloc( this->ImageSizeInBytes );
+      this->ImageType = ( US_IMAGE_TYPE )header->m_ImageType;
+
+      memcpy( ( void* )( this->Image ), imageData, this->ImageSizeInBytes );
+    }
+
+    for( unsigned int i = 0; i < document.GetElementsByTagName( L"TrackedFrame" )->Item( 0 )->ChildNodes->Size; ++i )
+    {
+      auto childNode = document.GetElementsByTagName( L"TrackedFrame" )->Item( 0 )->ChildNodes->Item( i );
+
+      if ( childNode->NodeName == L"CustomFrameField" )
+      {
+        std::wstring nameWide( dynamic_cast<Platform::String^>( childNode->Attributes->GetNamedItem( L"Name" )->NodeValue )->Data() );
+        std::wstring valueWide( dynamic_cast<Platform::String^>( childNode->Attributes->GetNamedItem( L"Value" )->NodeValue )->Data() );
+
+        this->CustomFrameFields[std::string( nameWide.begin(), nameWide.end() )] = std::string( nameWide.begin(), nameWide.end() );
+      }
+    }
 
     return 1;
   }

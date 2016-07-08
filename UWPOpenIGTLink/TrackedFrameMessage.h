@@ -1,5 +1,4 @@
-#ifndef __TrackedFrameMessage_h
-#define __TrackedFrameMessage_h
+#pragma once
 
 #include <string>
 
@@ -12,40 +11,6 @@
 
 namespace igtl
 {
-
-  /*!
-  \enum US_IMAGE_ORIENTATION
-  \brief Defines constant values for ultrasound image orientation
-  The ultrasound image axes are defined as follows:
-  \li x axis: points towards the x coordinate increase direction
-  \li y axis: points towards the y coordinate increase direction
-  \li z axis: points towards the z coordinate increase direction
-  The image orientation can be defined by specifying which transducer axis corresponds to the x, y and z image axes, respectively.
-  \ingroup PlusLibCommon
-  */
-  enum US_IMAGE_ORIENTATION
-  {
-    US_IMG_ORIENT_XX,  /*!< undefined */
-    US_IMG_ORIENT_UF, /*!< image x axis = unmarked transducer axis, image y axis = far transducer axis */
-    US_IMG_ORIENT_UFD = US_IMG_ORIENT_UF, /*!< image x axis = unmarked transducer axis, image y axis = far transducer axis, image z axis = descending transducer axis */
-    US_IMG_ORIENT_UFA, /*!< image x axis = unmarked transducer axis, image y axis = far transducer axis, image z axis = ascending transducer axis */
-    US_IMG_ORIENT_UN, /*!< image x axis = unmarked transducer axis, image y axis = near transducer axis */
-    US_IMG_ORIENT_UNA = US_IMG_ORIENT_UN, /*!< image x axis = unmarked transducer axis, image y axis = near transducer axis, image z axis = ascending transducer axis */
-    US_IMG_ORIENT_UND, /*!< image x axis = unmarked transducer axis, image y axis = near transducer axis, image z axis = descending transducer axis */
-    US_IMG_ORIENT_MF, /*!< image x axis = marked transducer axis, image y axis = far transducer axis */
-    US_IMG_ORIENT_MFA = US_IMG_ORIENT_MF, /*!< image x axis = marked transducer axis, image y axis = far transducer axis, image z axis = ascending transducer axis */
-    US_IMG_ORIENT_MFD, /*!< image x axis = marked transducer axis, image y axis = far transducer axis, image z axis = descending transducer axis */
-    US_IMG_ORIENT_AMF,
-    US_IMG_ORIENT_MN, /*!< image x axis = marked transducer axis, image y axis = near transducer axis */
-    US_IMG_ORIENT_MND = US_IMG_ORIENT_MN, /*!< image x axis = marked transducer axis, image y axis = near transducer axis, image z axis = descending transducer axis */
-    US_IMG_ORIENT_MNA, /*!< image x axis = marked transducer axis, image y axis = near transducer axis, image z axis = ascending transducer axis */
-    US_IMG_ORIENT_FU, /*!< image x axis = far transducer axis, image y axis = unmarked transducer axis (usually for RF frames)*/
-    US_IMG_ORIENT_NU, /*!< image x axis = near transducer axis, image y axis = unmarked transducer axis (usually for RF frames)*/
-    US_IMG_ORIENT_FM, /*!< image x axis = far transducer axis, image y axis = marked transducer axis (usually for RF frames)*/
-    US_IMG_ORIENT_NM, /*!< image x axis = near transducer axis, image y axis = marked transducer axis (usually for RF frames)*/
-    US_IMG_ORIENT_LAST   /*!< just a placeholder for range checking, this must be the last defined orientation item */
-  };
-
   /*!
   \enum US_IMAGE_TYPE
   \brief Defines constant values for ultrasound image type
@@ -86,11 +51,12 @@ namespace igtl
 
     /*! Get Plus TrackedFrame */
     unsigned char* GetImage();
-    std::map<std::string, std::string>& GetCustomFrameFields();
+    const std::map<std::string, std::string>& GetCustomFrameFields();
     US_IMAGE_TYPE GetImageType();
-    US_IMAGE_ORIENTATION GetImageOrientation();
-    igtl::Matrix4x4* GetIJKToRAS();
-    igtl::TimeStamp::Pointer GetTimestamp();
+    double GetTimestamp();
+    const std::vector<int>& GetFrameSize();
+    int GetNumberOfComponents();
+    int GetImageSizeInBytes();
 
   protected:
     class TrackedFrameHeader
@@ -119,11 +85,15 @@ namespace igtl
 
     std::map<std::string, std::string> CustomFrameFields;
     unsigned char* Image;
-    igtl::Matrix4x4 IJKtoRAS;
+    std::vector<int> FrameSize;
     std::string TrackedFrameXmlData;
     US_IMAGE_TYPE ImageType;
-    US_IMAGE_ORIENTATION ImageOrientation;
-    igtl::TimeStamp::Pointer Timestamp;
+    double Timestamp;
+    int ScalarType;
+    int NumberOfComponents;
+    bool ImageValid;
+
+    int ImageSizeInBytes;
 
     TrackedFrameHeader MessageHeader;
   };
@@ -131,5 +101,3 @@ namespace igtl
 #pragma pack()
 
 }
-
-#endif

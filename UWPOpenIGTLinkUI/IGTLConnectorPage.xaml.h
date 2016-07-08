@@ -1,11 +1,19 @@
 ﻿//
-// SettingsPage.xaml.h
-// Declaration of the MainPage class.
+// IGTLConnectorPage.xaml.h
+// Declaration of the IGTLConnectorPage class.
 //
 
 #pragma once
 
 #include "IGTLConnectorPage.g.h"
+
+
+namespace WF = Windows::Foundation;
+namespace WFC = WF::Collections;
+namespace WFM = WF::Metadata;
+namespace WUX = Windows::UI::Xaml;
+namespace WUXC = Windows::UI::Xaml::Controls;
+namespace WUXM = Windows::UI::Xaml::Media;
 
 namespace UWPOpenIGTLinkUI
 {
@@ -18,13 +26,17 @@ namespace UWPOpenIGTLinkUI
   public:
     IGTLConnectorPage();
 
-  protected:
-    virtual void serverPortTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
-    virtual void serverHostnameTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
-    void applyButton_Click( Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e );
+  private:
+    void onUITimerTick(Platform::Object^ sender, Platform::Object^ e);
+    void serverPortTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
+    void serverHostnameTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
+    void connectButton_Click( Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e );
+    void processConnectionResult(bool result);
 
-  internal:
+  protected private:
     UWPOpenIGTLink::IGTLinkClient^ IGTClient;
+
+    WUX::DispatcherTimer^ UITimer;
   };
 
 }

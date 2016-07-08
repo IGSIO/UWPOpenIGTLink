@@ -205,8 +205,6 @@
   <ItemGroup>
     <ProjectReference Include="..\UWPOpenIGTLink\UWPOpenIGTLink.vcxproj">
       <Project>{341616a4-cfc4-47cf-87e3-58d619b8475a}</Project>
-      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
