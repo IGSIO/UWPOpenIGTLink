@@ -7,6 +7,7 @@
 #include "igtlServerSocket.h"
 #include "igtlTrackingDataMessage.h"
 
+#include <regex>
 #include <chrono>
 #include <collection.h>
 #include <pplawait.h>
@@ -47,6 +48,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   Windows::Foundation::IAsyncOperation<bool>^ IGTLinkClient::ConnectAsync( double timeoutSec )
   {
+    this->CancellationTokenSource = concurrency::cancellation_token_source();
     auto token = this->CancellationTokenSource.get_token();
 
     return concurrency::create_async( [this, timeoutSec, token]() -> bool
@@ -311,6 +313,13 @@ namespace UWPOpenIGTLink
               reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
             }
 
+            for ( std::map<std::string, std::string>::const_iterator it = trackedFrameMsg->GetCustomFrameFields().begin(); it != trackedFrameMsg->GetCustomFrameFields().end(); ++it )
+            {
+              std::wstring keyWideStr( it->first.begin(), it->first.end() );
+              std::wstring valueWideStr( it->second.begin(), it->second.end() );
+              reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+            }
+
             reply->ImageSource = FromNativePointer( trackedFrameMsg->GetImage(),
                                                     trackedFrameMsg->GetFrameSize()[0],
                                                     trackedFrameMsg->GetFrameSize()[1],
@@ -357,9 +366,9 @@ namespace UWPOpenIGTLink
     }
 
     WUXM::Imaging::WriteableBitmap^ wbm = ref new WUXM::Imaging::WriteableBitmap( width, height );
-    concurrency::create_task(imageDataWriter->StoreAsync()).wait();
+    concurrency::create_task( imageDataWriter->StoreAsync() ).wait();
 
-    wbm->SetSource(imageData);
+    wbm->SetSource( imageData );
     wbm->Invalidate();
 
     return wbm;
@@ -515,4 +524,33 @@ namespace UWPOpenIGTLink
     m_CommandName = arg;
   }
 
+  //----------------------------------------------------------------------------
+  WFC::IMapView<Platform::String^, Platform::String^>^ ImageReply::GetValidTransforms()
+  {
+    Platform::Collections::Map<Platform::String^, Platform::String^>^ outputMap = ref new Platform::Collections::Map<Platform::String^, Platform::String^>;
+    for ( auto entry : m_Parameters )
+    {
+      std::wstring key( entry->Key->Data() );
+      std::wstring value( entry->Value->Data() );
+
+      if ( key.find( L"TransformStatus" ) != std::wstring::npos )
+      {
+        if ( value.compare( L"OK" ) != 0 )
+        {
+          continue;
+        }
+        else
+        {
+          // This entry is valid, so find the corresponding transform and put it in the list
+          //ImageToCroppedImageTransformStatus
+          //ImageToCroppedImageTransform
+          std::wstring lookupKey( key.substr( 0, key.find( L"Status" ) ) );
+          Platform::String^ refLookupKey = ref new Platform::String( lookupKey.c_str() );
+          outputMap->Insert( refLookupKey, m_Parameters->Lookup( refLookupKey ) );
+        }
+      }
+    }
+
+    return outputMap->GetView();
+  }
 }

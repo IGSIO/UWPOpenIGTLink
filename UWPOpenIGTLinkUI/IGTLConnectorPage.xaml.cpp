@@ -39,10 +39,18 @@ namespace UWPOpenIGTLinkUI
   {
     if ( IGTClient->Connected )
     {
-      // TODO : async retrieveing image (data copy)
-      // then query member variable for latest image
+      Platform::String^ text = ref new Platform::String();
       auto reply = this->IGTClient->ParseImageReply( 1.0 );
-      this->imageDisplay->Source = reply->ImageSource;
+      if (reply->Result != false)
+      {
+        this->imageDisplay->Source = reply->ImageSource;
+        for (auto transform : reply->GetValidTransforms())
+        {
+          text = text + transform->Key + L": " + transform->Value + L"\n";
+        }
+      }
+      
+      this->transformTextBlock->Text = text;
     }
   }
 
@@ -87,7 +95,7 @@ namespace UWPOpenIGTLinkUI
     else
     {
       this->connectButton->Content = L"Connecting...";
-      auto task = IGTClient->ConnectAsync( 10.0 );
+      auto task = IGTClient->ConnectAsync( 5.0 );
       concurrency::create_task( task ).then( [this]( bool result )
       {
         processConnectionResult( result );
@@ -114,6 +122,8 @@ namespace UWPOpenIGTLinkUI
     }
     else
     {
+      this->UITimer->Stop();
+
       this->connectButton->Content = L"Connect";
       this->statusBarTextBlock->Text = ref new Platform::String( L"Unable to connect." );
       this->statusIcon->Source = ref new WUXM::Imaging::BitmapImage( ref new WF::Uri( "ms-appx:///Assets/glossy-red-button-2400px.png" ) );

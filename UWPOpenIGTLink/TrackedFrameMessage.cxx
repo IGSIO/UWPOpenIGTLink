@@ -153,7 +153,7 @@ namespace igtl
         std::wstring nameWide( dynamic_cast<Platform::String^>( childNode->Attributes->GetNamedItem( L"Name" )->NodeValue )->Data() );
         std::wstring valueWide( dynamic_cast<Platform::String^>( childNode->Attributes->GetNamedItem( L"Value" )->NodeValue )->Data() );
 
-        this->CustomFrameFields[std::string( nameWide.begin(), nameWide.end() )] = std::string( nameWide.begin(), nameWide.end() );
+        this->CustomFrameFields[std::string( nameWide.begin(), nameWide.end() )] = std::string( valueWide.begin(), valueWide.end() );
       }
     }
 

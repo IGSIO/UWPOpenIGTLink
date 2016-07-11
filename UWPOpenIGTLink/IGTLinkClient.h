@@ -27,6 +27,8 @@ namespace UWPOpenIGTLink
     property WFC::IMap<Platform::String^, Platform::String^>^ Parameters {WFC::IMap<Platform::String^, Platform::String^>^ get(); void set( WFC::IMap<Platform::String^, Platform::String^>^ arg );}
     property WUXM::Imaging::BitmapSource^ ImageSource {WUXM::Imaging::BitmapSource ^ get(); void set( WUXM::Imaging::BitmapSource ^ arg );}
 
+    WFC::IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
+
   protected private:
     bool m_Result;
     WFC::IMap<Platform::String^, Platform::String^>^ m_Parameters;
