@@ -16,9 +16,9 @@
             <RowDefinition Height="40*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="110*"/>
-            <ColumnDefinition Width="80*"/>
-            <ColumnDefinition Width="410*"/>
+            <ColumnDefinition Width="100*"/>
+            <ColumnDefinition Width="120*"/>
+            <ColumnDefinition Width="380*"/>
         </Grid.ColumnDefinitions>
         <TextBlock x:Name="serverHostnameTextBlock" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="10,0,0,0" Text="IGTL Server Hostname" />
         <TextBox x:Name="serverHostnameTextBox" Margin="0,0,0,0" TextWrapping="Wrap" Text="" HorizontalAlignment="Stretch" VerticalAlignment="Center" Grid.Column="1" ToolTipService.ToolTip="Enter the hostname or IP of the IGTL server" PlaceholderText="127.0.0.1" TextChanged="serverHostnameTextBox_TextChanged"/>
