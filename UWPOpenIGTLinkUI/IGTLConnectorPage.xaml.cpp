@@ -20,7 +20,7 @@ namespace UWPOpenIGTLinkUI
   //----------------------------------------------------------------------------
   IGTLConnectorPage::IGTLConnectorPage()
     : IGTClient( ref new UWPOpenIGTLink::IGTLinkClient() )
-    , UITimer( nullptr )
+    , UITimer( ref new WUX::DispatcherTimer() )
   {
     InitializeComponent();
 
@@ -41,15 +41,18 @@ namespace UWPOpenIGTLinkUI
     {
       Platform::String^ text = ref new Platform::String();
       auto reply = this->IGTClient->ParseImageReply( 1.0 );
-      if (reply->Result != false)
+      if ( reply->Result != false )
       {
-        this->imageDisplay->Source = reply->ImageSource;
-        for (auto transform : reply->GetValidTransforms())
+        if ( this->imageDisplay->Source != reply->ImageSource )
+        {
+          this->imageDisplay->Source = reply->ImageSource;
+        }
+        for ( auto transform : reply->GetValidTransforms() )
         {
           text = text + transform->Key + L": " + transform->Value + L"\n";
         }
       }
-      
+
       this->transformTextBlock->Text = text;
     }
   }
@@ -113,10 +116,9 @@ namespace UWPOpenIGTLinkUI
       this->statusIcon->Source = ref new WUXM::Imaging::BitmapImage( ref new WF::Uri( "ms-appx:///Assets/glossy-green-button-2400px.png" ) );
       this->connectButton->Content = L"Disconnect";
 
-      this->UITimer = ref new WUX::DispatcherTimer();
       this->UITimer->Tick += ref new WF::EventHandler<Object^>( this, &IGTLConnectorPage::onUITimerTick );
       WF::TimeSpan t;
-      t.Duration = 100;
+      t.Duration = 33;
       this->UITimer->Interval = t;
       this->UITimer->Start();
     }

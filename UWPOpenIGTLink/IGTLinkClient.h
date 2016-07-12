@@ -25,14 +25,14 @@ namespace UWPOpenIGTLink
   public:
     property bool Result {bool get(); void set( bool arg );}
     property WFC::IMap<Platform::String^, Platform::String^>^ Parameters {WFC::IMap<Platform::String^, Platform::String^>^ get(); void set( WFC::IMap<Platform::String^, Platform::String^>^ arg );}
-    property WUXM::Imaging::BitmapSource^ ImageSource {WUXM::Imaging::BitmapSource ^ get(); void set( WUXM::Imaging::BitmapSource ^ arg );}
+    property WUXM::Imaging::WriteableBitmap^ ImageSource {WUXM::Imaging::WriteableBitmap ^ get(); void set( WUXM::Imaging::WriteableBitmap ^ arg );}
 
     WFC::IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
 
   protected private:
     bool m_Result;
     WFC::IMap<Platform::String^, Platform::String^>^ m_Parameters;
-    WUXM::Imaging::BitmapSource^ m_ImageSource;
+    WUXM::Imaging::WriteableBitmap^ m_ImageSource;
   };
 
   [Windows::Foundation::Metadata::WebHostHiddenAttribute]
@@ -99,11 +99,7 @@ namespace UWPOpenIGTLink
     int SocketReceive( void* data, int length );
 
     /// Convert a c-style byte array to a managed image object
-    WUXM::Imaging::BitmapSource^ FromNativePointer( unsigned char* pData,
-        int width,
-        int height,
-        int numberOfcomponents,
-        int pDataSize );
+    bool FromNativePointer( unsigned char* pData, int width, int height, int numberOfcomponents, WUXM::Imaging::WriteableBitmap^ wbm );
 
     /// igtl Factory for message sending
     igtl::MessageFactory::Pointer IgtlMessageFactory;
@@ -120,6 +116,10 @@ namespace UWPOpenIGTLink
 
     /// List of replies received through the socket, transformed to igtl messages
     std::deque<igtl::MessageBase::Pointer> Replies;
+
+    /// Stored WriteableBitmap to reduce overhead of memory reallocation unless necessary
+    WUXM::Imaging::WriteableBitmap^ WriteableBitmap;
+    std::vector<int> FrameSize;
 
     /// Server information
     Platform::String^ m_ServerHost;

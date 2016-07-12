@@ -7,11 +7,12 @@
 #include "igtlServerSocket.h"
 #include "igtlTrackingDataMessage.h"
 
-#include <regex>
 #include <chrono>
 #include <collection.h>
 #include <pplawait.h>
 #include <ppltasks.h>
+#include <regex>
+#include <robuffer.h>
 
 static const int CLIENT_SOCKET_TIMEOUT_MSEC = 500;
 
@@ -22,6 +23,33 @@ namespace WSS = Windows::Storage::Streams;
 namespace WUXC = Windows::UI::Xaml::Controls;
 namespace WUXM = Windows::UI::Xaml::Media;
 namespace WDXD = Windows::Data::Xml::Dom;
+
+namespace
+{
+  inline void ThrowIfFailed( HRESULT hr )
+  {
+    if ( FAILED( hr ) )
+    {
+      throw Platform::Exception::CreateException( hr );
+    }
+  }
+
+  byte* GetPointerToPixelData( WSS::IBuffer^ buffer )
+  {
+    // Cast to Object^, then to its underlying IInspectable interface.
+    Platform::Object^ obj = buffer;
+    Microsoft::WRL::ComPtr<IInspectable> insp( reinterpret_cast<IInspectable*>( obj ) );
+
+    // Query the IBufferByteAccess interface.
+    Microsoft::WRL::ComPtr<WSS::IBufferByteAccess> bufferByteAccess;
+    ThrowIfFailed( insp.As( &bufferByteAccess ) );
+
+    // Retrieve the buffer data.
+    byte* pixels = nullptr;
+    ThrowIfFailed( bufferByteAccess->Buffer( &pixels ) );
+    return pixels;
+  }
+}
 
 namespace UWPOpenIGTLink
 {
@@ -35,6 +63,10 @@ namespace UWPOpenIGTLink
     this->ServerHost = L"127.0.0.1";
     this->ServerPort = 18944;
     this->ServerIGTLVersion = IGTL_HEADER_VERSION_2;
+
+    this->FrameSize.push_back( 0 );
+    this->FrameSize.push_back( 0 );
+    this->FrameSize.push_back( 0 );
   }
 
   //----------------------------------------------------------------------------
@@ -293,6 +325,7 @@ namespace UWPOpenIGTLink
     auto reply = ref new ImageReply;
     reply->Result = false;
     reply->Parameters = ref new Platform::Collections::Map<Platform::String^, Platform::String^>;
+    reply->ImageSource = this->WriteableBitmap;
 
     while ( 1 )
     {
@@ -320,14 +353,27 @@ namespace UWPOpenIGTLink
               reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
             }
 
-            reply->ImageSource = FromNativePointer( trackedFrameMsg->GetImage(),
-                                                    trackedFrameMsg->GetFrameSize()[0],
-                                                    trackedFrameMsg->GetFrameSize()[1],
-                                                    trackedFrameMsg->GetNumberOfComponents(),
-                                                    trackedFrameMsg->GetImageSizeInBytes()
-                                                  );
+            if ( trackedFrameMsg->GetFrameSize()[0] != this->FrameSize[0] ||
+                 trackedFrameMsg->GetFrameSize()[1] != this->FrameSize[1] ||
+                 trackedFrameMsg->GetFrameSize()[2] != this->FrameSize[2] )
+            {
+              this->FrameSize.clear();
+              this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[0] );
+              this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[1] );
+              this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[2] );
+
+              // Reallocate a new image
+              this->WriteableBitmap = ref new WUXM::Imaging::WriteableBitmap( FrameSize[0], FrameSize[1] );
+            }
+
+            FromNativePointer( trackedFrameMsg->GetImage(),
+                               trackedFrameMsg->GetFrameSize()[0],
+                               trackedFrameMsg->GetFrameSize()[1],
+                               trackedFrameMsg->GetNumberOfComponents(),
+                               this->WriteableBitmap );
 
             this->Replies.pop_front();
+            this->WriteableBitmap->Invalidate();
             reply->Result = true;
             return reply;
           }
@@ -353,25 +399,25 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  WUXM::Imaging::BitmapSource^ IGTLinkClient::FromNativePointer( unsigned char* pData, int width, int height, int numberOfcomponents, int pDataSize )
+  bool IGTLinkClient::FromNativePointer( unsigned char* pData, int width, int height, int numberOfcomponents, WUXM::Imaging::WriteableBitmap^ wbm )
   {
-    auto imageData = ref new WSS::InMemoryRandomAccessStream();
-    auto imageDataWriter = ref new WSS::DataWriter( imageData->GetOutputStreamAt( 0 ) );
-    for ( int i = 0; i < pDataSize; ++i )
+    byte* pPixels = ::GetPointerToPixelData( wbm->PixelBuffer );
+
+    int i( 0 );
+    for ( int y = 0; y < height; y++ )
     {
-      imageDataWriter->WriteByte( pData[i] ); // b
-      imageDataWriter->WriteByte( pData[i] ); // g
-      imageDataWriter->WriteByte( pData[i] ); // r
-      imageDataWriter->WriteByte( 255 ); // a
+      for ( int x = 0; x < width; x++ )
+      {
+        pPixels[(x + y * width) * 4] = pData[i]; // B
+        pPixels[(x + y * width) * 4 + 1] = pData[i]; // G
+        pPixels[(x + y * width) * 4 + 2] = pData[i]; // R
+        pPixels[(x + y * width) * 4 + 3] = 255; // A
+
+        i++;
+      }
     }
 
-    WUXM::Imaging::WriteableBitmap^ wbm = ref new WUXM::Imaging::WriteableBitmap( width, height );
-    concurrency::create_task( imageDataWriter->StoreAsync() ).wait();
-
-    wbm->SetSource( imageData );
-    wbm->Invalidate();
-
-    return wbm;
+    return true;
   }
 
   //----------------------------------------------------------------------------
@@ -441,13 +487,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  WUXM::Imaging::BitmapSource^ ImageReply::ImageSource::get()
+  WUXM::Imaging::WriteableBitmap^ ImageReply::ImageSource::get()
   {
     return m_ImageSource;
   }
 
   //----------------------------------------------------------------------------
-  void ImageReply::ImageSource::set( WUXM::Imaging::BitmapSource^ arg )
+  void ImageReply::ImageSource::set( WUXM::Imaging::WriteableBitmap^ arg )
   {
     m_ImageSource = arg;
   }
