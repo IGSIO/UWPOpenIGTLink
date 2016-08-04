@@ -332,7 +332,6 @@ namespace UWPOpenIGTLink
         reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
       }
 
-      this->Replies.pop_front();
       reply->Result = true;
       return true;
     }
@@ -399,7 +398,6 @@ namespace UWPOpenIGTLink
                          trackedFrameMsg->GetNumberOfComponents(),
                          this->WriteableBitmap );
 
-      this->Replies.pop_front();
       this->WriteableBitmap->Invalidate();
       reply->Result = true;
       return true;
