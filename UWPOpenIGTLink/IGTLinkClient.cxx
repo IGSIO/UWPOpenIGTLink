@@ -1,5 +1,31 @@
+/*====================================================================
+Copyright(c) 2016 Adam Rankin
+
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files(the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and / or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+====================================================================*/
+
+// Local includes
 #include "IGTLinkClient.h"
 #include "TrackedFrameMessage.h"
+
+// IGT includes
 #include "igtlCommandMessage.h"
 #include "igtlCommon.h"
 #include "igtlMessageHeader.h"
@@ -7,14 +33,15 @@
 #include "igtlServerSocket.h"
 #include "igtlTrackingDataMessage.h"
 
+// STD includes
 #include <chrono>
+#include <regex>
+
+// Windows includes
 #include <collection.h>
 #include <pplawait.h>
 #include <ppltasks.h>
-#include <regex>
 #include <robuffer.h>
-
-static const int CLIENT_SOCKET_TIMEOUT_MSEC = 500;
 
 namespace WF = Windows::Foundation;
 namespace WFC = WF::Collections;
@@ -53,6 +80,8 @@ namespace
 
 namespace UWPOpenIGTLink
 {
+
+  const int IGTLinkClient::CLIENT_SOCKET_TIMEOUT_MSEC = 500;
 
   //----------------------------------------------------------------------------
   IGTLinkClient::IGTLinkClient()
@@ -250,145 +279,133 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  CommandReply^ IGTLinkClient::ParseCommandReply( double timeoutSec )
+  bool IGTLinkClient::ParseCommandReply( CommandReply^ reply )
   {
-
-    auto start = std::chrono::high_resolution_clock::now();
-
-    auto reply = ref new CommandReply;
     reply->Result = false;
     reply->Parameters = ref new Platform::Collections::Map<Platform::String^, Platform::String^>;
 
-    while ( 1 )
+    igtl::MessageBase::Pointer message = nullptr;
     {
+      // Retrieve the next available command reply
+      Concurrency::critical_section::scoped_lock lock( Mutex );
+      for ( auto replyIter = Replies.begin(); replyIter != Replies.end(); ++replyIter )
       {
-        // save command reply
-        Concurrency::critical_section::scoped_lock lock( Mutex );
-        if ( !this->Replies.empty() )
+        if ( typeid( *( *replyIter ) ) == typeid( igtl::RTSCommandMessage ) )
         {
-          igtl::MessageBase::Pointer message = this->Replies.front();
-          if ( typeid( *message ) == typeid( igtl::RTSCommandMessage ) )
-          {
-            igtl::RTSCommandMessage::Pointer rtsCommandMsg = dynamic_cast<igtl::RTSCommandMessage*>( message.GetPointer() );
-
-            // TODO : this whole function will need to know about all of the different TUO command message replies in the future
-
-            std::wstring wideStr( rtsCommandMsg->GetCommandName().begin(), rtsCommandMsg->GetCommandName().end() );
-            reply->CommandName = ref new Platform::String( wideStr.c_str() );
-            reply->OriginalCommandId = rtsCommandMsg->GetCommandId();
-
-            std::wstring wideContentStr( rtsCommandMsg->GetCommandContent().begin(), rtsCommandMsg->GetCommandContent().end() );
-            std::transform( wideContentStr.begin(), wideContentStr.end(), wideContentStr.begin(), ::towlower );
-            reply->CommandContent = ref new Platform::String( wideContentStr.c_str() );
-
-            WDXD::XmlDocument^ commandDoc = ref new WDXD::XmlDocument;
-            commandDoc->LoadXml( reply->CommandContent );
-            reply->Result = commandDoc->GetElementsByTagName( L"Result" )->Item( 0 )->NodeValue == L"true";
-
-            for ( unsigned int i = 0; i < commandDoc->GetElementsByTagName( L"Parameter" )->Size; ++i )
-            {
-              auto entry = commandDoc->GetElementsByTagName( L"Parameter" )->Item( i );
-              Platform::String^ name = dynamic_cast<Platform::String^>( entry->Attributes->GetNamedItem( L"Name" )->NodeValue );
-              Platform::String^ value = dynamic_cast<Platform::String^>( entry->Attributes->GetNamedItem( L"Value" )->NodeValue );
-              reply->Parameters->Insert( name, value );
-            }
-
-            for ( std::map< std::string, std::string>::const_iterator it = rtsCommandMsg->GetMetaData().begin(); it != rtsCommandMsg->GetMetaData().end(); ++it )
-            {
-              std::wstring keyWideStr( it->first.begin(), it->first.end() );
-              std::wstring valueWideStr( it->second.begin(), it->second.end() );
-              reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
-            }
-
-            this->Replies.pop_front();
-            reply->Result = true;
-            return reply;
-          }
+          message = *replyIter;
+          Replies.erase( replyIter );
+          break;
         }
       }
-
-      std::chrono::duration<double, std::milli> timeDiff = std::chrono::high_resolution_clock::now() - start;
-      if ( timeDiff.count() > timeoutSec * 1000 )
-      {
-        return reply;
-      }
-      std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
     }
-    return reply;
+
+    if( message != nullptr )
+    {
+      igtl::RTSCommandMessage::Pointer rtsCommandMsg = dynamic_cast<igtl::RTSCommandMessage*>( message.GetPointer() );
+
+      // TODO : this whole function will need to know about all of the different TUO command message replies in the future
+
+      std::wstring wideStr( rtsCommandMsg->GetCommandName().begin(), rtsCommandMsg->GetCommandName().end() );
+      reply->CommandName = ref new Platform::String( wideStr.c_str() );
+      reply->OriginalCommandId = rtsCommandMsg->GetCommandId();
+
+      std::wstring wideContentStr( rtsCommandMsg->GetCommandContent().begin(), rtsCommandMsg->GetCommandContent().end() );
+      std::transform( wideContentStr.begin(), wideContentStr.end(), wideContentStr.begin(), ::towlower );
+      reply->CommandContent = ref new Platform::String( wideContentStr.c_str() );
+
+      WDXD::XmlDocument^ commandDoc = ref new WDXD::XmlDocument;
+      commandDoc->LoadXml( reply->CommandContent );
+      reply->Result = commandDoc->GetElementsByTagName( L"Result" )->Item( 0 )->NodeValue == L"true";
+
+      for ( unsigned int i = 0; i < commandDoc->GetElementsByTagName( L"Parameter" )->Size; ++i )
+      {
+        auto entry = commandDoc->GetElementsByTagName( L"Parameter" )->Item( i );
+        Platform::String^ name = dynamic_cast<Platform::String^>( entry->Attributes->GetNamedItem( L"Name" )->NodeValue );
+        Platform::String^ value = dynamic_cast<Platform::String^>( entry->Attributes->GetNamedItem( L"Value" )->NodeValue );
+        reply->Parameters->Insert( name, value );
+      }
+
+      for ( std::map< std::string, std::string>::const_iterator it = rtsCommandMsg->GetMetaData().begin(); it != rtsCommandMsg->GetMetaData().end(); ++it )
+      {
+        std::wstring keyWideStr( it->first.begin(), it->first.end() );
+        std::wstring valueWideStr( it->second.begin(), it->second.end() );
+        reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+      }
+
+      this->Replies.pop_front();
+      reply->Result = true;
+      return true;
+    }
+
+    return false;
   }
 
   //----------------------------------------------------------------------------
-  ImageReply^ IGTLinkClient::ParseImageReply( double timeoutSec )
+  bool IGTLinkClient::ParseTrackedFrameReply( TrackedFrameReply^ reply )
   {
-    auto start = std::chrono::high_resolution_clock::now();
-
-    auto reply = ref new ImageReply;
     reply->Result = false;
     reply->Parameters = ref new Platform::Collections::Map<Platform::String^, Platform::String^>;
     reply->ImageSource = this->WriteableBitmap;
 
-    while ( 1 )
+    igtl::MessageBase::Pointer message = nullptr;
     {
+      // Retrieve the next available tracked frame reply
+      Concurrency::critical_section::scoped_lock lock( Mutex );
+      for ( auto replyIter = Replies.begin(); replyIter != Replies.end(); ++replyIter )
       {
-        // save command reply
-        Concurrency::critical_section::scoped_lock lock( Mutex );
-        if ( !this->Replies.empty() )
+        if ( typeid( *( *replyIter ) ) == typeid( igtl::TrackedFrameMessage ) )
         {
-          igtl::MessageBase::Pointer message = this->Replies.front();
-          if ( typeid( *message ) == typeid( igtl::TrackedFrameMessage ) )
-          {
-            igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( message.GetPointer() );
-
-            for ( std::map< std::string, std::string>::const_iterator it = trackedFrameMsg->GetMetaData().begin(); it != trackedFrameMsg->GetMetaData().end(); ++it )
-            {
-              std::wstring keyWideStr( it->first.begin(), it->first.end() );
-              std::wstring valueWideStr( it->second.begin(), it->second.end() );
-              reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
-            }
-
-            for ( std::map<std::string, std::string>::const_iterator it = trackedFrameMsg->GetCustomFrameFields().begin(); it != trackedFrameMsg->GetCustomFrameFields().end(); ++it )
-            {
-              std::wstring keyWideStr( it->first.begin(), it->first.end() );
-              std::wstring valueWideStr( it->second.begin(), it->second.end() );
-              reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
-            }
-
-            if ( trackedFrameMsg->GetFrameSize()[0] != this->FrameSize[0] ||
-                 trackedFrameMsg->GetFrameSize()[1] != this->FrameSize[1] ||
-                 trackedFrameMsg->GetFrameSize()[2] != this->FrameSize[2] )
-            {
-              this->FrameSize.clear();
-              this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[0] );
-              this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[1] );
-              this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[2] );
-
-              // Reallocate a new image
-              this->WriteableBitmap = ref new WUXM::Imaging::WriteableBitmap( FrameSize[0], FrameSize[1] );
-            }
-
-            FromNativePointer( trackedFrameMsg->GetImage(),
-                               trackedFrameMsg->GetFrameSize()[0],
-                               trackedFrameMsg->GetFrameSize()[1],
-                               trackedFrameMsg->GetNumberOfComponents(),
-                               this->WriteableBitmap );
-
-            this->Replies.pop_front();
-            this->WriteableBitmap->Invalidate();
-            reply->Result = true;
-            return reply;
-          }
+          message = *replyIter;
+          Replies.erase( replyIter );
+          break;
         }
-
-        std::chrono::duration<double, std::milli> timeDiff = std::chrono::high_resolution_clock::now() - start;
-        if ( timeDiff.count() > timeoutSec * 1000 )
-        {
-          return reply;
-        }
-        std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
       }
     }
 
-    return reply;
+    if ( message != nullptr )
+    {
+      igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( message.GetPointer() );
+
+      for ( std::map< std::string, std::string>::const_iterator it = trackedFrameMsg->GetMetaData().begin(); it != trackedFrameMsg->GetMetaData().end(); ++it )
+      {
+        std::wstring keyWideStr( it->first.begin(), it->first.end() );
+        std::wstring valueWideStr( it->second.begin(), it->second.end() );
+        reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+      }
+
+      for ( std::map<std::string, std::string>::const_iterator it = trackedFrameMsg->GetCustomFrameFields().begin(); it != trackedFrameMsg->GetCustomFrameFields().end(); ++it )
+      {
+        std::wstring keyWideStr( it->first.begin(), it->first.end() );
+        std::wstring valueWideStr( it->second.begin(), it->second.end() );
+        reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+      }
+
+      if ( trackedFrameMsg->GetFrameSize()[0] != this->FrameSize[0] ||
+           trackedFrameMsg->GetFrameSize()[1] != this->FrameSize[1] ||
+           trackedFrameMsg->GetFrameSize()[2] != this->FrameSize[2] )
+      {
+        this->FrameSize.clear();
+        this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[0] );
+        this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[1] );
+        this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[2] );
+
+        // Reallocate a new image
+        this->WriteableBitmap = ref new WUXM::Imaging::WriteableBitmap( FrameSize[0], FrameSize[1] );
+      }
+
+      FromNativePointer( trackedFrameMsg->GetImage(),
+                         trackedFrameMsg->GetFrameSize()[0],
+                         trackedFrameMsg->GetFrameSize()[1],
+                         trackedFrameMsg->GetNumberOfComponents(),
+                         this->WriteableBitmap );
+
+      this->Replies.pop_front();
+      this->WriteableBitmap->Invalidate();
+      reply->Result = true;
+      return true;
+    }
+
+    return false;
   }
 
   //----------------------------------------------------------------------------
@@ -408,10 +425,10 @@ namespace UWPOpenIGTLink
     {
       for ( int x = 0; x < width; x++ )
       {
-        pPixels[(x + y * width) * 4] = pData[i]; // B
-        pPixels[(x + y * width) * 4 + 1] = pData[i]; // G
-        pPixels[(x + y * width) * 4 + 2] = pData[i]; // R
-        pPixels[(x + y * width) * 4 + 3] = 255; // A
+        pPixels[( x + y * width ) * 4] = pData[i]; // B
+        pPixels[( x + y * width ) * 4 + 1] = pData[i]; // G
+        pPixels[( x + y * width ) * 4 + 2] = pData[i]; // R
+        pPixels[( x + y * width ) * 4 + 3] = 255; // A
 
         i++;
       }
@@ -460,143 +477,5 @@ namespace UWPOpenIGTLink
   bool IGTLinkClient::Connected::get()
   {
     return this->ClientSocket->GetConnected();
-  }
-
-  //----------------------------------------------------------------------------
-  bool ImageReply::Result::get()
-  {
-    return m_Result;
-  }
-
-  //----------------------------------------------------------------------------
-  void ImageReply::Result::set( bool arg )
-  {
-    m_Result = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  WFC::IMap<Platform::String^, Platform::String^>^ ImageReply::Parameters::get()
-  {
-    return m_Parameters;
-  }
-
-  //----------------------------------------------------------------------------
-  void ImageReply::Parameters::set( WFC::IMap<Platform::String^, Platform::String^>^ arg )
-  {
-    m_Parameters = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  WUXM::Imaging::WriteableBitmap^ ImageReply::ImageSource::get()
-  {
-    return m_ImageSource;
-  }
-
-  //----------------------------------------------------------------------------
-  void ImageReply::ImageSource::set( WUXM::Imaging::WriteableBitmap^ arg )
-  {
-    m_ImageSource = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  bool CommandReply::Result::get()
-  {
-    return m_Result;
-  }
-
-  //----------------------------------------------------------------------------
-  void CommandReply::Result::set( bool arg )
-  {
-    m_Result = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  WFC::IMap<Platform::String^, Platform::String^>^ CommandReply::Parameters::get()
-  {
-    return m_Parameters;
-  }
-
-  //----------------------------------------------------------------------------
-  void CommandReply::Parameters::set( WFC::IMap<Platform::String^, Platform::String^>^ arg )
-  {
-    m_Parameters = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  int32_t CommandReply::OriginalCommandId::get()
-  {
-    return m_OriginalCommandId;
-  }
-
-  //----------------------------------------------------------------------------
-  void CommandReply::OriginalCommandId::set( int32_t arg )
-  {
-    m_OriginalCommandId = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  Platform::String^ CommandReply::ErrorString::get()
-  {
-    return m_ErrorString;
-  }
-
-  //----------------------------------------------------------------------------
-  void CommandReply::ErrorString::set( Platform::String^ arg )
-  {
-    m_ErrorString = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  Platform::String^ CommandReply::CommandContent::get()
-  {
-    return m_CommandContent;
-  }
-
-  //----------------------------------------------------------------------------
-  void CommandReply::CommandContent::set( Platform::String^ arg )
-  {
-    m_CommandContent = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  Platform::String^ CommandReply::CommandName::get()
-  {
-    return m_CommandName;
-  }
-
-  //----------------------------------------------------------------------------
-  void CommandReply::CommandName::set( Platform::String^ arg )
-  {
-    m_CommandName = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  WFC::IMapView<Platform::String^, Platform::String^>^ ImageReply::GetValidTransforms()
-  {
-    Platform::Collections::Map<Platform::String^, Platform::String^>^ outputMap = ref new Platform::Collections::Map<Platform::String^, Platform::String^>;
-    for ( auto entry : m_Parameters )
-    {
-      std::wstring key( entry->Key->Data() );
-      std::wstring value( entry->Value->Data() );
-
-      if ( key.find( L"TransformStatus" ) != std::wstring::npos )
-      {
-        if ( value.compare( L"OK" ) != 0 )
-        {
-          continue;
-        }
-        else
-        {
-          // This entry is valid, so find the corresponding transform and put it in the list
-          //ImageToCroppedImageTransformStatus
-          //ImageToCroppedImageTransform
-          std::wstring lookupKey( key.substr( 0, key.find( L"Status" ) ) );
-          Platform::String^ refLookupKey = ref new Platform::String( lookupKey.c_str() );
-          outputMap->Insert( refLookupKey, m_Parameters->Lookup( refLookupKey ) );
-        }
-      }
-    }
-
-    return outputMap->GetView();
   }
 }

@@ -1,23 +1,30 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Common">
-      <UniqueIdentifier>2a288b83-d03c-4e41-8179-c26070140d10</UniqueIdentifier>
-    </Filter>
     <Filter Include="Assets">
       <UniqueIdentifier>3ebcce0b-f187-4bba-80b6-51dcf1cc98a2</UniqueIdentifier>
       <Extensions>bmp;fbx;gif;jpg;jpeg;tga;tiff;tif;png</Extensions>
     </Filter>
+    <Filter Include="Infrastructure">
+      <UniqueIdentifier>{376dfac4-0b0f-4d7f-82f5-55fad3a39453}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pages">
+      <UniqueIdentifier>{dad0d344-cc7a-434f-81ab-2ae93d5c767c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pch.cpp" />
     <ClCompile Include="App.xaml.cpp" />
     <ClCompile Include="IGTLConnectorPage.xaml.cpp" />
+    <ClCompile Include="pch.cpp">
+      <Filter>Infrastructure</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h" />
     <ClInclude Include="App.xaml.h" />
     <ClInclude Include="IGTLConnectorPage.xaml.h" />
+    <ClInclude Include="pch.h">
+      <Filter>Infrastructure</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\LockScreenLogo.scale-200.png">
@@ -52,15 +59,23 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <AppxManifest Include="Package.appxmanifest" />
+    <ApplicationDefinition Include="App.xaml">
+      <Filter>Infrastructure</Filter>
+    </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
-    <None Include="UWPOpenIGTLinkUI_TemporaryKey.pfx" />
+    <AppxManifest Include="Package.appxmanifest">
+      <Filter>Infrastructure</Filter>
+    </AppxManifest>
   </ItemGroup>
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml" />
+    <None Include="UWPOpenIGTLinkUI_TemporaryKey.pfx">
+      <Filter>Infrastructure</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="IGTLConnectorPage.xaml" />
+    <Page Include="IGTLConnectorPage.xaml">
+      <Filter>Pages</Filter>
+    </Page>
   </ItemGroup>
 </Project>

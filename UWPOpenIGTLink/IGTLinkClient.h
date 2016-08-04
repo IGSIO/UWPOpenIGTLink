@@ -1,12 +1,42 @@
+/*====================================================================
+Copyright(c) 2016 Adam Rankin
+
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files(the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and / or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+====================================================================*/
+
 #pragma once
 
+// Message type includes
+#include "CommandReply.h"
+#include "TrackedFrameReply.h"
+
+// IGT includes
 #include "igtlClientSocket.h"
 #include "igtlMessageHeader.h"
 #include "igtlMessageFactory.h"
 
+// STD includes
 #include <deque>
 #include <string>
 
+// Windows includes
 #include <ppltasks.h>
 #include <concrt.h>
 #include <vccorlib.h>
@@ -19,43 +49,6 @@ namespace WUXM = Windows::UI::Xaml::Media;
 
 namespace UWPOpenIGTLink
 {
-  [Windows::Foundation::Metadata::WebHostHiddenAttribute]
-  public ref class ImageReply sealed
-  {
-  public:
-    property bool Result {bool get(); void set( bool arg );}
-    property WFC::IMap<Platform::String^, Platform::String^>^ Parameters {WFC::IMap<Platform::String^, Platform::String^>^ get(); void set( WFC::IMap<Platform::String^, Platform::String^>^ arg );}
-    property WUXM::Imaging::WriteableBitmap^ ImageSource {WUXM::Imaging::WriteableBitmap ^ get(); void set( WUXM::Imaging::WriteableBitmap ^ arg );}
-
-    WFC::IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
-
-  protected private:
-    bool m_Result;
-    WFC::IMap<Platform::String^, Platform::String^>^ m_Parameters;
-    WUXM::Imaging::WriteableBitmap^ m_ImageSource;
-  };
-
-  [Windows::Foundation::Metadata::WebHostHiddenAttribute]
-  public ref class CommandReply sealed
-  {
-  public:
-    property bool Result {bool get(); void set( bool arg ); }
-    property WFC::IMap<Platform::String^, Platform::String^>^ Parameters {WFC::IMap<Platform::String^, Platform::String^>^ get(); void set( WFC::IMap<Platform::String^, Platform::String^>^ arg ); }
-    property int32_t OriginalCommandId {int32_t get(); void set( int32_t arg ); }
-    property Platform::String^ ErrorString {Platform::String ^ get(); void set( Platform::String ^ arg ); }
-    property Platform::String^ CommandContent {Platform::String ^ get(); void set( Platform::String ^ arg ); }
-    property Platform::String^ CommandName {Platform::String ^ get(); void set( Platform::String ^ arg ); }
-
-  protected private:
-    bool m_Result;
-    WFC::IMap<Platform::String^, Platform::String^>^ m_Parameters;
-    int32_t m_OriginalCommandId;
-    Platform::String^ m_ErrorString;
-    Platform::String^ m_CommandContent;
-    Platform::String^ m_CommandName;
-  };
-
-
   ///
   /// \class IGTLinkClient
   /// \brief This class provides an OpenIGTLink client. It has basic functionality for sending and receiving messages
@@ -82,10 +75,10 @@ namespace UWPOpenIGTLink
     virtual ~IGTLinkClient();
 
     /// Retrieve a command reply from the queue of replies and clear it
-    CommandReply^ ParseCommandReply( double timeoutSec );
+    bool ParseCommandReply(CommandReply^ reply);
 
-    /// Retrieve an image reply from the queue of replies and clear it
-    ImageReply^ ParseImageReply( double timeoutSec );
+    /// Retrieve a tracked frame reply from the queue of replies and clear it
+    bool ParseTrackedFrameReply(TrackedFrameReply^ reply);
 
   internal:
     /// Send a packed message to the connected server
@@ -125,6 +118,8 @@ namespace UWPOpenIGTLink
     Platform::String^ m_ServerHost;
     int m_ServerPort;
     int m_ServerIGTLVersion;
+
+    static const int CLIENT_SOCKET_TIMEOUT_MSEC;
 
   private:
     IGTLinkClient( IGTLinkClient^ ) {}

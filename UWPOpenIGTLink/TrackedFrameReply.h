@@ -1,4 +1,4 @@
-﻿/*====================================================================
+/*====================================================================
 Copyright(c) 2016 Adam Rankin
 
 
@@ -23,38 +23,27 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
-// Local includes
-#include "IGTLConnectorPage.g.h"
-
 namespace WF = Windows::Foundation;
 namespace WFC = WF::Collections;
 namespace WFM = WF::Metadata;
-namespace WUX = Windows::UI::Xaml;
 namespace WUXC = Windows::UI::Xaml::Controls;
 namespace WUXM = Windows::UI::Xaml::Media;
 
-namespace UWPOpenIGTLinkUI
+namespace UWPOpenIGTLink
 {
-
-  /// <summary>
-  /// An empty page that can be used on its own or navigated to within a Frame.
-  /// </summary>
-  public ref class IGTLConnectorPage sealed
+  [Windows::Foundation::Metadata::WebHostHiddenAttribute]
+  public ref class TrackedFrameReply sealed
   {
   public:
-    IGTLConnectorPage();
+    property bool Result {bool get(); void set( bool arg ); }
+    property WFC::IMap<Platform::String^, Platform::String^>^ Parameters {WFC::IMap<Platform::String^, Platform::String^>^ get(); void set( WFC::IMap<Platform::String^, Platform::String^>^ arg ); }
+    property WUXM::Imaging::WriteableBitmap^ ImageSource {WUXM::Imaging::WriteableBitmap ^ get(); void set( WUXM::Imaging::WriteableBitmap ^ arg ); }
 
-  private:
-    void onUITimerTick( Platform::Object^ sender, Platform::Object^ e );
-    void serverPortTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
-    void serverHostnameTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
-    void connectButton_Click( Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e );
-    void processConnectionResult( bool result );
+    WFC::IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
 
   protected private:
-    UWPOpenIGTLink::IGTLinkClient^ IGTClient;
-
-    WUX::DispatcherTimer^ UITimer;
+    bool m_Result;
+    WFC::IMap<Platform::String^, Platform::String^>^ m_Parameters;
+    WUXM::Imaging::WriteableBitmap^ m_ImageSource;
   };
-
 }
