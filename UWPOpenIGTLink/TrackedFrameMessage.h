@@ -23,6 +23,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
+// Windows includes
+#include <Windows.h>
+
 // STD includes
 #include <string>
 
@@ -36,11 +39,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 namespace igtl
 {
-  /*!
-  \enum US_IMAGE_TYPE
-  \brief Defines constant values for ultrasound image type
-  \ingroup PlusLibCommon
-  */
+  /// US_IMAGE_TYPE - Defines constant values for ultrasound image type
   enum US_IMAGE_TYPE
   {
     US_IMG_TYPE_XX,    /*!< undefined */
@@ -52,13 +51,25 @@ namespace igtl
     US_IMG_TYPE_LAST   /*!< just a placeholder for range checking, this must be the last defined image type */
   };
 
+  /// An enum to wrap the c define values specified in igtl_util.h
+  enum ScalarType
+  {
+    IGTL_SCALARTYPE_UNKNOWN = 0,
+    IGTL_SCALARTYPE_INT8 = IGTL_SCALAR_INT8,
+    IGTL_SCALARTYPE_UINT8 = IGTL_SCALAR_UINT8,
+    IGTL_SCALARTYPE_INT16 = IGTL_SCALAR_INT16,
+    IGTL_SCALARTYPE_UINT16 = IGTL_SCALAR_UINT16,
+    IGTL_SCALARTYPE_INT32 = IGTL_SCALAR_INT32,
+    IGTL_SCALARTYPE_UINT32 = IGTL_SCALAR_UINT32,
+    IGTL_SCALARTYPE_FLOAT32 = IGTL_SCALAR_FLOAT32,
+    IGTL_SCALARTYPE_FLOAT64 = IGTL_SCALAR_FLOAT64,
+    IGTL_SCALARTYPE_COMPLEX = IGTL_SCALAR_COMPLEX
+  };
+
   // This command prevents 4-byte alignment in the struct (which enables m_FrameSize[3])
 #pragma pack(1)     /* For 1-byte boundary in memory */
 
-  ///
-  ///  \class TrackedFrameMessage
-  ///  \brief IGTL message helper class for tracked frame messages
-  ///
+  ///  TrackedFrameMessage - IGTL message helper class for tracked frame messages
   class TrackedFrameMessage : public MessageBase
   {
   public:
@@ -74,14 +85,15 @@ namespace igtl
     /*! Override clone so that we use the plus igtl factory */
     virtual igtl::MessageBase::Pointer Clone();
 
-    /*! Get Plus TrackedFrame */
-    unsigned char* GetImage();
+    /// Accessors to the various parts of the message and message header
+    byte* GetImage();
     const std::map<std::string, std::string>& GetCustomFrameFields();
     US_IMAGE_TYPE GetImageType();
     double GetTimestamp();
-    const std::vector<int>& GetFrameSize();
-    int GetNumberOfComponents();
-    int GetImageSizeInBytes();
+    igtl_uint16* GetFrameSize();
+    igtl_uint16 GetNumberOfComponents();
+    igtl_uint32 GetImageSizeInBytes();
+    ScalarType GetScalarType();
 
   protected:
     class TrackedFrameHeader
@@ -108,19 +120,15 @@ namespace igtl
     TrackedFrameMessage();
     ~TrackedFrameMessage();
 
-    std::map<std::string, std::string> CustomFrameFields;
-    unsigned char* Image;
-    std::vector<int> FrameSize;
-    std::string TrackedFrameXmlData;
-    US_IMAGE_TYPE ImageType;
-    double Timestamp;
-    int ScalarType;
-    int NumberOfComponents;
-    bool ImageValid;
+    std::map<std::string, std::string> m_customFrameFields;
+    byte* m_image;
+    std::string m_trackedFrameXmlData;
+    double m_timestamp;
+    bool m_imageValid;
 
-    int ImageSizeInBytes;
+    int32 m_imageSizeInBytes;
 
-    TrackedFrameHeader MessageHeader;
+    TrackedFrameHeader m_messageHeader;
   };
 
 #pragma pack()

@@ -25,6 +25,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 // Message type includes
 #include "CommandReply.h"
+#include "TrackedFrameMessage.h"
 #include "TrackedFrameReply.h"
 
 // IGT includes
@@ -60,6 +61,7 @@ namespace UWPOpenIGTLink
   {
   public:
     IGTLinkClient();
+    virtual ~IGTLinkClient();
 
     property int ServerPort {int get(); void set( int ); }
     property Platform::String^ ServerHost { Platform::String ^ get(); void set( Platform::String^ ); }
@@ -70,15 +72,17 @@ namespace UWPOpenIGTLink
     WF::IAsyncOperation<bool>^ ConnectAsync( double timeoutSec );
 
     /// Disconnect from the connected server
-    WF::IAsyncAction^ DisconnectAsync();
+    void Disconnect();
 
-    virtual ~IGTLinkClient();
+    /// Retrieve the oldest command reply from the queue of replies and clear it
+    bool ParseCommandReply( CommandReply^ reply );
 
-    /// Retrieve a command reply from the queue of replies and clear it
-    bool ParseCommandReply(CommandReply^ reply);
+    /// Retrieve the oldest tracked frame reply from the queue of replies and clear it
+    [Windows::Foundation::Metadata::DefaultOverloadAttribute]
+    bool ParseTrackedFrameReply( TrackedFrameMessageCx^ reply );
 
-    /// Retrieve a tracked frame reply from the queue of replies and clear it
-    bool ParseTrackedFrameReply(TrackedFrameReply^ reply);
+    /// Retrieve the oldest tracked frame reply from the queue of replies and clear it
+    bool ParseTrackedFrameReply( TrackedFrameMessage^ reply );
 
   internal:
     /// Send a packed message to the connected server
@@ -87,6 +91,10 @@ namespace UWPOpenIGTLink
     /// Threaded function to receive data from the connected server
     static void DataReceiverPump( IGTLinkClient^ self, concurrency::cancellation_token token );
 
+    // Callback functions for when a frame is received
+    uint64 RegisterTrackedFrameCallback( std::function<void( igtl::TrackedFrameMessage* )>& function );
+    bool UnregisterTrackedFrameCallback( uint64 token );
+
   protected private:
     /// Thread-safe method that allows child classes to read data from the socket
     int SocketReceive( void* data, int length );
@@ -94,25 +102,30 @@ namespace UWPOpenIGTLink
     /// Convert a c-style byte array to a managed image object
     bool FromNativePointer( unsigned char* pData, int width, int height, int numberOfcomponents, WUXM::Imaging::WriteableBitmap^ wbm );
 
+  protected private:
     /// igtl Factory for message sending
-    igtl::MessageFactory::Pointer IgtlMessageFactory;
+    igtl::MessageFactory::Pointer m_igtlMessageFactory;
 
-    concurrency::task<void> DataReceiverTask;
-    concurrency::cancellation_token_source CancellationTokenSource;
+    concurrency::task<void> m_dataReceiverTask;
+    concurrency::cancellation_token_source m_cancellationTokenSource;
 
     /// Mutex instance for safe data access
-    Concurrency::critical_section Mutex;
-    Concurrency::critical_section SocketMutex;
+    Concurrency::critical_section m_messageListMutex;
+    Concurrency::critical_section m_socketMutex;
 
     /// Socket that is connected to the server
-    igtl::ClientSocket::Pointer ClientSocket;
+    igtl::ClientSocket::Pointer m_clientSocket;
 
-    /// List of replies received through the socket, transformed to igtl messages
-    std::deque<igtl::MessageBase::Pointer> Replies;
+    // Tracked frame callbacks
+    std::map < uint64, std::function<void( igtl::TrackedFrameMessage* )> > m_trackedFrameCallbacks;
+    uint64 m_lastUnusedCallbackToken = 0;
+
+    /// List of messages received through the socket, transformed to igtl messages
+    std::deque<igtl::MessageBase::Pointer> m_messages;
 
     /// Stored WriteableBitmap to reduce overhead of memory reallocation unless necessary
-    WUXM::Imaging::WriteableBitmap^ WriteableBitmap;
-    std::vector<int> FrameSize;
+    WUXM::Imaging::WriteableBitmap^ m_writeableBitmap;
+    std::vector<uint32> m_frameSize;
 
     /// Server information
     Platform::String^ m_ServerHost;
@@ -120,6 +133,7 @@ namespace UWPOpenIGTLink
     int m_ServerIGTLVersion;
 
     static const int CLIENT_SOCKET_TIMEOUT_MSEC;
+    static const uint32 MESSAGE_LIST_MAX_SIZE;
 
   private:
     IGTLinkClient( IGTLinkClient^ ) {}

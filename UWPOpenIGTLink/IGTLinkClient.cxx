@@ -31,6 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "igtlMessageHeader.h"
 #include "igtlOSUtil.h"
 #include "igtlServerSocket.h"
+#include "igtlStatusMessage.h"
 #include "igtlTrackingDataMessage.h"
 
 // STD includes
@@ -82,35 +83,42 @@ namespace UWPOpenIGTLink
 {
 
   const int IGTLinkClient::CLIENT_SOCKET_TIMEOUT_MSEC = 500;
+  const uint32 IGTLinkClient::MESSAGE_LIST_MAX_SIZE = 200;
 
   //----------------------------------------------------------------------------
   IGTLinkClient::IGTLinkClient()
-    : IgtlMessageFactory( igtl::MessageFactory::New() )
-    , ClientSocket( igtl::ClientSocket::New() )
+    : m_igtlMessageFactory( igtl::MessageFactory::New() )
+    , m_clientSocket( igtl::ClientSocket::New() )
   {
-    IgtlMessageFactory->AddMessageType( "TRACKEDFRAME", ( igtl::MessageFactory::PointerToMessageBaseNew )&igtl::TrackedFrameMessage::New );
+    m_igtlMessageFactory->AddMessageType( "TRACKEDFRAME", ( igtl::MessageFactory::PointerToMessageBaseNew )&igtl::TrackedFrameMessage::New );
     this->ServerHost = L"127.0.0.1";
     this->ServerPort = 18944;
     this->ServerIGTLVersion = IGTL_HEADER_VERSION_2;
 
-    this->FrameSize.push_back( 0 );
-    this->FrameSize.push_back( 0 );
-    this->FrameSize.push_back( 0 );
+    this->m_frameSize.assign( 3, 0 );
   }
 
   //----------------------------------------------------------------------------
   IGTLinkClient::~IGTLinkClient()
   {
-    auto action = this->DisconnectAsync();
-    auto disconnectTask = concurrency::create_task( action );
+    this->Disconnect();
+    auto disconnectTask = concurrency::create_task( [this]()
+    {
+      while ( this->Connected )
+      {
+        Sleep( 33 );
+      }
+    } );
     disconnectTask.wait();
   }
 
   //----------------------------------------------------------------------------
   Windows::Foundation::IAsyncOperation<bool>^ IGTLinkClient::ConnectAsync( double timeoutSec )
   {
-    this->CancellationTokenSource = concurrency::cancellation_token_source();
-    auto token = this->CancellationTokenSource.get_token();
+    this->Disconnect();
+
+    this->m_cancellationTokenSource = concurrency::cancellation_token_source();
+    auto token = this->m_cancellationTokenSource.get_token();
 
     return concurrency::create_async( [this, timeoutSec, token]() -> bool
     {
@@ -123,7 +131,7 @@ namespace UWPOpenIGTLink
         {
           std::wstring wideStr( this->ServerHost->Begin() );
           std::string str( wideStr.begin(), wideStr.end() );
-          errorCode = this->ClientSocket->ConnectToServer( str.c_str(), this->ServerPort );
+          errorCode = this->m_clientSocket->ConnectToServer( str.c_str(), this->ServerPort );
           std::chrono::duration<double, std::milli> timeDiff = std::chrono::high_resolution_clock::now() - start;
           if ( timeDiff.count() > timeoutSec * 1000 )
           {
@@ -138,7 +146,7 @@ namespace UWPOpenIGTLink
           return false;
         }
 
-        this->ClientSocket->SetTimeout( CLIENT_SOCKET_TIMEOUT_MSEC );
+        this->m_clientSocket->SetTimeout( CLIENT_SOCKET_TIMEOUT_MSEC );
         return true;
       } );
 
@@ -159,17 +167,14 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  Windows::Foundation::IAsyncAction^ IGTLinkClient::DisconnectAsync()
+  void IGTLinkClient::Disconnect()
   {
-    return concurrency::create_async( [this]()
-    {
-      this->CancellationTokenSource.cancel();
+    this->m_cancellationTokenSource.cancel();
 
-      {
-        Concurrency::critical_section::scoped_lock lock( this->SocketMutex );
-        this->ClientSocket->CloseSocket();
-      }
-    } );
+    {
+      Concurrency::critical_section::scoped_lock lock( this->m_socketMutex );
+      this->m_clientSocket->CloseSocket();
+    }
   }
 
   //----------------------------------------------------------------------------
@@ -177,8 +182,8 @@ namespace UWPOpenIGTLink
   {
     int success = 0;
     {
-      Concurrency::critical_section::scoped_lock lock( SocketMutex );
-      success = this->ClientSocket->Send( packedMessage->GetBufferPointer(), packedMessage->GetBufferSize() );
+      Concurrency::critical_section::scoped_lock lock( m_socketMutex );
+      success = this->m_clientSocket->Send( packedMessage->GetBufferPointer(), packedMessage->GetBufferSize() );
     }
     if ( !success )
     {
@@ -193,22 +198,18 @@ namespace UWPOpenIGTLink
   {
     while ( !token.is_canceled() )
     {
-      igtl::MessageHeader::Pointer headerMsg;
-      {
-        igtl::MessageFactory::Pointer factory = igtl::MessageFactory::New();
-        headerMsg = factory->CreateHeaderMessage( IGTL_HEADER_VERSION_1 );
-      }
+      auto headerMsg = self->m_igtlMessageFactory->CreateHeaderMessage( IGTL_HEADER_VERSION_1 );
 
       // Receive generic header from the socket
       int numOfBytesReceived = 0;
       {
-        Concurrency::critical_section::scoped_lock lock( self->SocketMutex );
-        if ( !self->ClientSocket->GetConnected() )
+        Concurrency::critical_section::scoped_lock lock( self->m_socketMutex );
+        if ( !self->m_clientSocket->GetConnected() )
         {
           // We've become disconnected while waiting for the socket, we're done here!
           return;
         }
-        numOfBytesReceived = self->ClientSocket->Receive( headerMsg->GetBufferPointer(), headerMsg->GetBufferSize() );
+        numOfBytesReceived = self->m_clientSocket->Receive( headerMsg->GetBufferPointer(), headerMsg->GetBufferSize() );
       }
       if ( numOfBytesReceived == 0 // No message received
            || numOfBytesReceived != headerMsg->GetPackSize() // Received data is not as we expected
@@ -226,26 +227,26 @@ namespace UWPOpenIGTLink
         continue;
       }
 
-      igtl::MessageBase::Pointer bodyMsg = self->IgtlMessageFactory->CreateReceiveMessage( headerMsg );
+      auto bodyMsg = self->m_igtlMessageFactory->CreateReceiveMessage( headerMsg );
       if ( bodyMsg.IsNull() )
       {
         std::cerr << "Unable to create message of type: " << headerMsg->GetMessageType() << std::endl;
         continue;
       }
 
-      // Only accept tracked frame messages
-      if ( typeid( *bodyMsg ) == typeid( igtl::TrackedFrameMessage ) )
+      // Accept all messages but status messages, they are used as a keep alive mechanism
+      if ( typeid( *bodyMsg ) != typeid( igtl::StatusMessage ) )
       {
         bodyMsg->SetMessageHeader( headerMsg );
         bodyMsg->AllocateBuffer();
         {
-          Concurrency::critical_section::scoped_lock lock( self->SocketMutex );
-          if ( !self->ClientSocket->GetConnected() )
+          Concurrency::critical_section::scoped_lock lock( self->m_socketMutex );
+          if ( !self->m_clientSocket->GetConnected() )
           {
             // We've become disconnected while waiting for the socket, we're done here!
             return;
           }
-          self->ClientSocket->Receive( bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize() );
+          self->m_clientSocket->Receive( bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize() );
         }
 
         int c = bodyMsg->Unpack( 1 );
@@ -254,24 +255,42 @@ namespace UWPOpenIGTLink
           std::cerr << "Failed to receive reply (invalid body)" << std::endl;
           continue;
         }
+
         {
-          // save command reply
-          Concurrency::critical_section::scoped_lock lock( self->Mutex );
-          self->Replies.push_back( bodyMsg );
+          // save reply
+          Concurrency::critical_section::scoped_lock lock( self->m_messageListMutex );
+
+          self->m_messages.push_back( bodyMsg );
+        }
+
+        if ( typeid( *bodyMsg ) != typeid( igtl::TrackedFrameMessage ) )
+        {
+          for ( auto pair : self->m_trackedFrameCallbacks )
+          {
+            igtl::TrackedFrameMessage* tfMsg = dynamic_cast<igtl::TrackedFrameMessage*>( bodyMsg.GetPointer() );
+            pair.second( tfMsg );
+          }
         }
       }
       else
       {
-        // if the incoming message is not a reply to a command, we discard it and continue
+        Concurrency::critical_section::scoped_lock lock( self->m_socketMutex );
+
+        if ( !self->m_clientSocket->GetConnected() )
         {
-          Concurrency::critical_section::scoped_lock lock( self->SocketMutex );
-          if ( !self->ClientSocket->GetConnected() )
-          {
-            // We've become disconnected while waiting for the socket, we're done here!
-            return;
-          }
-          self->ClientSocket->Skip( headerMsg->GetBodySizeToRead(), 0 );
+          // We've become disconnected while waiting for the socket, we're done here!
+          return;
         }
+        self->m_clientSocket->Skip( headerMsg->GetBodySizeToRead(), 0 );
+      }
+
+      if ( self->m_messages.size() > MESSAGE_LIST_MAX_SIZE )
+      {
+        Concurrency::critical_section::scoped_lock lock( self->m_messageListMutex );
+
+        // erase the front N results
+        uint32 toErase = self->m_messages.size() - MESSAGE_LIST_MAX_SIZE;
+        self->m_messages.erase( self->m_messages.begin(), self->m_messages.begin() + toErase );
       }
     }
 
@@ -287,13 +306,13 @@ namespace UWPOpenIGTLink
     igtl::MessageBase::Pointer message = nullptr;
     {
       // Retrieve the next available command reply
-      Concurrency::critical_section::scoped_lock lock( Mutex );
-      for ( auto replyIter = Replies.begin(); replyIter != Replies.end(); ++replyIter )
+      Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
+      for ( auto reply : m_messages )
       {
-        if ( typeid( *( *replyIter ) ) == typeid( igtl::RTSCommandMessage ) )
+        if ( typeid( *( reply ) ) == typeid( igtl::RTSCommandMessage ) )
         {
-          message = *replyIter;
-          Replies.erase( replyIter );
+          message = reply;
+          m_messages.erase( std::find( m_messages.begin(), m_messages.end(), reply ) );
           break;
         }
       }
@@ -325,10 +344,10 @@ namespace UWPOpenIGTLink
         reply->Parameters->Insert( name, value );
       }
 
-      for ( std::map< std::string, std::string>::const_iterator it = rtsCommandMsg->GetMetaData().begin(); it != rtsCommandMsg->GetMetaData().end(); ++it )
+      for ( auto pair : rtsCommandMsg->GetMetaData() )
       {
-        std::wstring keyWideStr( it->first.begin(), it->first.end() );
-        std::wstring valueWideStr( it->second.begin(), it->second.end() );
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
         reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
       }
 
@@ -340,22 +359,22 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::ParseTrackedFrameReply( TrackedFrameReply^ reply )
+  bool IGTLinkClient::ParseTrackedFrameReply( TrackedFrameMessageCx^ reply )
   {
     reply->Result = false;
     reply->Parameters = ref new Platform::Collections::Map<Platform::String^, Platform::String^>;
-    reply->ImageSource = this->WriteableBitmap;
+    reply->ImageSource = this->m_writeableBitmap;
 
     igtl::MessageBase::Pointer message = nullptr;
     {
       // Retrieve the next available tracked frame reply
-      Concurrency::critical_section::scoped_lock lock( Mutex );
-      for ( auto replyIter = Replies.begin(); replyIter != Replies.end(); ++replyIter )
+      Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
+      for ( auto replyIter = m_messages.begin(); replyIter != m_messages.end(); ++replyIter )
       {
         if ( typeid( *( *replyIter ) ) == typeid( igtl::TrackedFrameMessage ) )
         {
           message = *replyIter;
-          Replies.erase( replyIter );
+          m_messages.erase( replyIter );
           break;
         }
       }
@@ -365,41 +384,91 @@ namespace UWPOpenIGTLink
     {
       igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( message.GetPointer() );
 
-      for ( std::map< std::string, std::string>::const_iterator it = trackedFrameMsg->GetMetaData().begin(); it != trackedFrameMsg->GetMetaData().end(); ++it )
+      for ( auto pair : trackedFrameMsg->GetMetaData() )
       {
-        std::wstring keyWideStr( it->first.begin(), it->first.end() );
-        std::wstring valueWideStr( it->second.begin(), it->second.end() );
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
         reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
       }
 
-      for ( std::map<std::string, std::string>::const_iterator it = trackedFrameMsg->GetCustomFrameFields().begin(); it != trackedFrameMsg->GetCustomFrameFields().end(); ++it )
+      for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
       {
-        std::wstring keyWideStr( it->first.begin(), it->first.end() );
-        std::wstring valueWideStr( it->second.begin(), it->second.end() );
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
         reply->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
       }
 
-      if ( trackedFrameMsg->GetFrameSize()[0] != this->FrameSize[0] ||
-           trackedFrameMsg->GetFrameSize()[1] != this->FrameSize[1] ||
-           trackedFrameMsg->GetFrameSize()[2] != this->FrameSize[2] )
+      if ( trackedFrameMsg->GetFrameSize()[0] != this->m_frameSize[0] ||
+           trackedFrameMsg->GetFrameSize()[1] != this->m_frameSize[1] ||
+           trackedFrameMsg->GetFrameSize()[2] != this->m_frameSize[2] )
       {
-        this->FrameSize.clear();
-        this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[0] );
-        this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[1] );
-        this->FrameSize.push_back( trackedFrameMsg->GetFrameSize()[2] );
+        this->m_frameSize.clear();
+        this->m_frameSize.push_back( trackedFrameMsg->GetFrameSize()[0] );
+        this->m_frameSize.push_back( trackedFrameMsg->GetFrameSize()[1] );
+        this->m_frameSize.push_back( trackedFrameMsg->GetFrameSize()[2] );
 
         // Reallocate a new image
-        this->WriteableBitmap = ref new WUXM::Imaging::WriteableBitmap( FrameSize[0], FrameSize[1] );
+        this->m_writeableBitmap = ref new WUXM::Imaging::WriteableBitmap( m_frameSize[0], m_frameSize[1] );
       }
 
       FromNativePointer( trackedFrameMsg->GetImage(),
                          trackedFrameMsg->GetFrameSize()[0],
                          trackedFrameMsg->GetFrameSize()[1],
                          trackedFrameMsg->GetNumberOfComponents(),
-                         this->WriteableBitmap );
+                         this->m_writeableBitmap );
 
-      this->WriteableBitmap->Invalidate();
+      this->m_writeableBitmap->Invalidate();
       reply->Result = true;
+      return true;
+    }
+
+    return false;
+  }
+
+  //----------------------------------------------------------------------------
+  bool IGTLinkClient::ParseTrackedFrameReply( TrackedFrameMessage^ message )
+  {
+    igtl::MessageBase::Pointer igtMessage = nullptr;
+    {
+      // Retrieve the next available tracked frame reply
+      Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
+      for ( auto replyIter = m_messages.begin(); replyIter != m_messages.end(); ++replyIter )
+      {
+        if ( typeid( *( *replyIter ) ) == typeid( igtl::TrackedFrameMessage ) )
+        {
+          igtMessage = *replyIter;
+          m_messages.erase( replyIter );
+          break;
+        }
+      }
+    }
+
+    if ( igtMessage != nullptr )
+    {
+      igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( igtMessage.GetPointer() );
+
+      for ( auto pair : trackedFrameMsg->GetMetaData() )
+      {
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+        message->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+      }
+
+      for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
+      {
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+        message->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+      }
+
+      message->SetImageSize( trackedFrameMsg->GetFrameSize()[0], trackedFrameMsg->GetFrameSize()[1], trackedFrameMsg->GetFrameSize()[2] );
+      message->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
+      Platform::ArrayReference<unsigned char> arraywrapper( ( unsigned char* )trackedFrameMsg->GetImage(), trackedFrameMsg->GetImageSizeInBytes() );
+      auto ibuffer = Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray( arraywrapper );
+      message->SetImageData( ibuffer );
+      message->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
+
+      message->Result = true;
       return true;
     }
 
@@ -409,8 +478,8 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   int IGTLinkClient::SocketReceive( void* data, int length )
   {
-    Concurrency::critical_section::scoped_lock lock( SocketMutex );
-    return ClientSocket->Receive( data, length );
+    Concurrency::critical_section::scoped_lock lock( m_socketMutex );
+    return m_clientSocket->Receive( data, length );
   }
 
   //----------------------------------------------------------------------------
@@ -433,6 +502,27 @@ namespace UWPOpenIGTLink
     }
 
     return true;
+  }
+
+  //----------------------------------------------------------------------------
+  uint64 IGTLinkClient::RegisterTrackedFrameCallback( std::function<void( igtl::TrackedFrameMessage* )>& function )
+  {
+    m_trackedFrameCallbacks[m_lastUnusedCallbackToken] = function;
+
+    m_lastUnusedCallbackToken++;
+    return m_lastUnusedCallbackToken - 1;
+  }
+
+  //----------------------------------------------------------------------------
+  bool IGTLinkClient::UnregisterTrackedFrameCallback( uint64 token )
+  {
+    if ( m_trackedFrameCallbacks.find( token ) != m_trackedFrameCallbacks.end() )
+    {
+      m_trackedFrameCallbacks.erase( m_trackedFrameCallbacks.find( token ) );
+      return true;
+    }
+
+    return false;
   }
 
   //----------------------------------------------------------------------------
@@ -474,6 +564,6 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool IGTLinkClient::Connected::get()
   {
-    return this->ClientSocket->GetConnected();
+    return this->m_clientSocket->GetConnected();
   }
 }

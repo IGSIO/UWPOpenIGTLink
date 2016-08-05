@@ -26,13 +26,17 @@ OTHER DEALINGS IN THE SOFTWARE.
 namespace WF = Windows::Foundation;
 namespace WFC = WF::Collections;
 namespace WFM = WF::Metadata;
+namespace WSS = Windows::Storage::Streams;
 namespace WUXC = Windows::UI::Xaml::Controls;
 namespace WUXM = Windows::UI::Xaml::Media;
+
+// STD includes
+#include <map>
 
 namespace UWPOpenIGTLink
 {
   [Windows::Foundation::Metadata::WebHostHiddenAttribute]
-  public ref class TrackedFrameReply sealed
+  public ref class TrackedFrameMessageCx sealed
   {
   public:
     property bool Result {bool get(); void set( bool arg ); }
@@ -42,8 +46,35 @@ namespace UWPOpenIGTLink
     WFC::IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
 
   protected private:
-    bool m_Result;
-    WFC::IMap<Platform::String^, Platform::String^>^ m_Parameters;
-    WUXM::Imaging::WriteableBitmap^ m_ImageSource;
+    bool m_result;
+    WFC::IMap<Platform::String^, Platform::String^>^ m_parameters;
+    WUXM::Imaging::WriteableBitmap^ m_imageSource;
+  };
+
+  public ref class TrackedFrameMessage sealed
+  {
+  public:
+    property bool Result {bool get(); void set(bool arg); }
+    property WFC::IMap<Platform::String^, Platform::String^>^ Parameters {WFC::IMap<Platform::String^, Platform::String^>^ get(); }
+    property int32 ImageSizeBytes { int32 get(); void set(int32 arg); }
+    property int32 NumberOfComponents { int32 get(); void set(int32 arg); }
+
+    WFC::IVectorView<uint32>^ GetImageSize();
+    void SetImageSize(uint32 x, uint32 y, uint32 z);
+
+    void SetParameter(Platform::String^ key, Platform::String^ value);
+
+    WSS::IBuffer^ GetImageData();
+    void SetImageData(WSS::IBuffer^ imageData);
+
+    WFC::IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
+
+  protected private:
+    bool m_result;
+    std::map<std::wstring, std::wstring> m_parameters;
+    uint8* m_imageData;
+    uint32 m_imageSize[3];
+    int32 m_numberOfComponents;
+    int32 m_imageSizeBytes;
   };
 }

@@ -32,8 +32,9 @@ namespace igtl
   //----------------------------------------------------------------------------
   TrackedFrameMessage::TrackedFrameMessage()
     : MessageBase()
+    , m_imageValid( false )
   {
-    this->m_SendMessageType = "TRACKEDFRAME";
+    m_SendMessageType = "TRACKEDFRAME";
   }
 
   //----------------------------------------------------------------------------
@@ -70,53 +71,59 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  unsigned char* TrackedFrameMessage::GetImage()
+  byte* TrackedFrameMessage::GetImage()
   {
-    return this->Image;
+    return this->m_image;
   }
 
   //----------------------------------------------------------------------------
   const std::map<std::string, std::string>& TrackedFrameMessage::GetCustomFrameFields()
   {
-    return this->CustomFrameFields;
+    return this->m_customFrameFields;
   }
 
   //----------------------------------------------------------------------------
-  igtl::US_IMAGE_TYPE TrackedFrameMessage::GetImageType()
+  US_IMAGE_TYPE TrackedFrameMessage::GetImageType()
   {
-    return this->ImageType;
+    return (US_IMAGE_TYPE)m_messageHeader.m_ImageType;
   }
 
   //----------------------------------------------------------------------------
   double TrackedFrameMessage::GetTimestamp()
   {
-    return this->Timestamp;
+    return this->m_timestamp;
   }
 
   //----------------------------------------------------------------------------
-  const std::vector<int>& TrackedFrameMessage::GetFrameSize()
+  igtl_uint16* TrackedFrameMessage::GetFrameSize()
   {
-    return this->FrameSize;
+    return this->m_messageHeader.m_FrameSize;
   }
 
   //----------------------------------------------------------------------------
-  int TrackedFrameMessage::GetNumberOfComponents()
+  igtl_uint16 TrackedFrameMessage::GetNumberOfComponents()
   {
-    return this->NumberOfComponents;
+    return this->m_messageHeader.m_NumberOfComponents;
   }
 
   //----------------------------------------------------------------------------
-  int TrackedFrameMessage::GetImageSizeInBytes()
+  igtl_uint32 TrackedFrameMessage::GetImageSizeInBytes()
   {
-    return this->ImageSizeInBytes;
+    return this->m_messageHeader.m_ImageDataSizeInBytes;
+  }
+
+  //----------------------------------------------------------------------------
+  ScalarType TrackedFrameMessage::GetScalarType()
+  {
+    return (ScalarType)this->m_messageHeader.m_ScalarType;
   }
 
   //----------------------------------------------------------------------------
   int TrackedFrameMessage::CalculateContentBufferSize()
   {
-    return this->MessageHeader.GetMessageHeaderSize()
-           + this->MessageHeader.m_ImageDataSizeInBytes
-           + this->MessageHeader.m_XmlDataSizeInBytes;
+    return this->m_messageHeader.GetMessageHeaderSize()
+           + this->m_messageHeader.m_ImageDataSizeInBytes
+           + this->m_messageHeader.m_XmlDataSizeInBytes;
   }
 
   //----------------------------------------------------------------------------
@@ -134,40 +141,31 @@ namespace igtl
     header->ConvertEndianness();
 
     // Copy header
-    this->MessageHeader.m_ScalarType = header->m_ScalarType;
-    this->MessageHeader.m_NumberOfComponents = header->m_NumberOfComponents;
-    this->MessageHeader.m_ImageType = header->m_ImageType;
-    this->MessageHeader.m_FrameSize[0] = header->m_FrameSize[0];
-    this->MessageHeader.m_FrameSize[1] = header->m_FrameSize[1];
-    this->MessageHeader.m_FrameSize[2] = header->m_FrameSize[2];
-    this->MessageHeader.m_ImageDataSizeInBytes = header->m_ImageDataSizeInBytes;
-    this->MessageHeader.m_XmlDataSizeInBytes = header->m_XmlDataSizeInBytes;
+    this->m_messageHeader.m_ScalarType = header->m_ScalarType;
+    this->m_messageHeader.m_NumberOfComponents = header->m_NumberOfComponents;
+    this->m_messageHeader.m_ImageType = header->m_ImageType;
+    this->m_messageHeader.m_FrameSize[0] = header->m_FrameSize[0];
+    this->m_messageHeader.m_FrameSize[1] = header->m_FrameSize[1];
+    this->m_messageHeader.m_FrameSize[2] = header->m_FrameSize[2];
+    this->m_messageHeader.m_ImageDataSizeInBytes = header->m_ImageDataSizeInBytes;
+    this->m_messageHeader.m_XmlDataSizeInBytes = header->m_XmlDataSizeInBytes;
 
     // Copy xml data
     char* xmlData = ( char* )( this->m_Content + header->GetMessageHeaderSize() );
-    this->TrackedFrameXmlData.assign( xmlData, header->m_XmlDataSizeInBytes );
+    this->m_trackedFrameXmlData.assign( xmlData, header->m_XmlDataSizeInBytes );
 
     Windows::Data::Xml::Dom::XmlDocument document;
-    document.LoadXml( ref new Platform::String( std::wstring( TrackedFrameXmlData.begin(), TrackedFrameXmlData.end() ).c_str() ) );
+    document.LoadXml( ref new Platform::String( std::wstring( m_trackedFrameXmlData.begin(), m_trackedFrameXmlData.end() ).c_str() ) );
 
     auto rootAttributes = document.GetElementsByTagName( L"TrackedFrame" )->Item( 0 )->Attributes;
 
-    this->Timestamp = _wtof( dynamic_cast<Platform::String^>( rootAttributes->GetNamedItem( L"Timestamp" )->NodeValue )->Data() );
-    this->ImageValid = dynamic_cast<Platform::String^>( rootAttributes->GetNamedItem( L"ImageDataValid" )->NodeValue ) == L"true";
+    this->m_timestamp = _wtof( dynamic_cast<Platform::String^>( rootAttributes->GetNamedItem( L"Timestamp" )->NodeValue )->Data() );
+    this->m_imageValid = dynamic_cast<Platform::String^>( rootAttributes->GetNamedItem( L"ImageDataValid" )->NodeValue ) == L"true";
 
-    if ( this->ImageValid )
+    if ( this->m_imageValid )
     {
-      void* imageData = ( void* )( this->m_Content + header->GetMessageHeaderSize() + header->m_XmlDataSizeInBytes );
-      FrameSize.clear();
-      FrameSize.push_back( header->m_FrameSize[0] );
-      FrameSize.push_back( header->m_FrameSize[1] );
-      FrameSize.push_back( header->m_FrameSize[2] );
-      this->NumberOfComponents = header->m_NumberOfComponents;
-      this->ImageSizeInBytes = header->m_ImageDataSizeInBytes;
-      this->Image = ( unsigned char* )malloc( this->ImageSizeInBytes );
-      this->ImageType = ( US_IMAGE_TYPE )header->m_ImageType;
-
-      memcpy( ( void* )( this->Image ), imageData, this->ImageSizeInBytes );
+      this->m_imageSizeInBytes = header->m_ImageDataSizeInBytes;
+      this->m_image = (byte*)(this->m_Content + header->GetMessageHeaderSize() + header->m_XmlDataSizeInBytes);
     }
 
     for( unsigned int i = 0; i < document.GetElementsByTagName( L"TrackedFrame" )->Item( 0 )->ChildNodes->Size; ++i )
@@ -179,7 +177,7 @@ namespace igtl
         std::wstring nameWide( dynamic_cast<Platform::String^>( childNode->Attributes->GetNamedItem( L"Name" )->NodeValue )->Data() );
         std::wstring valueWide( dynamic_cast<Platform::String^>( childNode->Attributes->GetNamedItem( L"Value" )->NodeValue )->Data() );
 
-        this->CustomFrameFields[std::string( nameWide.begin(), nameWide.end() )] = std::string( valueWide.begin(), valueWide.end() );
+        this->m_customFrameFields[std::string( nameWide.begin(), nameWide.end() )] = std::string( valueWide.begin(), valueWide.end() );
       }
     }
 
