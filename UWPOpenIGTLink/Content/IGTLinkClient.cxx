@@ -46,7 +46,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 using namespace Concurrency;
 using namespace Windows::Foundation;
-using namespace Windows::Foundation::Collections;
+using namespace Platform::Collections;
 using namespace Windows::Storage::Streams;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Media;
@@ -148,6 +148,114 @@ namespace UWPOpenIGTLink
       critical_section::scoped_lock lock( this->m_socketMutex );
       this->m_clientSocket->CloseSocket();
     }
+  }
+
+  //----------------------------------------------------------------------------
+  bool IGTLinkClient::GetOldestTrackedFrame( TrackedFrame^ frame )
+  {
+    igtl::MessageBase::Pointer igtMessage = nullptr;
+    {
+      // Retrieve the next available tracked frame reply
+      Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
+      for ( auto replyIter = m_messages.begin(); replyIter != m_messages.end(); ++replyIter )
+      {
+        if ( typeid( *( *replyIter ) ) == typeid( igtl::TrackedFrameMessage ) )
+        {
+          igtMessage = *replyIter;
+          break;
+        }
+      }
+    }
+
+    if ( igtMessage != nullptr )
+    {
+      igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( igtMessage.GetPointer() );
+
+      // Tracking/other related fields
+      for ( auto pair : trackedFrameMsg->GetMetaData() )
+      {
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+      }
+
+      for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
+      {
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+      }
+
+      // Image related fields
+      auto vec = ref new Vector<uint16>;
+      vec->Append( trackedFrameMsg->GetFrameSize()[0] );
+      vec->Append( trackedFrameMsg->GetFrameSize()[1] );
+      vec->Append( trackedFrameMsg->GetFrameSize()[2] );
+      frame->FrameSize = vec->GetView();
+      frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
+      Platform::ArrayReference<byte> arraywrapper( ( byte* )trackedFrameMsg->GetImage(), trackedFrameMsg->GetImageSizeInBytes() );
+      frame->ImageData = Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray( arraywrapper );
+      frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
+      frame->ScalarType = trackedFrameMsg->GetScalarType();
+
+      return true;
+    }
+
+    return false;
+  }
+
+  //----------------------------------------------------------------------------
+  bool IGTLinkClient::GetLatestTrackedFrame( TrackedFrame^ frame )
+  {
+    igtl::MessageBase::Pointer igtMessage = nullptr;
+    {
+      // Retrieve the next available tracked frame reply
+      Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
+      for (auto replyIter = m_messages.rbegin(); replyIter != m_messages.rend(); ++replyIter)
+      {
+        if (typeid(*(*replyIter)) == typeid(igtl::TrackedFrameMessage))
+        {
+          igtMessage = *replyIter;
+          break;
+        }
+      }
+    }
+
+    if (igtMessage != nullptr)
+    {
+      igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>(igtMessage.GetPointer());
+
+      // Tracking/other related fields
+      for (auto pair : trackedFrameMsg->GetMetaData())
+      {
+        std::wstring keyWideStr(pair.first.begin(), pair.first.end());
+        std::wstring valueWideStr(pair.second.begin(), pair.second.end());
+        frame->FrameFields->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
+      }
+
+      for (auto pair : trackedFrameMsg->GetCustomFrameFields())
+      {
+        std::wstring keyWideStr(pair.first.begin(), pair.first.end());
+        std::wstring valueWideStr(pair.second.begin(), pair.second.end());
+        frame->FrameFields->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
+      }
+
+      // Image related fields
+      auto vec = ref new Vector<uint16>;
+      vec->Append(trackedFrameMsg->GetFrameSize()[0]);
+      vec->Append(trackedFrameMsg->GetFrameSize()[1]);
+      vec->Append(trackedFrameMsg->GetFrameSize()[2]);
+      frame->FrameSize = vec->GetView();
+      frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
+      Platform::ArrayReference<byte> arraywrapper((byte*)trackedFrameMsg->GetImage(), trackedFrameMsg->GetImageSizeInBytes());
+      frame->ImageData = Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray(arraywrapper);
+      frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
+      frame->ScalarType = trackedFrameMsg->GetScalarType();
+
+      return true;
+    }
+
+    return false;
   }
 
   //----------------------------------------------------------------------------

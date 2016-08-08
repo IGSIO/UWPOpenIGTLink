@@ -22,7 +22,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 ====================================================================*/
 
 // Local includes
-#include "pch.h"
 #include "TrackedFrame.h"
 
 // Windows includes
@@ -36,7 +35,7 @@ using namespace Windows::Storage::Streams;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Media;
 
-namespace Plus
+namespace UWPOpenIGTLink
 {
   //----------------------------------------------------------------------------
   int32 TrackedFrame::ImageSizeBytes::get()
@@ -63,9 +62,9 @@ namespace Plus
   }
 
   //----------------------------------------------------------------------------
-  IVectorView<uint32>^ TrackedFrame::FrameSize::get()
+  IVectorView<uint16>^ TrackedFrame::FrameSize::get()
   {
-    auto vec = ref new Vector<uint32>();
+    auto vec = ref new Vector<uint16>();
     vec->Append(m_frameSize[0]);
     vec->Append(m_frameSize[1]);
     vec->Append(m_frameSize[2]);
@@ -73,7 +72,7 @@ namespace Plus
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::FrameSize::set(IVectorView<uint32>^ arg)
+  void TrackedFrame::FrameSize::set(IVectorView<uint16>^ arg)
   {
     if (arg->Size > 0)
     {
@@ -132,6 +131,18 @@ namespace Plus
     {
       throw std::exception( "Cannot cast to byte*." );
     }
+  }
+
+  //----------------------------------------------------------------------------
+  int32 TrackedFrame::ScalarType::get()
+  {
+    return (int32)m_scalarType;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrame::ScalarType::set(int32 arg)
+  {
+    m_scalarType = (IGTLScalarType)arg;
   }
 
   //----------------------------------------------------------------------------

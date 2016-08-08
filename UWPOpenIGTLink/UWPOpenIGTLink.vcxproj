@@ -93,7 +93,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>true</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Content;$(ProjectDir)Content\Data;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINRT_DLL;UWPOpenIGTLink_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -107,7 +107,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>true</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Content;$(ProjectDir)Content\Data;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINRT_DLL;UWPOpenIGTLink_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -146,12 +146,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="IGTLinkClient.h" />
-    <ClInclude Include="TrackedFrameMessage.h" />
+    <ClInclude Include="Content\Data\Command.h" />
+    <ClInclude Include="Content\Data\TrackedFrame.h" />
+    <ClInclude Include="Content\IGTLinkClient.h" />
+    <ClInclude Include="Content\TrackedFrameMessage.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="IGTLinkClient.cxx" />
-    <ClCompile Include="TrackedFrameMessage.cxx" />
+    <ClCompile Include="Content\Data\Command.cpp" />
+    <ClCompile Include="Content\Data\TrackedFrame.cpp" />
+    <ClCompile Include="Content\IGTLinkClient.cxx" />
+    <ClCompile Include="Content\TrackedFrameMessage.cxx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

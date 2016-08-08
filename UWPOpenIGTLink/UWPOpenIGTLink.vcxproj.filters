@@ -1,11 +1,28 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="IGTLinkClient.cxx" />
-    <ClCompile Include="TrackedFrameMessage.cxx" />
+    <ClCompile Include="Content\Data\Command.cpp">
+      <Filter>Plus Data Structures</Filter>
+    </ClCompile>
+    <ClCompile Include="Content\Data\TrackedFrame.cpp">
+      <Filter>Plus Data Structures</Filter>
+    </ClCompile>
+    <ClCompile Include="Content\IGTLinkClient.cxx" />
+    <ClCompile Include="Content\TrackedFrameMessage.cxx" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="IGTLinkClient.h" />
-    <ClInclude Include="TrackedFrameMessage.h" />
+    <ClInclude Include="Content\Data\TrackedFrame.h">
+      <Filter>Plus Data Structures</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\Data\Command.h">
+      <Filter>Plus Data Structures</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\TrackedFrameMessage.h" />
+    <ClInclude Include="Content\IGTLinkClient.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Plus Data Structures">
+      <UniqueIdentifier>{141f4055-e93e-463a-a3c3-2632a9af616a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

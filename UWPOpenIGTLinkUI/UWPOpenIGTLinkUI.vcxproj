@@ -115,7 +115,7 @@
     <ClCompile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink\Content;$(SolutionDir)UWPOpenIGTLink\Content\Data;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -125,7 +125,7 @@
     <ClCompile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink\Content;$(SolutionDir)UWPOpenIGTLink\Content\Data;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -159,7 +159,6 @@
     <ClInclude Include="IGTLConnectorPage.xaml.h">
       <DependentUpon>IGTLConnectorPage.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="TrackedFrame.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -202,7 +201,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="TrackedFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\UWPOpenIGTLink\UWPOpenIGTLink.vcxproj">

@@ -113,9 +113,9 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  ScalarType TrackedFrameMessage::GetScalarType()
+  IGTLScalarType TrackedFrameMessage::GetScalarType()
   {
-    return (ScalarType)this->m_messageHeader.m_ScalarType;
+    return (IGTLScalarType)this->m_messageHeader.m_ScalarType;
   }
 
   //----------------------------------------------------------------------------

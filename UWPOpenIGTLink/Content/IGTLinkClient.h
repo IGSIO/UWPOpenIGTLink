@@ -25,6 +25,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 // Message type includes
 #include "TrackedFrameMessage.h"
+#include "TrackedFrame.h"
 
 // IGT includes
 #include "igtlClientSocket.h"
@@ -71,6 +72,12 @@ namespace UWPOpenIGTLink
 
     /// Disconnect from the connected server
     void Disconnect();
+
+    /// Retrieve the oldest tracked frame reply
+    bool GetOldestTrackedFrame(TrackedFrame^ frame);
+
+    /// Retrieve the latest tracked frame reply
+    bool GetLatestTrackedFrame(TrackedFrame^ frame);
 
   internal:
     /// Send a packed message to the connected server

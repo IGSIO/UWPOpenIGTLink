@@ -1,4 +1,4 @@
-﻿/*====================================================================
+/*====================================================================
 Copyright(c) 2016 Adam Rankin
 
 
@@ -23,43 +23,33 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
-// Local includes
-#include "IGTLConnectorPage.g.h"
+#include <stdint.h>
 
-using namespace Windows::Foundation::Collections;
+using namespace Platform;
 using namespace Windows::Foundation;
-using namespace Windows::Storage::Streams;
+using namespace Windows::Foundation::Collections;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Media;
-using namespace Windows::UI::Xaml;
 
-namespace UWPOpenIGTLinkUI
+namespace UWPOpenIGTLink
 {
-
-  /// <summary>
-  /// An empty page that can be used on its own or navigated to within a Frame.
-  /// </summary>
-  public ref class IGTLConnectorPage sealed
+  [Windows::Foundation::Metadata::WebHostHiddenAttribute]
+  public ref class Command sealed
   {
   public:
-    IGTLConnectorPage();
+    property bool Result {bool get(); void set( bool arg ); }
+    property IMap<String^, String^>^ Parameters {IMap<String^, String^>^ get(); void set( IMap<String^, String^>^ arg ); }
+    property int32_t OriginalCommandId {int32_t get(); void set( int32_t arg ); }
+    property String^ ErrorString {String ^ get(); void set( String ^ arg ); }
+    property String^ CommandContent {String ^ get(); void set( String ^ arg ); }
+    property String^ CommandName {String ^ get(); void set( String ^ arg ); }
 
   protected private:
-    void onUITimerTick( Platform::Object^ sender, Platform::Object^ e );
-    void serverPortTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
-    void serverHostnameTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
-    void connectButton_Click( Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e );
-    void processConnectionResult( bool result );
-
-    /// Convert a c-style byte array to a managed image object
-    bool FromNativePointer( IBuffer^ data, uint32 width, uint32 height, uint16 numberOfcomponents, Imaging::WriteableBitmap^ wbm );
-
-  protected private:
-    UWPOpenIGTLink::IGTLinkClient^ IGTClient;
-
-    Windows::UI::Xaml::Media::Imaging::WriteableBitmap^ WriteableBmp;
-
-    DispatcherTimer^ UITimer;
+    bool m_Result;
+    IMap<String^, String^>^ m_Parameters;
+    int32_t m_OriginalCommandId;
+    String^ m_ErrorString;
+    String^ m_CommandContent;
+    String^ m_CommandName;
   };
-
 }

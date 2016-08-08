@@ -24,8 +24,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 // Local includes
 #include "pch.h"
 #include "IGTLConnectorPage.xaml.h"
-#include "TrackedFrame.h"
-#include "TrackedFrameMessage.h"
 
 // Windows includes
 #include <collection.h>
@@ -94,8 +92,8 @@ namespace UWPOpenIGTLinkUI
     if ( IGTClient->Connected )
     {
       Platform::String^ text = ref new Platform::String();
-      Plus::TrackedFrame^ frame = ref new Plus::TrackedFrame();
-      auto found = this->GetOldestTrackedFrame( frame );
+      UWPOpenIGTLink::TrackedFrame^ frame = ref new UWPOpenIGTLink::TrackedFrame();
+      auto found = IGTClient->GetOldestTrackedFrame( frame );
       if ( !found )
       {
         return;
@@ -191,54 +189,6 @@ namespace UWPOpenIGTLinkUI
       this->statusBarTextBlock->Text = ref new Platform::String( L"Unable to connect." );
       this->statusIcon->Source = ref new Imaging::BitmapImage( ref new Uri( "ms-appx:///Assets/glossy-red-button-2400px.png" ) );
     }
-  }
-
-  //----------------------------------------------------------------------------
-  bool IGTLConnectorPage::GetOldestTrackedFrame( Plus::TrackedFrame^ frame )
-  {
-    /*
-    igtl::MessageBase::Pointer igtMessage = nullptr;
-    {
-      // Retrieve the next available tracked frame reply
-      for ( auto replyIter = IGTClient->MessagesBegin(); replyIter != IGTClient->MessagesEnd(); ++replyIter )
-      {
-        if ( typeid( *( *replyIter ) ) == typeid( igtl::TrackedFrameMessage ) )
-        {
-          igtMessage = *replyIter;
-          break;
-        }
-      }
-    }
-
-    if ( igtMessage != nullptr )
-    {
-      igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( igtMessage.GetPointer() );
-
-      for ( auto pair : trackedFrameMsg->GetMetaData() )
-      {
-        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
-        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
-      }
-
-      for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
-      {
-        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
-        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
-      }
-
-      frame->SetImageSize( trackedFrameMsg->GetFrameSize()[0], trackedFrameMsg->GetFrameSize()[1], trackedFrameMsg->GetFrameSize()[2] );
-      frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
-      Platform::ArrayReference<unsigned char> arraywrapper( ( unsigned char* )trackedFrameMsg->GetImage(), trackedFrameMsg->GetImageSizeInBytes() );
-      auto ibuffer = Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray( arraywrapper );
-      frame->SetImageData( ibuffer );
-      frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
-
-      return true;
-    }
-*/
-    return false;
   }
 
   //----------------------------------------------------------------------------
