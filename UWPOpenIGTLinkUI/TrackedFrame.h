@@ -23,19 +23,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
-// Windows includes
-#include <Windows.h>
-
 // STD includes
-#include <string>
+#include <map>
 
-// IGT includes
-#include "igtlObject.h"
-#include "igtlutil/igtl_util.h"
-#include "igtlutil/igtl_header.h"
-#include "igtlMessageBase.h"
-#include "igtl_types.h"
-#include "igtl_win32header.h"
+using namespace Windows::Foundation;
+using namespace Windows::Foundation::Collections;
+using namespace Windows::Storage::Streams;
+using namespace Windows::UI::Xaml::Controls;
+using namespace Windows::UI::Xaml::Media;
 
 #ifndef US_IMAGE_ENUMS
 #define US_IMAGE_ENUMS
@@ -81,88 +76,32 @@ enum US_IMAGE_ORIENTATION
 };
 #endif
 
-namespace igtl
+namespace Plus
 {
-  /// An enum to wrap the c define values specified in igtl_util.h
-  enum ScalarType
-  {
-    IGTL_SCALARTYPE_UNKNOWN = 0,
-    IGTL_SCALARTYPE_INT8 = IGTL_SCALAR_INT8,
-    IGTL_SCALARTYPE_UINT8 = IGTL_SCALAR_UINT8,
-    IGTL_SCALARTYPE_INT16 = IGTL_SCALAR_INT16,
-    IGTL_SCALARTYPE_UINT16 = IGTL_SCALAR_UINT16,
-    IGTL_SCALARTYPE_INT32 = IGTL_SCALAR_INT32,
-    IGTL_SCALARTYPE_UINT32 = IGTL_SCALAR_UINT32,
-    IGTL_SCALARTYPE_FLOAT32 = IGTL_SCALAR_FLOAT32,
-    IGTL_SCALARTYPE_FLOAT64 = IGTL_SCALAR_FLOAT64,
-    IGTL_SCALARTYPE_COMPLEX = IGTL_SCALAR_COMPLEX
-  };
-
-  // This command prevents 4-byte alignment in the struct (which enables m_FrameSize[3])
-#pragma pack(1)     /* For 1-byte boundary in memory */
-
-  ///  TrackedFrameMessage - IGTL message helper class for tracked frame messages
-  class TrackedFrameMessage : public MessageBase
+  [Windows::Foundation::Metadata::WebHostHiddenAttribute]
+  public ref class TrackedFrame sealed
   {
   public:
-    typedef TrackedFrameMessage             Self;
-    typedef MessageBase                     Superclass;
-    typedef SmartPointer<Self>              Pointer;
-    typedef SmartPointer<const Self>        ConstPointer;
-
-    igtlTypeMacro( igtl::TrackedFrameMessage, igtl::MessageBase );
-    igtlNewMacro( igtl::TrackedFrameMessage );
+    property IMap<Platform::String^, Platform::String^>^ FrameFields {IMap<Platform::String^, Platform::String^>^ get(); }
+    property int32 ImageSizeBytes { int32 get(); void set( int32 arg ); }
+    property IVectorView<uint32>^ FrameSize { IVectorView<uint32>^ get(); void set( IVectorView<uint32>^ arg ); }
+    property uint16 NumberOfComponents { uint16 get(); void set( uint16 arg ); }
+    property IBuffer^ ImageData { IBuffer ^ get(); void set( IBuffer ^ arg ); }
 
   public:
-    /*! Override clone so that we use the plus igtl factory */
-    virtual igtl::MessageBase::Pointer Clone();
+    void SetParameter( Platform::String^ key, Platform::String^ value );
+    IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
 
-    /// Accessors to the various parts of the message and message header
-    byte* GetImage();
-    const std::map<std::string, std::string>& GetCustomFrameFields();
-    US_IMAGE_TYPE GetImageType();
-    double GetTimestamp();
-    igtl_uint16* GetFrameSize();
-    igtl_uint16 GetNumberOfComponents();
-    igtl_uint32 GetImageSizeInBytes();
-    ScalarType GetScalarType();
+  protected private:
+    // Tracking/other related fields
+    std::map<std::wstring, std::wstring> m_frameFields;
 
-  protected:
-    class TrackedFrameHeader
-    {
-    public:
-      TrackedFrameHeader();
-
-      size_t GetMessageHeaderSize();
-
-      void ConvertEndianness();
-
-      igtl_uint16 m_ScalarType;           /* scalar type */
-      igtl_uint16 m_NumberOfComponents;   /* number of scalar components */
-      igtl_uint16 m_ImageType;            /* image type */
-      igtl_uint16 m_FrameSize[3];         /* entire image volume size */
-      igtl_uint32 m_ImageDataSizeInBytes;
-      igtl_uint32 m_XmlDataSizeInBytes;
-    };
-
-    virtual int  CalculateContentBufferSize();
-    virtual int  PackContent();
-    virtual int  UnpackContent();
-
-    TrackedFrameMessage();
-    ~TrackedFrameMessage();
-
-    std::map<std::string, std::string> m_customFrameFields;
-    byte* m_image;
-    std::string m_trackedFrameXmlData;
-    double m_timestamp;
-    bool m_imageValid;
-
-    int32 m_imageSizeInBytes;
-
-    TrackedFrameHeader m_messageHeader;
+    // Image related fields
+    uint8* m_imageData;
+    uint32 m_frameSize[3];
+    uint16 m_numberOfComponents;
+    int32 m_frameSizeBytes;
+    US_IMAGE_TYPE ImageType;
+    US_IMAGE_ORIENTATION ImageOrientation;
   };
-
-#pragma pack()
-
 }

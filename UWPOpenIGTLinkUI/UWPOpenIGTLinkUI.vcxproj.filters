@@ -11,6 +11,9 @@
     <Filter Include="Pages">
       <UniqueIdentifier>{dad0d344-cc7a-434f-81ab-2ae93d5c767c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Data Structures">
+      <UniqueIdentifier>{7572fc0b-f81d-45ef-8904-12ba2031e0d3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.xaml.cpp" />
@@ -18,12 +21,18 @@
     <ClCompile Include="pch.cpp">
       <Filter>Infrastructure</Filter>
     </ClCompile>
+    <ClCompile Include="TrackedFrame.cpp">
+      <Filter>Data Structures</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.xaml.h" />
     <ClInclude Include="IGTLConnectorPage.xaml.h" />
     <ClInclude Include="pch.h">
       <Filter>Infrastructure</Filter>
+    </ClInclude>
+    <ClInclude Include="TrackedFrame.h">
+      <Filter>Data Structures</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

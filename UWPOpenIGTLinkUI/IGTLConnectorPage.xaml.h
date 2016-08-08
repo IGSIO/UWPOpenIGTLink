@@ -25,13 +25,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 // Local includes
 #include "IGTLConnectorPage.g.h"
+#include "TrackedFrame.h"
 
-namespace WF = Windows::Foundation;
-namespace WFC = WF::Collections;
-namespace WFM = WF::Metadata;
-namespace WUX = Windows::UI::Xaml;
-namespace WUXC = Windows::UI::Xaml::Controls;
-namespace WUXM = Windows::UI::Xaml::Media;
+using namespace Windows::Foundation;
+using namespace Windows::Foundation::Collections;
+using namespace Windows::UI::Xaml;
+using namespace Windows::UI::Xaml::Controls;
+using namespace Windows::UI::Xaml::Media;
 
 namespace UWPOpenIGTLinkUI
 {
@@ -44,17 +44,25 @@ namespace UWPOpenIGTLinkUI
   public:
     IGTLConnectorPage();
 
-  private:
+  protected private:
     void onUITimerTick( Platform::Object^ sender, Platform::Object^ e );
     void serverPortTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
     void serverHostnameTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
     void connectButton_Click( Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e );
     void processConnectionResult( bool result );
 
+    /// Retrieve the oldest tracked frame reply
+    bool GetOldestTrackedFrame(Plus::TrackedFrame^ frame);
+
+    /// Convert a c-style byte array to a managed image object
+    bool FromNativePointer(IBuffer^ data, uint32 width, uint32 height, uint16 numberOfcomponents, Imaging::WriteableBitmap^ wbm);
+
   protected private:
     UWPOpenIGTLink::IGTLinkClient^ IGTClient;
 
-    WUX::DispatcherTimer^ UITimer;
+    Windows::UI::Xaml::Media::Imaging::WriteableBitmap^ WriteableBmp;
+
+    DispatcherTimer^ UITimer;
   };
 
 }

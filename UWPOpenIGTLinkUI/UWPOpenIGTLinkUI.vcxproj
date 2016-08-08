@@ -159,6 +159,7 @@
     <ClInclude Include="IGTLConnectorPage.xaml.h">
       <DependentUpon>IGTLConnectorPage.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="TrackedFrame.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -201,6 +202,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TrackedFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\UWPOpenIGTLink\UWPOpenIGTLink.vcxproj">

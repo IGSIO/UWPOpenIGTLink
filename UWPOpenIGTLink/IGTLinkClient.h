@@ -24,9 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
 // Message type includes
-#include "CommandReply.h"
 #include "TrackedFrameMessage.h"
-#include "TrackedFrameReply.h"
 
 // IGT includes
 #include "igtlClientSocket.h"
@@ -42,11 +40,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <concrt.h>
 #include <vccorlib.h>
 
-namespace WF = Windows::Foundation;
-namespace WFC = WF::Collections;
-namespace WFM = WF::Metadata;
-namespace WUXC = Windows::UI::Xaml::Controls;
-namespace WUXM = Windows::UI::Xaml::Media;
+using namespace Concurrency;
+using namespace Windows::Foundation;
+using namespace Windows::Foundation::Collections;
+using namespace Windows::UI::Xaml::Controls;
+using namespace Windows::UI::Xaml::Media;
 
 namespace UWPOpenIGTLink
 {
@@ -68,21 +66,11 @@ namespace UWPOpenIGTLink
     property int ServerIGTLVersion { int get(); void set( int ); }
     property bool Connected { bool get(); }
 
-    /// If timeoutSec<0 then connection will be attempted multiple times until successfully connected or the timeout elapse
-    WF::IAsyncOperation<bool>^ ConnectAsync( double timeoutSec );
+    /// If timeoutSec > 0 then connection will be attempted multiple times until successfully connected or the timeout elapse
+    IAsyncOperation<bool>^ ConnectAsync( double timeoutSec );
 
     /// Disconnect from the connected server
     void Disconnect();
-
-    /// Retrieve the oldest command reply from the queue of replies and clear it
-    bool ParseCommandReply( CommandReply^ reply );
-
-    /// Retrieve the oldest tracked frame reply from the queue of replies and clear it
-    [Windows::Foundation::Metadata::DefaultOverloadAttribute]
-    bool ParseTrackedFrameReply( TrackedFrameMessageCx^ reply );
-
-    /// Retrieve the oldest tracked frame reply from the queue of replies and clear it
-    bool ParseTrackedFrameReply( TrackedFrameMessage^ reply );
 
   internal:
     /// Send a packed message to the connected server
@@ -91,40 +79,29 @@ namespace UWPOpenIGTLink
     /// Threaded function to receive data from the connected server
     static void DataReceiverPump( IGTLinkClient^ self, concurrency::cancellation_token token );
 
-    // Callback functions for when a frame is received
-    uint64 RegisterTrackedFrameCallback( std::function<void( igtl::TrackedFrameMessage* )>& function );
-    bool UnregisterTrackedFrameCallback( uint64 token );
-
   protected private:
     /// Thread-safe method that allows child classes to read data from the socket
     int SocketReceive( void* data, int length );
-
-    /// Convert a c-style byte array to a managed image object
-    bool FromNativePointer( unsigned char* pData, int width, int height, int numberOfcomponents, WUXM::Imaging::WriteableBitmap^ wbm );
 
   protected private:
     /// igtl Factory for message sending
     igtl::MessageFactory::Pointer m_igtlMessageFactory;
 
-    concurrency::task<void> m_dataReceiverTask;
-    concurrency::cancellation_token_source m_cancellationTokenSource;
+    task<void> m_dataReceiverTask;
+    cancellation_token_source m_cancellationTokenSource;
 
     /// Mutex instance for safe data access
-    Concurrency::critical_section m_messageListMutex;
-    Concurrency::critical_section m_socketMutex;
+    critical_section m_messageListMutex;
+    critical_section m_socketMutex;
 
     /// Socket that is connected to the server
     igtl::ClientSocket::Pointer m_clientSocket;
-
-    // Tracked frame callbacks
-    std::map < uint64, std::function<void( igtl::TrackedFrameMessage* )> > m_trackedFrameCallbacks;
-    uint64 m_lastUnusedCallbackToken = 0;
 
     /// List of messages received through the socket, transformed to igtl messages
     std::deque<igtl::MessageBase::Pointer> m_messages;
 
     /// Stored WriteableBitmap to reduce overhead of memory reallocation unless necessary
-    WUXM::Imaging::WriteableBitmap^ m_writeableBitmap;
+    Imaging::WriteableBitmap^ m_writeableBitmap;
     std::vector<uint32> m_frameSize;
 
     /// Server information
@@ -139,5 +116,4 @@ namespace UWPOpenIGTLink
     IGTLinkClient( IGTLinkClient^ ) {}
     void operator=( IGTLinkClient^ ) {}
   };
-
 }

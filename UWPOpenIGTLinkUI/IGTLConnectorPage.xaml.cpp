@@ -24,27 +24,57 @@ OTHER DEALINGS IN THE SOFTWARE.
 // Local includes
 #include "pch.h"
 #include "IGTLConnectorPage.xaml.h"
+#include "TrackedFrame.h"
+#include "TrackedFrameMessage.h"
 
 // Windows includes
 #include <collection.h>
+#include <robuffer.h>
 
 // STD includes
 #include <string>
 
 using namespace UWPOpenIGTLink;
-namespace WF = Windows::Foundation;
-namespace WFC = WF::Collections;
-namespace WFM = WF::Metadata;
-namespace WUX = Windows::UI::Xaml;
-namespace WUXC = Windows::UI::Xaml::Controls;
-namespace WUXM = Windows::UI::Xaml::Media;
+using namespace Windows::Foundation;
+using namespace Windows::Foundation::Collections;
+using namespace Windows::UI::Xaml;
+using namespace Windows::UI::Xaml::Controls;
+using namespace Windows::UI::Xaml::Media;
+using namespace Windows::Storage::Streams;
+
+namespace
+{
+  inline void ThrowIfFailed( HRESULT hr )
+  {
+    if ( FAILED( hr ) )
+    {
+      throw Platform::Exception::CreateException( hr );
+    }
+  }
+
+  byte* GetPointerToPixelData( IBuffer^ buffer )
+  {
+    // Cast to Object^, then to its underlying IInspectable interface.
+    Platform::Object^ obj = buffer;
+    Microsoft::WRL::ComPtr<IInspectable> insp( reinterpret_cast<IInspectable*>( obj ) );
+
+    // Query the IBufferByteAccess interface.
+    Microsoft::WRL::ComPtr<IBufferByteAccess> bufferByteAccess;
+    ThrowIfFailed( insp.As( &bufferByteAccess ) );
+
+    // Retrieve the buffer data.
+    byte* pixels = nullptr;
+    ThrowIfFailed( bufferByteAccess->Buffer( &pixels ) );
+    return pixels;
+  }
+}
 
 namespace UWPOpenIGTLinkUI
 {
   //----------------------------------------------------------------------------
   IGTLConnectorPage::IGTLConnectorPage()
     : IGTClient( ref new UWPOpenIGTLink::IGTLinkClient() )
-    , UITimer( ref new WUX::DispatcherTimer() )
+    , UITimer( ref new DispatcherTimer() )
   {
     InitializeComponent();
 
@@ -64,23 +94,26 @@ namespace UWPOpenIGTLinkUI
     if ( IGTClient->Connected )
     {
       Platform::String^ text = ref new Platform::String();
-      TrackedFrameReply^ reply = ref new TrackedFrameReply();
-      auto found = this->IGTClient->ParseTrackedFrameReply( reply );
+      Plus::TrackedFrame^ frame = ref new Plus::TrackedFrame();
+      auto found = this->GetOldestTrackedFrame( frame );
       if ( !found )
       {
         return;
       }
 
-      if ( reply->Result != false )
+      if ( WriteableBmp == nullptr )
       {
-        if ( this->imageDisplay->Source != reply->ImageSource )
-        {
-          this->imageDisplay->Source = reply->ImageSource;
-        }
-        for ( auto transform : reply->GetValidTransforms() )
-        {
-          text = text + transform->Key + L": " + transform->Value + L"\n";
-        }
+        WriteableBmp = ref new Windows::UI::Xaml::Media::Imaging::WriteableBitmap( frame->FrameSize->GetAt( 0 ), frame->FrameSize->GetAt( 1 ) );
+      }
+      FromNativePointer( frame->ImageData, frame->FrameSize->GetAt( 0 ), frame->FrameSize->GetAt( 1 ), frame->NumberOfComponents, WriteableBmp);
+
+      if ( this->imageDisplay->Source != WriteableBmp)
+      {
+        this->imageDisplay->Source = WriteableBmp;
+      }
+      for ( auto transform : frame->GetValidTransforms() )
+      {
+        text = text + transform->Key + L": " + transform->Value + L"\n";
       }
 
       this->transformTextBlock->Text = text;
@@ -88,9 +121,9 @@ namespace UWPOpenIGTLinkUI
   }
 
   //----------------------------------------------------------------------------
-  void IGTLConnectorPage::serverPortTextBox_TextChanged( Platform::Object^ sender, WUXC::TextChangedEventArgs^ e )
+  void IGTLConnectorPage::serverPortTextBox_TextChanged( Platform::Object^ sender, TextChangedEventArgs^ e )
   {
-    WUXC::TextBox^ textBox = dynamic_cast<WUXC::TextBox^>( sender );
+    TextBox^ textBox = dynamic_cast<TextBox^>( sender );
     if ( _wtoi( textBox->Text->Data() ) != this->IGTClient->ServerPort )
     {
       this->IGTClient->ServerPort = _wtoi( textBox->Text->Data() );
@@ -98,9 +131,9 @@ namespace UWPOpenIGTLinkUI
   }
 
   //----------------------------------------------------------------------------
-  void IGTLConnectorPage::serverHostnameTextBox_TextChanged( Platform::Object^ sender, WUXC::TextChangedEventArgs^ e )
+  void IGTLConnectorPage::serverHostnameTextBox_TextChanged( Platform::Object^ sender, TextChangedEventArgs^ e )
   {
-    WUXC::TextBox^ textBox = dynamic_cast<WUXC::TextBox^>( sender );
+    TextBox^ textBox = dynamic_cast<TextBox^>( sender );
     if ( textBox->Text != this->IGTClient->ServerHost )
     {
       this->IGTClient->ServerHost = textBox->Text;
@@ -108,22 +141,20 @@ namespace UWPOpenIGTLinkUI
   }
 
   //----------------------------------------------------------------------------
-  void IGTLConnectorPage::connectButton_Click( Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e )
+  void IGTLConnectorPage::connectButton_Click( Platform::Object^ sender, RoutedEventArgs^ e )
   {
     this->connectButton->IsEnabled = false;
 
-    this->statusIcon->Source = ref new WUXM::Imaging::BitmapImage( ref new WF::Uri( "ms-appx:///Assets/glossy-yellow-button-2400px.png" ) );
+    this->statusIcon->Source = ref new Imaging::BitmapImage( ref new Uri( "ms-appx:///Assets/glossy-yellow-button-2400px.png" ) );
     if ( IGTClient->Connected )
     {
       this->connectButton->Content = L"Disconnecting...";
-      auto disconAction = IGTClient->DisconnectAsync();
-      auto task = concurrency::create_task( disconAction ).then( [this]()
-      {
-        this->statusBarTextBlock->Text = ref new Platform::String( L"Disconnect successful!" );
-        this->statusIcon->Source = ref new WUXM::Imaging::BitmapImage( ref new WF::Uri( "ms-appx:///Assets/glossy-green-button-2400px.png" ) );
-        this->connectButton->Content = L"Connect";
-        this->connectButton->IsEnabled = true;
-      }, concurrency::task_continuation_context::use_current() );
+      IGTClient->Disconnect();
+
+      this->statusBarTextBlock->Text = ref new Platform::String( L"Disconnect successful!" );
+      this->statusIcon->Source = ref new Imaging::BitmapImage( ref new Uri( "ms-appx:///Assets/glossy-green-button-2400px.png" ) );
+      this->connectButton->Content = L"Connect";
+      this->connectButton->IsEnabled = true;
     }
     else
     {
@@ -143,11 +174,11 @@ namespace UWPOpenIGTLinkUI
     if ( result )
     {
       this->statusBarTextBlock->Text = ref new Platform::String( L"Success! Connected to " ) + IGTClient->ServerHost + ref new Platform::String( L":" ) + ref new Platform::String( std::to_wstring( IGTClient->ServerPort ).c_str() );
-      this->statusIcon->Source = ref new WUXM::Imaging::BitmapImage( ref new WF::Uri( "ms-appx:///Assets/glossy-green-button-2400px.png" ) );
+      this->statusIcon->Source = ref new Imaging::BitmapImage( ref new Uri( "ms-appx:///Assets/glossy-green-button-2400px.png" ) );
       this->connectButton->Content = L"Disconnect";
 
-      this->UITimer->Tick += ref new WF::EventHandler<Object^>( this, &IGTLConnectorPage::onUITimerTick );
-      WF::TimeSpan t;
+      this->UITimer->Tick += ref new EventHandler<Object^>( this, &IGTLConnectorPage::onUITimerTick );
+      TimeSpan t;
       t.Duration = 33;
       this->UITimer->Interval = t;
       this->UITimer->Start();
@@ -158,7 +189,63 @@ namespace UWPOpenIGTLinkUI
 
       this->connectButton->Content = L"Connect";
       this->statusBarTextBlock->Text = ref new Platform::String( L"Unable to connect." );
-      this->statusIcon->Source = ref new WUXM::Imaging::BitmapImage( ref new WF::Uri( "ms-appx:///Assets/glossy-red-button-2400px.png" ) );
+      this->statusIcon->Source = ref new Imaging::BitmapImage( ref new Uri( "ms-appx:///Assets/glossy-red-button-2400px.png" ) );
     }
   }
+
+  //----------------------------------------------------------------------------
+  bool IGTLConnectorPage::GetOldestTrackedFrame( Plus::TrackedFrame^ frame )
+  {
+    /*
+    igtl::MessageBase::Pointer igtMessage = nullptr;
+    {
+      // Retrieve the next available tracked frame reply
+      for ( auto replyIter = IGTClient->MessagesBegin(); replyIter != IGTClient->MessagesEnd(); ++replyIter )
+      {
+        if ( typeid( *( *replyIter ) ) == typeid( igtl::TrackedFrameMessage ) )
+        {
+          igtMessage = *replyIter;
+          break;
+        }
+      }
+    }
+
+    if ( igtMessage != nullptr )
+    {
+      igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( igtMessage.GetPointer() );
+
+      for ( auto pair : trackedFrameMsg->GetMetaData() )
+      {
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+      }
+
+      for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
+      {
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+      }
+
+      frame->SetImageSize( trackedFrameMsg->GetFrameSize()[0], trackedFrameMsg->GetFrameSize()[1], trackedFrameMsg->GetFrameSize()[2] );
+      frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
+      Platform::ArrayReference<unsigned char> arraywrapper( ( unsigned char* )trackedFrameMsg->GetImage(), trackedFrameMsg->GetImageSizeInBytes() );
+      auto ibuffer = Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray( arraywrapper );
+      frame->SetImageData( ibuffer );
+      frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
+
+      return true;
+    }
+*/
+    return false;
+  }
+
+  //----------------------------------------------------------------------------
+  bool IGTLConnectorPage::FromNativePointer( IBuffer^ data, uint32 width, uint32 height, uint16 numberOfcomponents, Imaging::WriteableBitmap^ wbm )
+  {
+    // TODO : copy buffer form data to wbm.pixelbuffer
+    return true;
+  }
+
 }
