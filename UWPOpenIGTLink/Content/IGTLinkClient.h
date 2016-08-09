@@ -23,9 +23,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
+// Data structure includes
+#include "Command.h"
+#include "TrackedFrame.h"
+
 // Message type includes
 #include "TrackedFrameMessage.h"
-#include "TrackedFrame.h"
 
 // IGT includes
 #include "igtlClientSocket.h"
@@ -78,6 +81,12 @@ namespace UWPOpenIGTLink
 
     /// Retrieve the latest tracked frame reply
     bool GetLatestTrackedFrame(TrackedFrame^ frame);
+
+    /// Retrieve the oldest command
+    bool GetOldestCommand(UWPOpenIGTLink::Command^ cmd);
+
+    /// Retrieve the latest command
+    bool GetLatestCommand(UWPOpenIGTLink::Command^ cmd);
 
   internal:
     /// Send a packed message to the connected server

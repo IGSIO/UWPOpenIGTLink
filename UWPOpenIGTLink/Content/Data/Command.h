@@ -39,7 +39,7 @@ namespace UWPOpenIGTLink
   public:
     property bool Result {bool get(); void set( bool arg ); }
     property IMap<String^, String^>^ Parameters {IMap<String^, String^>^ get(); void set( IMap<String^, String^>^ arg ); }
-    property int32_t OriginalCommandId {int32_t get(); void set( int32_t arg ); }
+    property uint32_t OriginalCommandId {uint32_t get(); void set(uint32_t arg ); }
     property String^ ErrorString {String ^ get(); void set( String ^ arg ); }
     property String^ CommandContent {String ^ get(); void set( String ^ arg ); }
     property String^ CommandName {String ^ get(); void set( String ^ arg ); }
@@ -47,7 +47,7 @@ namespace UWPOpenIGTLink
   protected private:
     bool m_Result;
     IMap<String^, String^>^ m_Parameters;
-    int32_t m_OriginalCommandId;
+    uint32_t m_OriginalCommandId;
     String^ m_ErrorString;
     String^ m_CommandContent;
     String^ m_CommandName;

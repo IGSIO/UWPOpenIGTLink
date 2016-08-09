@@ -30,9 +30,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "igtlCommon.h"
 #include "igtlMessageHeader.h"
 #include "igtlOSUtil.h"
-#include "igtlServerSocket.h"
 #include "igtlStatusMessage.h"
-#include "igtlTrackingDataMessage.h"
 
 // STD includes
 #include <chrono>
@@ -251,6 +249,146 @@ namespace UWPOpenIGTLink
       frame->ImageData = Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray(arraywrapper);
       frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
       frame->ScalarType = trackedFrameMsg->GetScalarType();
+
+      return true;
+    }
+
+    return false;
+  }
+
+  //----------------------------------------------------------------------------
+  bool IGTLinkClient::GetOldestCommand(UWPOpenIGTLink::Command^ cmd)
+  {
+    igtl::MessageBase::Pointer igtMessage = nullptr;
+    {
+      // Retrieve the next available tracked frame reply
+      Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
+      for (auto replyIter = m_messages.begin(); replyIter != m_messages.end(); ++replyIter)
+      {
+        if (typeid(*(*replyIter)) == typeid(igtl::RTSCommandMessage))
+        {
+          igtMessage = *replyIter;
+          break;
+        }
+      }
+    }
+
+    if (igtMessage != nullptr)
+    {
+      auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>(igtMessage.GetPointer());
+
+      cmd->CommandContent = ref new Platform::String(std::wstring(cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end()).c_str());
+      cmd->CommandName = ref new Platform::String(std::wstring(cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end()).c_str());
+      cmd->OriginalCommandId = cmdMsg->GetCommandId();
+
+      XmlDocument^ doc = ref new XmlDocument();
+      doc->LoadXml(cmd->CommandContent);
+
+      for (IXmlNode^ node : doc->ChildNodes)
+      {
+        if (dynamic_cast<Platform::String^>(node->NodeName) == L"Result")
+        {
+          cmd->Result = (dynamic_cast<Platform::String^>(node->NodeValue) == L"true");
+          break;
+        }
+      }
+
+      if (!cmd->Result)
+      {
+        bool found(false);
+        // Parse for the error string
+        for (IXmlNode^ node : doc->ChildNodes)
+        {
+          if (dynamic_cast<Platform::String^>(node->NodeName) == L"Error")
+          {
+            cmd->ErrorString = dynamic_cast<Platform::String^>(node->NodeValue);
+            found = true;
+            break;
+          }
+        }
+
+        if (!found)
+        {
+          // TODO : quiet error reporting
+        }
+      }
+
+      for (auto pair : cmdMsg->GetMetaData())
+      {
+        std::wstring keyWideStr(pair.first.begin(), pair.first.end());
+        std::wstring valueWideStr(pair.second.begin(), pair.second.end());
+        cmd->Parameters->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  //----------------------------------------------------------------------------
+  bool IGTLinkClient::GetLatestCommand(UWPOpenIGTLink::Command^ cmd)
+  {
+    igtl::MessageBase::Pointer igtMessage = nullptr;
+    {
+      // Retrieve the next available tracked frame reply
+      Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
+      for (auto replyIter = m_messages.rbegin(); replyIter != m_messages.rend(); ++replyIter)
+      {
+        if (typeid(*(*replyIter)) == typeid(igtl::RTSCommandMessage))
+        {
+          igtMessage = *replyIter;
+          break;
+        }
+      }
+    }
+
+    if (igtMessage != nullptr)
+    {
+      auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>(igtMessage.GetPointer());
+
+      cmd->CommandContent = ref new Platform::String(std::wstring(cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end()).c_str());
+      cmd->CommandName = ref new Platform::String(std::wstring(cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end()).c_str());
+      cmd->OriginalCommandId = cmdMsg->GetCommandId();
+
+      XmlDocument^ doc = ref new XmlDocument();
+      doc->LoadXml(cmd->CommandContent);
+
+      for (IXmlNode^ node : doc->ChildNodes)
+      {
+        if (dynamic_cast<Platform::String^>(node->NodeName) == L"Result")
+        {
+          cmd->Result = (dynamic_cast<Platform::String^>(node->NodeValue) == L"true");
+          break;
+        }
+      }
+
+      if (!cmd->Result)
+      {
+        bool found(false);
+        // Parse for the error string
+        for (IXmlNode^ node : doc->ChildNodes)
+        {
+          if (dynamic_cast<Platform::String^>(node->NodeName) == L"Error")
+          {
+            cmd->ErrorString = dynamic_cast<Platform::String^>(node->NodeValue);
+            found = true;
+            break;
+          }
+        }
+
+        if (!found)
+        {
+          // TODO : quiet error reporting
+        }
+      }
+
+      for (auto pair : cmdMsg->GetMetaData())
+      {
+        std::wstring keyWideStr(pair.first.begin(), pair.first.end());
+        std::wstring valueWideStr(pair.second.begin(), pair.second.end());
+        cmd->Parameters->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
+      }
 
       return true;
     }

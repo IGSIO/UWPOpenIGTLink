@@ -56,13 +56,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  int32_t Command::OriginalCommandId::get()
+  uint32_t Command::OriginalCommandId::get()
   {
     return m_OriginalCommandId;
   }
 
   //----------------------------------------------------------------------------
-  void Command::OriginalCommandId::set( int32_t arg )
+  void Command::OriginalCommandId::set( uint32_t arg )
   {
     m_OriginalCommandId = arg;
   }
