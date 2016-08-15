@@ -27,10 +27,17 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <igtl_util.h>
 
 // STD includes
+#include <array>
 #include <map>
+#include <memory>
 
-using namespace Windows::Foundation;
+// Windows includes
+#include <DirectXMath.h>
+#include <dxgiformat.h>
+
 using namespace Windows::Foundation::Collections;
+using namespace Windows::Foundation::Numerics;
+using namespace Windows::Foundation;
 using namespace Windows::Storage::Streams;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Media;
@@ -91,6 +98,12 @@ enum US_IMAGE_ORIENTATION
   US_IMG_ORIENT_LAST   /*!< just a placeholder for range checking, this must be the last defined orientation item */
 };
 
+#ifdef _WIN64
+typedef int64 SharedBytePtr;
+#else
+typedef int32 SharedBytePtr;
+#endif
+
 namespace UWPOpenIGTLink
 {
   public ref class TrackedFrame sealed
@@ -101,23 +114,40 @@ namespace UWPOpenIGTLink
     property IVectorView<uint16>^ FrameSize { IVectorView<uint16>^ get(); void set( IVectorView<uint16>^ arg ); }
     property uint16 NumberOfComponents { uint16 get(); void set( uint16 arg ); }
     property IBuffer^ ImageData { IBuffer ^ get(); void set( IBuffer ^ arg ); }
-    property int32 ScalarType { int32 get(); void set(int32 arg); }
+    property SharedBytePtr ImageDataSharedPtr { SharedBytePtr get(); void set( SharedBytePtr arg ); }
+    property int32 ScalarType { int32 get(); void set( int32 arg ); }
+    property float4x4 EmbeddedImageTransform { float4x4 get(); void set( float4x4 arg ); }
+    property uint32 PixelFormat { uint32 get(); void set( uint32 arg ); }
+    property uint16 ImageType { uint16 get(); void set( uint16 arg ); }
+    property uint16 ImageOrientation { uint16 get(); void set(uint16 arg); }
+    property uint16 Width { uint16 get(); }
+    property uint16 Height { uint16 get(); }
+    property uint16 Depth { uint16 get(); }
 
   public:
     void SetParameter( Platform::String^ key, Platform::String^ value );
     IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
+
+  internal:
+    void SetImageData( uint8* imageData, const std::array<uint16, 3>& frameSize );
+    void SetImageData( std::shared_ptr<uint8*> imageData );
+    std::shared_ptr<uint8*> GetImageData();
+
+    void SetEmbeddedImageTransform( const DirectX::XMFLOAT4X4& matrix );
+    const DirectX::XMFLOAT4X4& GetEmbeddedImageTransform();
 
   protected private:
     // Tracking/other related fields
     std::map<std::wstring, std::wstring> m_frameFields;
 
     // Image related fields
-    uint8* m_imageData;
-    uint16 m_frameSize[3];
-    uint16 m_numberOfComponents;
-    int32 m_frameSizeBytes;
-    US_IMAGE_TYPE ImageType;
-    US_IMAGE_ORIENTATION ImageOrientation;
-    IGTLScalarType m_scalarType;
+    std::shared_ptr<uint8*>   m_imageData;
+    std::array<uint16, 3>     m_frameSize;
+    uint16                    m_numberOfComponents;
+    int32                     m_frameSizeBytes;
+    US_IMAGE_TYPE             m_imageType;
+    US_IMAGE_ORIENTATION      m_imageOrientation;
+    IGTLScalarType            m_scalarType;
+    DirectX::XMFLOAT4X4       m_embeddedImageTransform;
   };
 }

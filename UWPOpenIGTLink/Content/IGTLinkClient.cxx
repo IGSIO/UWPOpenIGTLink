@@ -191,10 +191,12 @@ namespace UWPOpenIGTLink
       vec->Append( trackedFrameMsg->GetFrameSize()[2] );
       frame->FrameSize = vec->GetView();
       frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
-      Platform::ArrayReference<byte> arraywrapper( ( byte* )trackedFrameMsg->GetImage(), trackedFrameMsg->GetImageSizeInBytes() );
-      frame->ImageData = Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray( arraywrapper );
+      frame->SetImageData( trackedFrameMsg->GetImage() );
       frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
       frame->ScalarType = trackedFrameMsg->GetScalarType();
+      frame->SetEmbeddedImageTransform( trackedFrameMsg->GetEmbeddedImageTransform() );
+      frame->ImageType = (uint16)trackedFrameMsg->GetImageType();
+      frame->ImageOrientation = (uint16)trackedFrameMsg->GetImageOrientation();
 
       return true;
     }
@@ -208,10 +210,10 @@ namespace UWPOpenIGTLink
     igtl::MessageBase::Pointer igtMessage = nullptr;
     {
       // Retrieve the next available tracked frame reply
-      Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
-      for (auto replyIter = m_messages.rbegin(); replyIter != m_messages.rend(); ++replyIter)
+      Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
+      for ( auto replyIter = m_messages.rbegin(); replyIter != m_messages.rend(); ++replyIter )
       {
-        if (typeid(*(*replyIter)) == typeid(igtl::TrackedFrameMessage))
+        if ( typeid( *( *replyIter ) ) == typeid( igtl::TrackedFrameMessage ) )
         {
           igtMessage = *replyIter;
           break;
@@ -219,36 +221,38 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if (igtMessage != nullptr)
+    if ( igtMessage != nullptr )
     {
-      igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>(igtMessage.GetPointer());
+      igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( igtMessage.GetPointer() );
 
       // Tracking/other related fields
-      for (auto pair : trackedFrameMsg->GetMetaData())
+      for ( auto pair : trackedFrameMsg->GetMetaData() )
       {
-        std::wstring keyWideStr(pair.first.begin(), pair.first.end());
-        std::wstring valueWideStr(pair.second.begin(), pair.second.end());
-        frame->FrameFields->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
       }
 
-      for (auto pair : trackedFrameMsg->GetCustomFrameFields())
+      for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
       {
-        std::wstring keyWideStr(pair.first.begin(), pair.first.end());
-        std::wstring valueWideStr(pair.second.begin(), pair.second.end());
-        frame->FrameFields->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
       }
 
       // Image related fields
       auto vec = ref new Vector<uint16>;
-      vec->Append(trackedFrameMsg->GetFrameSize()[0]);
-      vec->Append(trackedFrameMsg->GetFrameSize()[1]);
-      vec->Append(trackedFrameMsg->GetFrameSize()[2]);
+      vec->Append( trackedFrameMsg->GetFrameSize()[0] );
+      vec->Append( trackedFrameMsg->GetFrameSize()[1] );
+      vec->Append( trackedFrameMsg->GetFrameSize()[2] );
       frame->FrameSize = vec->GetView();
       frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
-      Platform::ArrayReference<byte> arraywrapper((byte*)trackedFrameMsg->GetImage(), trackedFrameMsg->GetImageSizeInBytes());
-      frame->ImageData = Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray(arraywrapper);
+      frame->SetImageData( trackedFrameMsg->GetImage() );
       frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
       frame->ScalarType = trackedFrameMsg->GetScalarType();
+      frame->SetEmbeddedImageTransform( trackedFrameMsg->GetEmbeddedImageTransform() );
+      frame->ImageType = ( uint16 )trackedFrameMsg->GetImageType();
+      frame->ImageOrientation = ( uint16 )trackedFrameMsg->GetImageOrientation();
 
       return true;
     }
@@ -257,15 +261,15 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetOldestCommand(UWPOpenIGTLink::Command^ cmd)
+  bool IGTLinkClient::GetOldestCommand( UWPOpenIGTLink::Command^ cmd )
   {
     igtl::MessageBase::Pointer igtMessage = nullptr;
     {
       // Retrieve the next available tracked frame reply
-      Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
-      for (auto replyIter = m_messages.begin(); replyIter != m_messages.end(); ++replyIter)
+      Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
+      for ( auto replyIter = m_messages.begin(); replyIter != m_messages.end(); ++replyIter )
       {
-        if (typeid(*(*replyIter)) == typeid(igtl::RTSCommandMessage))
+        if ( typeid( *( *replyIter ) ) == typeid( igtl::RTSCommandMessage ) )
         {
           igtMessage = *replyIter;
           break;
@@ -273,51 +277,51 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if (igtMessage != nullptr)
+    if ( igtMessage != nullptr )
     {
-      auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>(igtMessage.GetPointer());
+      auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>( igtMessage.GetPointer() );
 
-      cmd->CommandContent = ref new Platform::String(std::wstring(cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end()).c_str());
-      cmd->CommandName = ref new Platform::String(std::wstring(cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end()).c_str());
+      cmd->CommandContent = ref new Platform::String( std::wstring( cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end() ).c_str() );
+      cmd->CommandName = ref new Platform::String( std::wstring( cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end() ).c_str() );
       cmd->OriginalCommandId = cmdMsg->GetCommandId();
 
       XmlDocument^ doc = ref new XmlDocument();
-      doc->LoadXml(cmd->CommandContent);
+      doc->LoadXml( cmd->CommandContent );
 
-      for (IXmlNode^ node : doc->ChildNodes)
+      for ( IXmlNode^ node : doc->ChildNodes )
       {
-        if (dynamic_cast<Platform::String^>(node->NodeName) == L"Result")
+        if ( dynamic_cast<Platform::String^>( node->NodeName ) == L"Result" )
         {
-          cmd->Result = (dynamic_cast<Platform::String^>(node->NodeValue) == L"true");
+          cmd->Result = ( dynamic_cast<Platform::String^>( node->NodeValue ) == L"true" );
           break;
         }
       }
 
-      if (!cmd->Result)
+      if ( !cmd->Result )
       {
-        bool found(false);
+        bool found( false );
         // Parse for the error string
-        for (IXmlNode^ node : doc->ChildNodes)
+        for ( IXmlNode^ node : doc->ChildNodes )
         {
-          if (dynamic_cast<Platform::String^>(node->NodeName) == L"Error")
+          if ( dynamic_cast<Platform::String^>( node->NodeName ) == L"Error" )
           {
-            cmd->ErrorString = dynamic_cast<Platform::String^>(node->NodeValue);
+            cmd->ErrorString = dynamic_cast<Platform::String^>( node->NodeValue );
             found = true;
             break;
           }
         }
 
-        if (!found)
+        if ( !found )
         {
           // TODO : quiet error reporting
         }
       }
 
-      for (auto pair : cmdMsg->GetMetaData())
+      for ( auto pair : cmdMsg->GetMetaData() )
       {
-        std::wstring keyWideStr(pair.first.begin(), pair.first.end());
-        std::wstring valueWideStr(pair.second.begin(), pair.second.end());
-        cmd->Parameters->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+        cmd->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
       }
 
       return true;
@@ -327,15 +331,15 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetLatestCommand(UWPOpenIGTLink::Command^ cmd)
+  bool IGTLinkClient::GetLatestCommand( UWPOpenIGTLink::Command^ cmd )
   {
     igtl::MessageBase::Pointer igtMessage = nullptr;
     {
       // Retrieve the next available tracked frame reply
-      Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
-      for (auto replyIter = m_messages.rbegin(); replyIter != m_messages.rend(); ++replyIter)
+      Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
+      for ( auto replyIter = m_messages.rbegin(); replyIter != m_messages.rend(); ++replyIter )
       {
-        if (typeid(*(*replyIter)) == typeid(igtl::RTSCommandMessage))
+        if ( typeid( *( *replyIter ) ) == typeid( igtl::RTSCommandMessage ) )
         {
           igtMessage = *replyIter;
           break;
@@ -343,51 +347,51 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if (igtMessage != nullptr)
+    if ( igtMessage != nullptr )
     {
-      auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>(igtMessage.GetPointer());
+      auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>( igtMessage.GetPointer() );
 
-      cmd->CommandContent = ref new Platform::String(std::wstring(cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end()).c_str());
-      cmd->CommandName = ref new Platform::String(std::wstring(cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end()).c_str());
+      cmd->CommandContent = ref new Platform::String( std::wstring( cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end() ).c_str() );
+      cmd->CommandName = ref new Platform::String( std::wstring( cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end() ).c_str() );
       cmd->OriginalCommandId = cmdMsg->GetCommandId();
 
       XmlDocument^ doc = ref new XmlDocument();
-      doc->LoadXml(cmd->CommandContent);
+      doc->LoadXml( cmd->CommandContent );
 
-      for (IXmlNode^ node : doc->ChildNodes)
+      for ( IXmlNode^ node : doc->ChildNodes )
       {
-        if (dynamic_cast<Platform::String^>(node->NodeName) == L"Result")
+        if ( dynamic_cast<Platform::String^>( node->NodeName ) == L"Result" )
         {
-          cmd->Result = (dynamic_cast<Platform::String^>(node->NodeValue) == L"true");
+          cmd->Result = ( dynamic_cast<Platform::String^>( node->NodeValue ) == L"true" );
           break;
         }
       }
 
-      if (!cmd->Result)
+      if ( !cmd->Result )
       {
-        bool found(false);
+        bool found( false );
         // Parse for the error string
-        for (IXmlNode^ node : doc->ChildNodes)
+        for ( IXmlNode^ node : doc->ChildNodes )
         {
-          if (dynamic_cast<Platform::String^>(node->NodeName) == L"Error")
+          if ( dynamic_cast<Platform::String^>( node->NodeName ) == L"Error" )
           {
-            cmd->ErrorString = dynamic_cast<Platform::String^>(node->NodeValue);
+            cmd->ErrorString = dynamic_cast<Platform::String^>( node->NodeValue );
             found = true;
             break;
           }
         }
 
-        if (!found)
+        if ( !found )
         {
           // TODO : quiet error reporting
         }
       }
 
-      for (auto pair : cmdMsg->GetMetaData())
+      for ( auto pair : cmdMsg->GetMetaData() )
       {
-        std::wstring keyWideStr(pair.first.begin(), pair.first.end());
-        std::wstring valueWideStr(pair.second.begin(), pair.second.end());
-        cmd->Parameters->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
+        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+        cmd->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
       }
 
       return true;

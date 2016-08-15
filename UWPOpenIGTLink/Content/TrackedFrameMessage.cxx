@@ -40,6 +40,7 @@ namespace igtl
   //----------------------------------------------------------------------------
   TrackedFrameMessage::~TrackedFrameMessage()
   {
+
   }
 
   //----------------------------------------------------------------------------
@@ -71,7 +72,7 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  byte* TrackedFrameMessage::GetImage()
+  std::shared_ptr<byte*> TrackedFrameMessage::GetImage()
   {
     return this->m_image;
   }
@@ -85,7 +86,7 @@ namespace igtl
   //----------------------------------------------------------------------------
   US_IMAGE_TYPE TrackedFrameMessage::GetImageType()
   {
-    return (US_IMAGE_TYPE)m_messageHeader.m_ImageType;
+    return ( US_IMAGE_TYPE )m_messageHeader.m_ImageType;
   }
 
   //----------------------------------------------------------------------------
@@ -113,9 +114,54 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
+  US_IMAGE_ORIENTATION TrackedFrameMessage::GetImageOrientation()
+  {
+    return ( US_IMAGE_ORIENTATION )this->m_messageHeader.m_ImageOrientation;
+  }
+
+  //----------------------------------------------------------------------------
   IGTLScalarType TrackedFrameMessage::GetScalarType()
   {
-    return (IGTLScalarType)this->m_messageHeader.m_ScalarType;
+    return ( IGTLScalarType )this->m_messageHeader.m_ScalarType;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrameMessage::SetEmbeddedImageTransform( const DirectX::XMFLOAT4X4& matrix )
+  {
+    for ( auto i :
+          {
+            0, 1, 2, 3
+          } )
+    {
+      for ( auto j :
+            {
+              0, 1, 2, 3
+            } )
+      {
+        this->m_messageHeader.m_EmbeddedImageTransform[i][j] = matrix.m[i][j];
+      }
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  DirectX::XMFLOAT4X4 TrackedFrameMessage::GetEmbeddedImageTransform()
+  {
+    DirectX::XMFLOAT4X4 matrix;
+    for ( auto i :
+          {
+            0, 1, 2, 3
+          } )
+    {
+      for ( auto j :
+            {
+              0, 1, 2, 3
+            } )
+      {
+        matrix.m[i][j] = this->m_messageHeader.m_EmbeddedImageTransform[i][j];
+      }
+    }
+
+    return matrix;
   }
 
   //----------------------------------------------------------------------------
@@ -129,6 +175,38 @@ namespace igtl
   //----------------------------------------------------------------------------
   int TrackedFrameMessage::PackContent()
   {
+    AllocateBuffer();
+
+    // Copy header
+    TrackedFrameHeader* header = ( TrackedFrameHeader* )( this->m_Content );
+    header->m_ScalarType = this->m_messageHeader.m_ScalarType;
+    header->m_NumberOfComponents = this->m_messageHeader.m_NumberOfComponents;
+    header->m_ImageType = this->m_messageHeader.m_ImageType;
+    header->m_FrameSize[0] = this->m_messageHeader.m_FrameSize[0];
+    header->m_FrameSize[1] = this->m_messageHeader.m_FrameSize[1];
+    header->m_FrameSize[2] = this->m_messageHeader.m_FrameSize[2];
+    header->m_ImageDataSizeInBytes = this->m_messageHeader.m_ImageDataSizeInBytes;
+    header->m_XmlDataSizeInBytes = this->m_messageHeader.m_XmlDataSizeInBytes;
+    header->m_ImageOrientation = this->m_messageHeader.m_ImageOrientation;
+    memcpy( header->m_EmbeddedImageTransform, this->m_messageHeader.m_EmbeddedImageTransform, sizeof( igtl::Matrix4x4 ) );
+
+    // Copy xml data
+    char* xmlData = ( char* )( this->m_Content + header->GetMessageHeaderSize() );
+    strncpy( xmlData, this->m_trackedFrameXmlData.c_str(), this->m_trackedFrameXmlData.size() );
+    header->m_XmlDataSizeInBytes = this->m_messageHeader.m_XmlDataSizeInBytes;
+
+    // Copy image data
+    void* imageData = ( void* )( this->m_Content + header->GetMessageHeaderSize() + header->m_XmlDataSizeInBytes );
+    memcpy( imageData, *m_image, this->m_messageHeader.m_ImageDataSizeInBytes );
+
+    // Set timestamp
+    igtl::TimeStamp::Pointer timestamp = igtl::TimeStamp::New();
+    timestamp->GetTime();
+    this->SetTimeStamp( timestamp );
+
+    // Convert header endian
+    header->ConvertEndianness();
+
     return 1;
   }
 
@@ -149,6 +227,8 @@ namespace igtl
     this->m_messageHeader.m_FrameSize[2] = header->m_FrameSize[2];
     this->m_messageHeader.m_ImageDataSizeInBytes = header->m_ImageDataSizeInBytes;
     this->m_messageHeader.m_XmlDataSizeInBytes = header->m_XmlDataSizeInBytes;
+    this->m_messageHeader.m_ImageOrientation = header->m_ImageOrientation;
+    memcpy( this->m_messageHeader.m_EmbeddedImageTransform, header->m_EmbeddedImageTransform, sizeof( igtl::Matrix4x4 ) );
 
     // Copy xml data
     char* xmlData = ( char* )( this->m_Content + header->GetMessageHeaderSize() );
@@ -165,7 +245,9 @@ namespace igtl
     if ( this->m_imageValid )
     {
       this->m_imageSizeInBytes = header->m_ImageDataSizeInBytes;
-      this->m_image = (byte*)(this->m_Content + header->GetMessageHeaderSize() + header->m_XmlDataSizeInBytes);
+      // Make a duplicate of the image that is reference counted, this allows it to persist in memory while it's needed
+      this->m_image = std::make_shared<byte*>( ( byte* )malloc( this->m_imageSizeInBytes ) );
+      memcpy( *m_image, this->m_Content + header->GetMessageHeaderSize() + header->m_XmlDataSizeInBytes, this->m_imageSizeInBytes );
     }
 
     for( unsigned int i = 0; i < document.GetElementsByTagName( L"TrackedFrame" )->Item( 0 )->ChildNodes->Size; ++i )
@@ -181,17 +263,32 @@ namespace igtl
       }
     }
 
+    // Set timestamp
+    igtl::TimeStamp::Pointer timestamp = igtl::TimeStamp::New();
+    timestamp->GetTime();
+    this->m_timestamp = timestamp->GetTimeStamp();
+
     return 1;
   }
 
   //----------------------------------------------------------------------------
-  TrackedFrameMessage::TrackedFrameHeader::TrackedFrameHeader() : m_ScalarType()
+  TrackedFrameMessage::TrackedFrameHeader::TrackedFrameHeader()
+    : m_ScalarType()
     , m_NumberOfComponents( 0 )
     , m_ImageType( 0 )
     , m_ImageDataSizeInBytes( 0 )
     , m_XmlDataSizeInBytes( 0 )
+    , m_ImageOrientation( 0 )
   {
     m_FrameSize[0] = m_FrameSize[1] = m_FrameSize[2] = 0;
+
+    for ( int i = 0; i < 4; ++i )
+    {
+      for ( int j = 0; j < 4; ++j )
+      {
+        m_EmbeddedImageTransform[i][j] = ( i == j ) ? 1.f : 0.f;
+      }
+    }
   }
 
   //----------------------------------------------------------------------------
@@ -204,6 +301,8 @@ namespace igtl
     headersize += sizeof( igtl_uint16 ) * 3;  // m_FrameSize[3]
     headersize += sizeof( igtl_uint32 );      // m_ImageDataSizeInBytes
     headersize += sizeof( igtl_uint32 );      // m_XmlDataSizeInBytes
+    headersize += sizeof( igtl_uint16 );      // m_ImageOrientation
+    headersize += sizeof( igtl::Matrix4x4 );  // m_EmbeddedImageTransform[4][4]
 
     return headersize;
   }
@@ -221,6 +320,7 @@ namespace igtl
       m_FrameSize[2] = BYTE_SWAP_INT16( m_FrameSize[2] );
       m_ImageDataSizeInBytes = BYTE_SWAP_INT32( m_ImageDataSizeInBytes );
       m_XmlDataSizeInBytes = BYTE_SWAP_INT32( m_XmlDataSizeInBytes );
+      m_ImageOrientation = BYTE_SWAP_INT16( m_ImageOrientation );
     }
   }
 
