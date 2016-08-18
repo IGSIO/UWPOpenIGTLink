@@ -9,4 +9,3 @@ x64
 *.db
 Generated Files
 /UWPOpenIGTLinkUI/UWPOpenIGTLinkUI.vcxproj.user
-/TrackedUltrasound/*.filters
