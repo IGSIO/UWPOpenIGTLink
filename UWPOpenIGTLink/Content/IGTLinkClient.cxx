@@ -122,7 +122,15 @@ namespace UWPOpenIGTLink
       } );
 
       // Wait (inside the async operation) and retrieve the result of connection
-      bool result = connectTask.get();
+      bool result;
+      try
+      {
+        result = connectTask.get();
+      }
+      catch ( const std::exception& e )
+      {
+        OutputDebugStringA( e.what() );
+      }
 
       if( result )
       {
@@ -130,6 +138,16 @@ namespace UWPOpenIGTLink
         create_task( [this, token]( void )
         {
           this->DataReceiverPump( this, token );
+        } ).then( [this]( task<void> previousTask )
+        {
+          try
+          {
+            previousTask.wait();
+          }
+          catch ( const std::exception& e )
+          {
+            OutputDebugStringA( e.what() );
+          }
         } );
       }
 
@@ -195,8 +213,8 @@ namespace UWPOpenIGTLink
       frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
       frame->ScalarType = trackedFrameMsg->GetScalarType();
       frame->SetEmbeddedImageTransform( trackedFrameMsg->GetEmbeddedImageTransform() );
-      frame->ImageType = (uint16)trackedFrameMsg->GetImageType();
-      frame->ImageOrientation = (uint16)trackedFrameMsg->GetImageOrientation();
+      frame->ImageType = ( uint16 )trackedFrameMsg->GetImageType();
+      frame->ImageOrientation = ( uint16 )trackedFrameMsg->GetImageOrientation();
 
       return true;
     }
