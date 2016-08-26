@@ -89,69 +89,40 @@ namespace UWPOpenIGTLink
     this->Disconnect();
 
     this->m_cancellationTokenSource = cancellation_token_source();
-    auto token = this->m_cancellationTokenSource.get_token();
 
-    return create_async( [this, timeoutSec, token]() -> bool
+    return create_async( [=]() -> bool
     {
-      auto connectTask = create_task( [this, timeoutSec, token]() -> bool
+      const int retryDelaySec = 1.0;
+      int errorCode = 1;
+      auto start = std::chrono::high_resolution_clock::now();
+      while ( errorCode != 0 )
       {
-        const int retryDelaySec = 1.0;
-        int errorCode = 1;
-        auto start = std::chrono::high_resolution_clock::now();
-        while ( errorCode != 0 )
+        std::wstring wideStr( this->ServerHost->Begin() );
+        std::string str( wideStr.begin(), wideStr.end() );
+        errorCode = this->m_clientSocket->ConnectToServer( str.c_str(), this->ServerPort );
+        std::chrono::duration<double, std::milli> timeDiff = std::chrono::high_resolution_clock::now() - start;
+        if ( timeDiff.count() > timeoutSec * 1000 )
         {
-          std::wstring wideStr( this->ServerHost->Begin() );
-          std::string str( wideStr.begin(), wideStr.end() );
-          errorCode = this->m_clientSocket->ConnectToServer( str.c_str(), this->ServerPort );
-          std::chrono::duration<double, std::milli> timeDiff = std::chrono::high_resolution_clock::now() - start;
-          if ( timeDiff.count() > timeoutSec * 1000 )
-          {
-            // time is up
-            break;
-          }
-          std::this_thread::sleep_for( std::chrono::seconds( retryDelaySec ) );
+          // time is up
+          break;
         }
-
-        if ( errorCode != 0 )
-        {
-          return false;
-        }
-
-        this->m_clientSocket->SetTimeout( CLIENT_SOCKET_TIMEOUT_MSEC );
-        return true;
-      } );
-
-      // Wait (inside the async operation) and retrieve the result of connection
-      bool result;
-      try
-      {
-        result = connectTask.get();
-      }
-      catch ( const std::exception& e )
-      {
-        OutputDebugStringA( e.what() );
+        std::this_thread::sleep_for( std::chrono::seconds( retryDelaySec ) );
       }
 
-      if( result )
+      if ( errorCode != 0 )
       {
-        // We're connected, start the data receiver thread
-        create_task( [this, token]( void )
-        {
-          this->DataReceiverPump( this, token );
-        } ).then( [this]( task<void> previousTask )
-        {
-          try
-          {
-            previousTask.wait();
-          }
-          catch ( const std::exception& e )
-          {
-            OutputDebugStringA( e.what() );
-          }
-        } );
+        return false;
       }
 
-      return result;
+      this->m_clientSocket->SetTimeout( CLIENT_SOCKET_TIMEOUT_MSEC );
+
+      // We're connected, start the data receiver thread
+      create_task( [this]( void )
+      {
+        this->DataReceiverPump( this, m_cancellationTokenSource.get_token() );
+      });
+
+      return true;
     } );
   }
 
@@ -453,7 +424,7 @@ namespace UWPOpenIGTLink
         numOfBytesReceived = self->m_clientSocket->Receive( headerMsg->GetBufferPointer(), headerMsg->GetBufferSize() );
       }
       if ( numOfBytesReceived == 0 // No message received
-           || numOfBytesReceived != headerMsg->GetPackSize() // Received data is not as we expected
+           || numOfBytesReceived != headerMsg->GetBufferSize() // Received data is not as we expected
          )
       {
         // Failed to receive data, maybe the socket is disconnected
@@ -468,7 +439,20 @@ namespace UWPOpenIGTLink
         continue;
       }
 
-      auto bodyMsg = self->m_igtlMessageFactory->CreateReceiveMessage( headerMsg );
+      igtl::MessageBase::Pointer bodyMsg = nullptr;
+      try
+      {
+        bodyMsg = self->m_igtlMessageFactory->CreateReceiveMessage(headerMsg);
+      }
+      catch (const std::exception&)
+      {
+        // Message header was not correct, skip this message
+        // Will be impossible to tell if the body of this message is in the socket... this is a pretty bad corruption.
+        // Force re-connect?
+        OutputDebugStringA("SAsf");
+        continue;
+      }
+
       if ( bodyMsg.IsNull() )
       {
         std::cerr << "Unable to create message of type: " << headerMsg->GetMessageType() << std::endl;
