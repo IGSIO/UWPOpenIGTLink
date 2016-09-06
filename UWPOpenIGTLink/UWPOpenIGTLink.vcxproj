@@ -150,6 +150,7 @@
     <ClInclude Include="Content\Data\TrackedFrame.h" />
     <ClInclude Include="Content\IGTLinkClient.h" />
     <ClInclude Include="Content\TrackedFrameMessage.h" />
+    <ClInclude Include="IGTCommon.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Content\Data\Command.cpp" />

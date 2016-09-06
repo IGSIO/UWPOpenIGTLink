@@ -434,6 +434,18 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  double TrackedFrame::Timestamp::get()
+  {
+    return m_timestamp;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrame::Timestamp::set( double arg )
+  {
+    m_timestamp = arg;
+  }
+
+  //----------------------------------------------------------------------------
   IMapView<Platform::String^, Platform::String^>^ TrackedFrame::GetValidTransforms()
   {
     Map<Platform::String^, Platform::String^>^ outputMap = ref new Map<Platform::String^, Platform::String^>;

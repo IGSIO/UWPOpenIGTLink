@@ -93,7 +93,7 @@ namespace igtl
 
       void ConvertEndianness();
 
-      igtl_uint16     m_ScalarType;             /* scalar type                     */
+      igtl_uint16     m_ScalarType;             /* scalar type */
       igtl_uint16     m_NumberOfComponents;     /* number of scalar components */
       igtl_uint16     m_ImageType;              /* image type */
       igtl_uint16     m_FrameSize[3];           /* entire image volume size */

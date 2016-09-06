@@ -119,7 +119,8 @@ namespace UWPOpenIGTLink
     property float4x4 EmbeddedImageTransform { float4x4 get(); void set( float4x4 arg ); }
     property uint32 PixelFormat { uint32 get(); void set( uint32 arg ); }
     property uint16 ImageType { uint16 get(); void set( uint16 arg ); }
-    property uint16 ImageOrientation { uint16 get(); void set(uint16 arg); }
+    property uint16 ImageOrientation { uint16 get(); void set( uint16 arg ); }
+    property double Timestamp { double get(); void set( double arg ); }
     property uint16 Width { uint16 get(); }
     property uint16 Height { uint16 get(); }
     property uint16 Depth { uint16 get(); }
@@ -141,6 +142,7 @@ namespace UWPOpenIGTLink
     std::map<std::wstring, std::wstring> m_frameFields;
 
     // Image related fields
+    double                    m_timestamp;
     std::shared_ptr<uint8*>   m_imageData;
     std::array<uint16, 3>     m_frameSize;
     uint16                    m_numberOfComponents;

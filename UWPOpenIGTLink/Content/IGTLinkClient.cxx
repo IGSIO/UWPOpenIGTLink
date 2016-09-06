@@ -23,6 +23,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 // Local includes
 #include "IGTLinkClient.h"
+#include "IGTCommon.h"
 #include "TrackedFrameMessage.h"
 
 // IGT includes
@@ -90,7 +91,7 @@ namespace UWPOpenIGTLink
 
     this->m_cancellationTokenSource = cancellation_token_source();
 
-    return create_async( [=]() -> bool
+    return create_async( [ = ]() -> bool
     {
       const int retryDelaySec = 1.0;
       int errorCode = 1;
@@ -120,7 +121,7 @@ namespace UWPOpenIGTLink
       create_task( [this]( void )
       {
         this->DataReceiverPump( this, m_cancellationTokenSource.get_token() );
-      });
+      } );
 
       return true;
     } );
@@ -138,7 +139,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetOldestTrackedFrame( TrackedFrame^ frame )
+  bool IGTLinkClient::GetOldestTrackedFrame( TrackedFrame^ frame, double* oldestTimestamp )
   {
     igtl::MessageBase::Pointer igtMessage = nullptr;
     {
@@ -179,6 +180,7 @@ namespace UWPOpenIGTLink
       vec->Append( trackedFrameMsg->GetFrameSize()[1] );
       vec->Append( trackedFrameMsg->GetFrameSize()[2] );
       frame->FrameSize = vec->GetView();
+      frame->Timestamp = trackedFrameMsg->GetTimestamp();
       frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
       frame->SetImageData( trackedFrameMsg->GetImage() );
       frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
@@ -194,7 +196,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetLatestTrackedFrame( TrackedFrame^ frame )
+  bool IGTLinkClient::GetLatestTrackedFrame( TrackedFrame^ frame, double* latestTimestamp )
   {
     igtl::MessageBase::Pointer igtMessage = nullptr;
     {
@@ -210,6 +212,7 @@ namespace UWPOpenIGTLink
       }
     }
 
+    // TODO : implement timestamp analysis and population
     if ( igtMessage != nullptr )
     {
       igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( igtMessage.GetPointer() );
@@ -235,6 +238,7 @@ namespace UWPOpenIGTLink
       vec->Append( trackedFrameMsg->GetFrameSize()[1] );
       vec->Append( trackedFrameMsg->GetFrameSize()[2] );
       frame->FrameSize = vec->GetView();
+      frame->Timestamp = trackedFrameMsg->GetTimestamp();
       frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
       frame->SetImageData( trackedFrameMsg->GetImage() );
       frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
@@ -408,6 +412,8 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void IGTLinkClient::DataReceiverPump( IGTLinkClient^ self, concurrency::cancellation_token token )
   {
+    LOG_TRACE( L"IGTLinkClient::DataReceiverPump" );
+
     while ( !token.is_canceled() )
     {
       auto headerMsg = self->m_igtlMessageFactory->CreateHeaderMessage( IGTL_HEADER_VERSION_1 );
@@ -442,20 +448,20 @@ namespace UWPOpenIGTLink
       igtl::MessageBase::Pointer bodyMsg = nullptr;
       try
       {
-        bodyMsg = self->m_igtlMessageFactory->CreateReceiveMessage(headerMsg);
+        bodyMsg = self->m_igtlMessageFactory->CreateReceiveMessage( headerMsg );
       }
-      catch (const std::exception&)
+      catch ( const std::exception& )
       {
         // Message header was not correct, skip this message
         // Will be impossible to tell if the body of this message is in the socket... this is a pretty bad corruption.
         // Force re-connect?
-        OutputDebugStringA("SAsf");
+        LOG_TRACE( "Corruption in the message header. Serious error." );
         continue;
       }
 
       if ( bodyMsg.IsNull() )
       {
-        std::cerr << "Unable to create message of type: " << headerMsg->GetMessageType() << std::endl;
+        LOG_TRACE( "Unable to create message of type: " << headerMsg->GetMessageType() );
         continue;
       }
 

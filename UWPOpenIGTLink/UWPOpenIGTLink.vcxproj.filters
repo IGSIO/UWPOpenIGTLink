@@ -19,6 +19,7 @@
     </ClInclude>
     <ClInclude Include="Content\TrackedFrameMessage.h" />
     <ClInclude Include="Content\IGTLinkClient.h" />
+    <ClInclude Include="IGTCommon.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Plus Data Structures">
