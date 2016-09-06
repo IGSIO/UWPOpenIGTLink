@@ -130,9 +130,8 @@ namespace UWPOpenIGTLink
     IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
 
   internal:
-    void SetImageData( uint8* imageData, const std::array<uint16, 3>& frameSize );
-    void SetImageData( std::shared_ptr<uint8*> imageData );
-    std::shared_ptr<uint8*> GetImageData();
+    void SetImageData( std::shared_ptr<byte> imageData );
+    std::shared_ptr<byte> GetImageData();
 
     void SetEmbeddedImageTransform( const DirectX::XMFLOAT4X4& matrix );
     const DirectX::XMFLOAT4X4& GetEmbeddedImageTransform();
@@ -143,7 +142,7 @@ namespace UWPOpenIGTLink
 
     // Image related fields
     double                    m_timestamp;
-    std::shared_ptr<uint8*>   m_imageData;
+    std::shared_ptr<byte>   m_imageData;
     std::array<uint16, 3>     m_frameSize;
     uint16                    m_numberOfComponents;
     int32                     m_frameSizeBytes;

@@ -468,8 +468,6 @@ namespace UWPOpenIGTLink
       // Accept all messages but status messages, they are used as a keep alive mechanism
       if ( typeid( *bodyMsg ) != typeid( igtl::StatusMessage ) )
       {
-        bodyMsg->SetMessageHeader( headerMsg );
-        bodyMsg->AllocateBuffer();
         {
           critical_section::scoped_lock lock( self->m_socketMutex );
           if ( !self->m_clientSocket->GetConnected() )

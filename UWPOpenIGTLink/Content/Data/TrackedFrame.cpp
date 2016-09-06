@@ -109,7 +109,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   IBuffer^ TrackedFrame::ImageData::get()
   {
-    Platform::ArrayReference<byte> arraywrapper( *m_imageData, m_frameSizeBytes );
+    Platform::ArrayReference<byte> arraywrapper( m_imageData.get(), m_frameSizeBytes );
     return Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray( arraywrapper );
   }
 
@@ -145,7 +145,8 @@ namespace UWPOpenIGTLink
       return;
     }
 
-    m_imageData = std::make_shared<uint8*>( reinterpret_cast<byte*>( pRawData ) );
+    m_imageData = std::shared_ptr<byte>( new byte[bufferLength], std::default_delete<byte[]>() );
+    memcpy( m_imageData.get(), pRawData, bufferLength * sizeof( byte ) );
   }
 
   //----------------------------------------------------------------------------
@@ -169,7 +170,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void TrackedFrame::ImageDataSharedPtr::set( SharedBytePtr arg )
   {
-    m_imageData = *( ( std::shared_ptr<byte*>* )arg );
+    m_imageData = *( std::shared_ptr<byte>* )arg;
   }
 
   //----------------------------------------------------------------------------
@@ -485,20 +486,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::SetImageData( uint8* imageData, const std::array<uint16, 3>& frameSize )
-  {
-    m_frameSize = frameSize;
-    m_imageData = std::make_shared<uint8*>( imageData );
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::SetImageData( std::shared_ptr<uint8*> imageData )
+  void TrackedFrame::SetImageData( std::shared_ptr<byte> imageData )
   {
     m_imageData = imageData;
   }
 
   //----------------------------------------------------------------------------
-  std::shared_ptr<uint8*> TrackedFrame::GetImageData()
+  std::shared_ptr<byte> TrackedFrame::GetImageData()
   {
     return m_imageData;
   }
