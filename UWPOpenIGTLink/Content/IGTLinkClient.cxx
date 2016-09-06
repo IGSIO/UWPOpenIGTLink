@@ -449,7 +449,7 @@ namespace UWPOpenIGTLink
         // Message header was not correct, skip this message
         // Will be impossible to tell if the body of this message is in the socket... this is a pretty bad corruption.
         // Force re-connect?
-        OutputDebugStringA("SAsf");
+        OutputDebugStringA("Impossible to tell if the message body is in the socket buffer. Fatal error.");
         continue;
       }
 
@@ -462,8 +462,6 @@ namespace UWPOpenIGTLink
       // Accept all messages but status messages, they are used as a keep alive mechanism
       if ( typeid( *bodyMsg ) != typeid( igtl::StatusMessage ) )
       {
-        bodyMsg->SetMessageHeader( headerMsg );
-        bodyMsg->AllocateBuffer();
         {
           critical_section::scoped_lock lock( self->m_socketMutex );
           if ( !self->m_clientSocket->GetConnected() )

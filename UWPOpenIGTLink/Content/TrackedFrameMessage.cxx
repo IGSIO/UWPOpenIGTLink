@@ -72,7 +72,7 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  std::shared_ptr<byte*> TrackedFrameMessage::GetImage()
+  std::shared_ptr<byte> TrackedFrameMessage::GetImage()
   {
     return this->m_image;
   }
@@ -197,7 +197,7 @@ namespace igtl
 
     // Copy image data
     void* imageData = ( void* )( this->m_Content + header->GetMessageHeaderSize() + header->m_XmlDataSizeInBytes );
-    memcpy( imageData, *m_image, this->m_messageHeader.m_ImageDataSizeInBytes );
+    memcpy( imageData, m_image.get(), this->m_messageHeader.m_ImageDataSizeInBytes );
 
     // Set timestamp
     igtl::TimeStamp::Pointer timestamp = igtl::TimeStamp::New();
@@ -246,8 +246,8 @@ namespace igtl
     {
       this->m_imageSizeInBytes = header->m_ImageDataSizeInBytes;
       // Make a duplicate of the image that is reference counted, this allows it to persist in memory while it's needed
-      this->m_image = std::make_shared<byte*>( ( byte* )malloc( this->m_imageSizeInBytes ) );
-      memcpy( *m_image, this->m_Content + header->GetMessageHeaderSize() + header->m_XmlDataSizeInBytes, this->m_imageSizeInBytes );
+      this->m_image = std::shared_ptr<byte>( new byte[ m_imageSizeInBytes ], std::default_delete<byte[]>() );
+      memcpy( m_image.get(), this->m_Content + header->GetMessageHeaderSize() + header->m_XmlDataSizeInBytes, this->m_imageSizeInBytes );
     }
 
     for( unsigned int i = 0; i < document.GetElementsByTagName( L"TrackedFrame" )->Item( 0 )->ChildNodes->Size; ++i )

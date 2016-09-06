@@ -119,7 +119,7 @@ namespace UWPOpenIGTLink
     property float4x4 EmbeddedImageTransform { float4x4 get(); void set( float4x4 arg ); }
     property uint32 PixelFormat { uint32 get(); void set( uint32 arg ); }
     property uint16 ImageType { uint16 get(); void set( uint16 arg ); }
-    property uint16 ImageOrientation { uint16 get(); void set(uint16 arg); }
+    property uint16 ImageOrientation { uint16 get(); void set( uint16 arg ); }
     property uint16 Width { uint16 get(); }
     property uint16 Height { uint16 get(); }
     property uint16 Depth { uint16 get(); }
@@ -129,9 +129,8 @@ namespace UWPOpenIGTLink
     IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
 
   internal:
-    void SetImageData( uint8* imageData, const std::array<uint16, 3>& frameSize );
-    void SetImageData( std::shared_ptr<uint8*> imageData );
-    std::shared_ptr<uint8*> GetImageData();
+    void SetImageData( std::shared_ptr<byte> imageData );
+    std::shared_ptr<byte> GetImageData();
 
     void SetEmbeddedImageTransform( const DirectX::XMFLOAT4X4& matrix );
     const DirectX::XMFLOAT4X4& GetEmbeddedImageTransform();
@@ -141,7 +140,7 @@ namespace UWPOpenIGTLink
     std::map<std::wstring, std::wstring> m_frameFields;
 
     // Image related fields
-    std::shared_ptr<uint8*>   m_imageData;
+    std::shared_ptr<byte>     m_imageData;
     std::array<uint16, 3>     m_frameSize;
     uint16                    m_numberOfComponents;
     int32                     m_frameSizeBytes;
