@@ -22,12 +22,16 @@ OTHER DEALINGS IN THE SOFTWARE.
 ====================================================================*/
 
 // Local includes
+#include "pch.h"
 #include "TrackedFrame.h"
 
 // Windows includes
 #include <WindowsNumerics.h>
 #include <collection.h>
 #include <robuffer.h>
+
+// stl includes
+#include <sstream>
 
 using namespace Platform::Collections;
 using namespace Windows::Foundation;
@@ -38,6 +42,9 @@ using namespace Windows::UI::Xaml::Media;
 
 namespace UWPOpenIGTLink
 {
+  static std::wstring TRANSFORM_POSTFIX = L"Transform";
+  static std::wstring TRANSFORM_STATUS_POSTFIX = L"TransformStatus";
+
   //----------------------------------------------------------------------------
   int32 TrackedFrame::ImageSizeBytes::get()
   {
@@ -474,6 +481,105 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  float4x4 TrackedFrame::GetCustomFrameTransform( TransformName^ transformName )
+  {
+    std::wstring transformNameStr;
+    try
+    {
+      transformNameStr = std::wstring( transformName->GetTransformName()->Data() );
+    }
+    catch ( Platform::Exception^ e )
+    {
+      throw e;
+    }
+
+    // Append Transform to the end of the transform name
+    if ( !IsTransform( transformNameStr ) )
+    {
+      transformNameStr.append( TRANSFORM_POSTFIX );
+    }
+
+    Platform::String^ value = GetCustomFrameField( transformName->GetTransformName() );
+    if ( value == nullptr )
+    {
+      throw ref new Platform::Exception( E_INVALIDARG, L"Frame value not found for field: " + transformName->GetTransformName() );
+    }
+    std::wstring valueStr( value->Data() );
+
+    // Find default frame transform
+    float vals[16];
+    std::wistringstream transformFieldValue( valueStr );
+    float item;
+    int i = 0;
+    while ( transformFieldValue >> item && i < 16 )
+    {
+      vals[i++] = item;
+    }
+    return float4x4( vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9], vals[10], vals[11], vals[12], vals[13], vals[14], vals[15] );
+  }
+
+  //----------------------------------------------------------------------------
+  int TrackedFrame::GetCustomFrameTransformStatus( TransformName^ transformName )
+  {
+    TrackedFrameFieldStatus status = FIELD_INVALID;
+    std::wstring transformStatusName;
+    try
+    {
+      transformStatusName = std::wstring( transformName->GetTransformName()->Data() );
+    }
+    catch ( Platform::Exception^ e )
+    {
+      throw e;
+    }
+
+    // Append TransformStatus to the end of the transform name
+    if ( IsTransform( transformStatusName ) )
+    {
+      transformStatusName.append( L"Status" );
+    }
+    else if ( !IsTransformStatus( transformStatusName ) )
+    {
+      transformStatusName.append( TRANSFORM_STATUS_POSTFIX );
+    }
+
+    std::wstring strStatus;
+    if ( !GetCustomFrameField( transformStatusName, strStatus ) )
+    {
+      throw ref new Platform::Exception( E_FAIL, L"Unable to locate custom frame field: " + transformName->GetTransformName() );
+    }
+
+    status = TrackedFrame::ConvertFieldStatusFromString( strStatus );
+
+    return status;
+  }
+
+  //----------------------------------------------------------------------------
+  Platform::String^ TrackedFrame::GetCustomFrameField( Platform::String^ fieldName )
+  {
+    std::wstring field( fieldName->Data() );
+    FieldMapType::iterator fieldIterator;
+    fieldIterator = m_frameFields.find( field );
+    if ( fieldIterator != m_frameFields.end() )
+    {
+      return ref new Platform::String( fieldIterator->second.c_str() );
+    }
+    return nullptr;
+  }
+
+  //----------------------------------------------------------------------------
+  bool TrackedFrame::GetCustomFrameField( const std::wstring& fieldName, std::wstring& value )
+  {
+    FieldMapType::iterator fieldIterator;
+    fieldIterator = m_frameFields.find( fieldName );
+    if ( fieldIterator != m_frameFields.end() )
+    {
+      value = fieldIterator->second;
+      return true;
+    }
+    return false;
+  }
+
+  //----------------------------------------------------------------------------
   void TrackedFrame::SetEmbeddedImageTransform( const DirectX::XMFLOAT4X4& matrix )
   {
     m_embeddedImageTransform = matrix;
@@ -496,4 +602,61 @@ namespace UWPOpenIGTLink
   {
     return m_imageData;
   }
+
+  //----------------------------------------------------------------------------
+  IVectorView<TransformName^>^ TrackedFrame::GetCustomFrameTransformNameList()
+  {
+    Vector<TransformName^>^ vec = ref new Vector<TransformName^>();
+    for ( auto pair : m_frameFields )
+    {
+      if ( IsTransform( pair.first ) )
+      {
+        TransformName^ trName = ref new TransformName();
+        trName->SetTransformName( ref new Platform::String( pair.first.substr( 0, pair.first.length() - TRANSFORM_POSTFIX.length() ).c_str() ) );
+        vec->Append( trName );
+      }
+    }
+    return vec->GetView();
+  }
+
+  //----------------------------------------------------------------------------
+  bool TrackedFrame::IsTransform( const std::wstring& str )
+  {
+    if ( str.length() <= TRANSFORM_POSTFIX.length() )
+    {
+      return false;
+    }
+
+    return !str.substr( str.length() - TRANSFORM_POSTFIX.length() ).compare( TRANSFORM_POSTFIX );
+  }
+
+  //----------------------------------------------------------------------------
+  bool TrackedFrame::IsTransformStatus( const std::wstring& str )
+  {
+    if ( str.length() <= TRANSFORM_STATUS_POSTFIX.length() )
+    {
+      return false;
+    }
+
+    return !str.substr( str.length() - TRANSFORM_STATUS_POSTFIX.length() ).compare( TRANSFORM_STATUS_POSTFIX );
+  }
+
+  //----------------------------------------------------------------------------
+  TrackedFrameFieldStatus TrackedFrame::ConvertFieldStatusFromString( const std::wstring& statusStr )
+  {
+    TrackedFrameFieldStatus status = FIELD_INVALID;
+    if ( statusStr.compare( L"OK" ) == 0 )
+    {
+      status = FIELD_OK;
+    }
+
+    return status;
+  }
+
+  //----------------------------------------------------------------------------
+  std::wstring TrackedFrame::ConvertFieldStatusToString( TrackedFrameFieldStatus status )
+  {
+    return status == FIELD_OK ? std::wstring( L"OK" ) : std::wstring( L"INVALID" );
+  }
+
 }

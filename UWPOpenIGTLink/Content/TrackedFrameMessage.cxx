@@ -22,6 +22,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 ====================================================================*/
 
 // Local includes
+#include "pch.h"
 #include "TrackedFrameMessage.h"
 
 // IGT includes
