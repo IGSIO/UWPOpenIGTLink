@@ -115,20 +115,20 @@
     <ClCompile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink\Content;$(SolutionDir)UWPOpenIGTLink\Content\Data;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)UWPOpenIGTLink\Content;$(SolutionDir)UWPOpenIGTLink\Content\Data;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink\Content;$(SolutionDir)UWPOpenIGTLink\Content\Data;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)UWPOpenIGTLink\Content;$(SolutionDir)UWPOpenIGTLink\Content\Data;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

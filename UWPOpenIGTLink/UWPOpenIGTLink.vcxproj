@@ -93,28 +93,28 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>true</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(ProjectDir)Content;$(ProjectDir)Content\Data;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Content;$(ProjectDir)Content\Data;$(ProjectDir)..\OpenIGTLink-bin;$(ProjectDir)..\OpenIGTLink\Source\igtlutil;$(ProjectDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINRT_DLL;UWPOpenIGTLink_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
-      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>true</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(ProjectDir)Content;$(ProjectDir)Content\Data;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Content;$(ProjectDir)Content\Data;$(ProjectDir)..\OpenIGTLink-bin;$(ProjectDir)..\OpenIGTLink\Source\igtlutil;$(ProjectDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINRT_DLL;UWPOpenIGTLink_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
-      <AdditionalDependencies>$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(SolutionDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin\bin\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

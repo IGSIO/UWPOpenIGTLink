@@ -1,0 +1,3 @@
+[submodule "OpenIGTLink"]
+	path = OpenIGTLink
+	url = https://github.com/IGSIO/OpenIGTLink.git

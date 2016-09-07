@@ -10,3 +10,4 @@ x64
 Generated Files
 /UWPOpenIGTLinkUI/UWPOpenIGTLinkUI.vcxproj.user
 /TrackedUltrasound/*.filters
+/OpenIGTLink-bin
