@@ -2,27 +2,65 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="Content\Data\Command.cpp">
-      <Filter>Plus Data Structures</Filter>
+      <Filter>Data</Filter>
     </ClCompile>
     <ClCompile Include="Content\Data\TrackedFrame.cpp">
-      <Filter>Plus Data Structures</Filter>
+      <Filter>Data</Filter>
     </ClCompile>
-    <ClCompile Include="Content\IGTLinkClient.cxx" />
-    <ClCompile Include="Content\TrackedFrameMessage.cxx" />
+    <ClCompile Include="pch.cpp">
+      <Filter>Infrastructure</Filter>
+    </ClCompile>
+    <ClCompile Include="Content\TransformName.cxx">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Content\TransformRepository.cxx">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Content\IGTLinkClient.cxx">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Content\TrackedFrameMessage.cxx">
+      <Filter>Network</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Content\Data\TrackedFrame.h">
-      <Filter>Plus Data Structures</Filter>
+      <Filter>Data</Filter>
     </ClInclude>
     <ClInclude Include="Content\Data\Command.h">
-      <Filter>Plus Data Structures</Filter>
+      <Filter>Data</Filter>
     </ClInclude>
-    <ClInclude Include="Content\TrackedFrameMessage.h" />
-    <ClInclude Include="Content\IGTLinkClient.h" />
+    <ClInclude Include="pch.h">
+      <Filter>Infrastructure</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\TransformRepository.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\TransformName.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="IGTCommon.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\TrackedFrameMessage.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\IGTLinkClient.h">
+      <Filter>Network</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="Plus Data Structures">
+    <Filter Include="Data">
       <UniqueIdentifier>{141f4055-e93e-463a-a3c3-2632a9af616a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Infrastructure">
+      <UniqueIdentifier>{2734ad40-2987-4275-b5dd-1e81ed9e6575}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{d6071071-c02d-4c67-8418-9a48cf59a8fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Network">
+      <UniqueIdentifier>{734df184-3d93-4ffe-a129-5f5e6c06a465}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -23,6 +23,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
+// Local includes
+#include "TransformName.h"
+
 // IGT includes
 #include <igtl_util.h>
 
@@ -33,6 +36,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 // Windows includes
 #include <DirectXMath.h>
+#include <collection.h>
 #include <dxgiformat.h>
 
 using namespace Windows::Foundation::Collections;
@@ -106,8 +110,18 @@ typedef int32 SharedBytePtr;
 
 namespace UWPOpenIGTLink
 {
+  enum TrackedFrameFieldStatus
+  {
+    FIELD_OK,       /// Field is valid
+    FIELD_INVALID   /// Field is invalid
+  };
+
+  [Windows::Foundation::Metadata::WebHostHiddenAttribute]
   public ref class TrackedFrame sealed
   {
+  private:
+    typedef std::map<std::wstring, std::wstring> FieldMapType;
+
   public:
     property IMap<Platform::String^, Platform::String^>^ FrameFields {IMap<Platform::String^, Platform::String^>^ get(); }
     property int32 ImageSizeBytes { int32 get(); void set( int32 arg ); }
@@ -119,7 +133,8 @@ namespace UWPOpenIGTLink
     property float4x4 EmbeddedImageTransform { float4x4 get(); void set( float4x4 arg ); }
     property uint32 PixelFormat { uint32 get(); void set( uint32 arg ); }
     property uint16 ImageType { uint16 get(); void set( uint16 arg ); }
-    property uint16 ImageOrientation { uint16 get(); void set(uint16 arg); }
+    property uint16 ImageOrientation { uint16 get(); void set( uint16 arg ); }
+    property double Timestamp { double get(); void set( double arg ); }
     property uint16 Width { uint16 get(); }
     property uint16 Height { uint16 get(); }
     property uint16 Depth { uint16 get(); }
@@ -128,20 +143,39 @@ namespace UWPOpenIGTLink
     void SetParameter( Platform::String^ key, Platform::String^ value );
     IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
 
+    IVectorView<TransformName^>^ TrackedFrame::GetCustomFrameTransformNameList();
+    float4x4 GetCustomFrameTransform( TransformName^ transformName );
+    Platform::String^ GetCustomFrameField( Platform::String^ fieldName );
+    int GetCustomFrameTransformStatus( TransformName^ transformName );
+
   internal:
-    void SetImageData( uint8* imageData, const std::array<uint16, 3>& frameSize );
-    void SetImageData( std::shared_ptr<uint8*> imageData );
-    std::shared_ptr<uint8*> GetImageData();
+    void SetImageData( std::shared_ptr<byte> imageData );
+    std::shared_ptr<byte> GetImageData();
 
     void SetEmbeddedImageTransform( const DirectX::XMFLOAT4X4& matrix );
     const DirectX::XMFLOAT4X4& GetEmbeddedImageTransform();
 
+    bool GetCustomFrameField( const std::wstring& fieldName, std::wstring& value );
+
+    /// Returns true if the input string ends with "Transform", else false
+    static bool IsTransform( const std::wstring& str );
+
+    /// Returns true if the input string ends with "TransformStatus", else false
+    static bool IsTransformStatus( const std::wstring& str );
+
+    /*! Convert from field status string to field status enum */
+    static TrackedFrameFieldStatus ConvertFieldStatusFromString(const std::wstring& statusStr);
+
+    /*! Convert from field status enum to field status string */
+    static std::wstring ConvertFieldStatusToString(TrackedFrameFieldStatus status);
+
   protected private:
     // Tracking/other related fields
-    std::map<std::wstring, std::wstring> m_frameFields;
+    FieldMapType m_frameFields;
 
     // Image related fields
-    std::shared_ptr<uint8*>   m_imageData;
+    double                    m_timestamp;
+    std::shared_ptr<byte>     m_imageData;
     std::array<uint16, 3>     m_frameSize;
     uint16                    m_numberOfComponents;
     int32                     m_frameSizeBytes;

@@ -93,7 +93,8 @@ namespace UWPOpenIGTLinkUI
     {
       Platform::String^ text = ref new Platform::String();
       UWPOpenIGTLink::TrackedFrame^ frame = ref new UWPOpenIGTLink::TrackedFrame();
-      auto found = IGTClient->GetOldestTrackedFrame( frame );
+      double timestamp;
+      auto found = IGTClient->GetOldestTrackedFrame( frame, &timestamp );
       if ( !found )
       {
         return;

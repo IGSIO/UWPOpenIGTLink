@@ -26,8 +26,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 // Local includes
 #include "IGTLConnectorPage.g.h"
 
-using namespace Windows::Foundation::Collections;
-using namespace Windows::Foundation;
 using namespace Windows::Storage::Streams;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Media;

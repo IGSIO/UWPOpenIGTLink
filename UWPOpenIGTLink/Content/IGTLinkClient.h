@@ -77,16 +77,16 @@ namespace UWPOpenIGTLink
     void Disconnect();
 
     /// Retrieve the oldest tracked frame reply
-    bool GetOldestTrackedFrame(TrackedFrame^ frame);
+    bool GetOldestTrackedFrame( TrackedFrame^ frame, double* oldestTimestamp );
 
     /// Retrieve the latest tracked frame reply
-    bool GetLatestTrackedFrame(TrackedFrame^ frame);
+    bool GetLatestTrackedFrame( TrackedFrame^ frame, double* latestTimestamp );
 
     /// Retrieve the oldest command
-    bool GetOldestCommand(UWPOpenIGTLink::Command^ cmd);
+    bool GetOldestCommand( UWPOpenIGTLink::Command^ cmd );
 
     /// Retrieve the latest command
-    bool GetLatestCommand(UWPOpenIGTLink::Command^ cmd);
+    bool GetLatestCommand( UWPOpenIGTLink::Command^ cmd );
 
   internal:
     /// Send a packed message to the connected server

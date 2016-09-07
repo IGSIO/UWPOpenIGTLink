@@ -67,7 +67,7 @@ namespace igtl
     virtual igtl::MessageBase::Pointer Clone();
 
     /// Accessors to the various parts of the message and message header
-    std::shared_ptr<byte*> GetImage();
+    std::shared_ptr<byte> GetImage();
     const std::map<std::string, std::string>& GetCustomFrameFields();
     US_IMAGE_TYPE GetImageType();
     double GetTimestamp();
@@ -93,7 +93,7 @@ namespace igtl
 
       void ConvertEndianness();
 
-      igtl_uint16     m_ScalarType;             /* scalar type                     */
+      igtl_uint16     m_ScalarType;             /* scalar type */
       igtl_uint16     m_NumberOfComponents;     /* number of scalar components */
       igtl_uint16     m_ImageType;              /* image type */
       igtl_uint16     m_FrameSize[3];           /* entire image volume size */
@@ -111,7 +111,7 @@ namespace igtl
     ~TrackedFrameMessage();
 
     std::map<std::string, std::string> m_customFrameFields;
-    std::shared_ptr<byte*> m_image;
+    std::shared_ptr<byte> m_image;
     std::string m_trackedFrameXmlData;
     double m_timestamp;
     bool m_imageValid;
