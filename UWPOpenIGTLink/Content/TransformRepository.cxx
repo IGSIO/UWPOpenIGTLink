@@ -13,6 +13,9 @@
 #include <sstream>
 #include <iomanip>
 
+// boost includes
+#include <boost/tokenizer.hpp>
+
 using namespace Windows::Data::Xml::Dom;
 
 namespace UWPOpenIGTLink
@@ -123,7 +126,7 @@ namespace UWPOpenIGTLink
       TrackedFrameFieldStatus status = FIELD_INVALID;
       try
       {
-        status = (TrackedFrameFieldStatus)trackedFrame->GetCustomFrameTransformStatus( transformName );
+        status = ( TrackedFrameFieldStatus )trackedFrame->GetCustomFrameTransformStatus( transformName );
       }
       catch ( Platform::Exception^ e )
       {
@@ -393,6 +396,7 @@ namespace UWPOpenIGTLink
     if ( fromToTransformInfo != NULL )
     {
       fromToTransformInfo->m_Date = std::wstring( aDate->Data() );
+      return;
     }
 
     throw ref new Platform::Exception( E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
@@ -556,7 +560,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void TransformRepository::ReadConfiguration( XmlDocument^ doc )
   {
-    auto xpath = ref new Platform::String( L"/TransformRepository/CoordinateDefinitions" );
+    auto xpath = ref new Platform::String( L"/HoloIntervention/CoordinateDefinitions" );
     if ( doc->SelectNodes( xpath )->Length != 1 )
     {
       throw ref new Platform::Exception( E_INVALIDARG, L"TransformRepository::ReadConfiguration: no CoordinateDefinitions element was found" );
@@ -564,15 +568,13 @@ namespace UWPOpenIGTLink
 
     IXmlNode^ coordinateDefinitions = doc->SelectNodes( xpath )->Item( 0 );
 
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
-
     // Clear the transforms
     Clear();
 
     int numberOfErrors( 0 );
     for ( IXmlNode^ nestedElement : coordinateDefinitions->ChildNodes )
     {
-      if ( nestedElement->NodeName == L"Transform" )
+      if ( nestedElement->NodeName != L"Transform" )
       {
         continue;
       }
@@ -594,11 +596,46 @@ namespace UWPOpenIGTLink
       }
 
       float4x4 matrix;
-      double vectorMatrix[16] = { 0 };
+      if ( nestedElement->Attributes->GetNamedItem( L"Matrix" ) == nullptr )
+      {
+        numberOfErrors++;
+        continue;
+      }
       Platform::String^ matrixString = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Matrix" )->NodeValue );
       if ( !matrixString->IsEmpty() )
       {
-        // TODO : convert space separated string into float4x4
+        std::wstring matrixStr( matrixString->Data() );
+
+        boost::char_separator<wchar_t> sep( L", " );
+        boost::tokenizer<boost::char_separator<wchar_t>, std::wstring::const_iterator, std::wstring> tokens( matrixStr, sep );
+
+        std::vector<float> vectorMatrix;
+        int i = 0;
+        for ( const auto& t : tokens )
+        {
+          vectorMatrix.push_back( stof( t ) );
+        }
+        if ( vectorMatrix.size() != 16 )
+        {
+          numberOfErrors++;
+          continue;
+        }
+        matrix.m11 = vectorMatrix[0];
+        matrix.m12 = vectorMatrix[1];
+        matrix.m13 = vectorMatrix[2];
+        matrix.m14 = vectorMatrix[3];
+        matrix.m21 = vectorMatrix[4];
+        matrix.m22 = vectorMatrix[5];
+        matrix.m23 = vectorMatrix[6];
+        matrix.m24 = vectorMatrix[7];
+        matrix.m31 = vectorMatrix[8];
+        matrix.m32 = vectorMatrix[9];
+        matrix.m33 = vectorMatrix[10];
+        matrix.m34 = vectorMatrix[11];
+        matrix.m41 = vectorMatrix[12];
+        matrix.m42 = vectorMatrix[13];
+        matrix.m43 = vectorMatrix[14];
+        matrix.m44 = vectorMatrix[15];
       }
       else
       {
@@ -617,56 +654,45 @@ namespace UWPOpenIGTLink
       }
 
       bool isPersistent = true;
-      Platform::String^ persistentAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Persistent" )->NodeValue );
-      if ( !persistentAttribute->IsEmpty() ) // if it exists, then it is non-persistent
+      if ( nestedElement->Attributes->GetNamedItem( L"Persistent" ) != nullptr )
       {
-        std::wstring persistentString( persistentAttribute->Data() );
-        std::transform( persistentString.begin(), persistentString.end(), persistentString.begin(), towlower );
-        if ( persistentString == L"false" )
+        Platform::String^ persistentAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Persistent" )->NodeValue );
+        if ( !persistentAttribute->IsEmpty() ) // if it exists, then it is non-persistent
         {
-          isPersistent = false;
+          std::wstring persistentString( persistentAttribute->Data() );
+          std::transform( persistentString.begin(), persistentString.end(), persistentString.begin(), towlower );
+          if ( persistentString == L"false" )
+          {
+            isPersistent = false;
+          }
         }
-      }
-      try
-      {
-        SetTransformPersistent( transformName, isPersistent );
-      }
-      catch ( Platform::Exception^ e )
-      {
-        numberOfErrors++;
-        continue;
+        try
+        {
+          SetTransformPersistent( transformName, isPersistent );
+        }
+        catch ( Platform::Exception^ e )
+        {
+          numberOfErrors++;
+          continue;
+        }
       }
 
       bool isValid = true;
-      Platform::String^ validAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Valid" )->NodeValue );
-      if ( !validAttribute->IsEmpty() ) // if it exists, then it is non-persistent
+      if ( nestedElement->Attributes->GetNamedItem( L"Valid" ) != nullptr )
       {
-        std::wstring validString( validAttribute->Data() );
-        std::transform( validString.begin(), validString.end(), validString.begin(), towlower );
-        if ( validString == L"false" )
+        Platform::String^ validAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Valid" )->NodeValue );
+        if ( !validAttribute->IsEmpty() ) // if it exists, then it is non-persistent
         {
-          isValid = false;
+          std::wstring validString( validAttribute->Data() );
+          std::transform( validString.begin(), validString.end(), validString.begin(), towlower );
+          if ( validString == L"false" )
+          {
+            isValid = false;
+          }
         }
-      }
-      try
-      {
-        SetTransformValid( transformName, isValid );
-      }
-      catch ( Platform::Exception^ e )
-      {
-        numberOfErrors++;
-        continue;
-      }
-
-      double error( 0 );
-      Platform::String^ errorAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Error" )->NodeValue );
-      if ( !errorAttribute->IsEmpty() )
-      {
-        std::wstring errorString( errorAttribute->Data() );
-        error = stod( errorString );
         try
         {
-          SetTransformError( transformName, error );
+          SetTransformValid( transformName, isValid );
         }
         catch ( Platform::Exception^ e )
         {
@@ -675,17 +701,37 @@ namespace UWPOpenIGTLink
         }
       }
 
-      Platform::String^ dateAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Date" )->NodeValue );
-      if ( !dateAttribute->IsEmpty() )
+      if ( nestedElement->Attributes->GetNamedItem( L"Error" ) != nullptr )
       {
-        try
+        Platform::String^ errorAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Error" )->NodeValue );
+        if ( !errorAttribute->IsEmpty() )
         {
-          SetTransformDate( transformName, dateAttribute );
+          try
+          {
+            SetTransformError( transformName, stod( std::wstring( errorAttribute->Data() ) ) );
+          }
+          catch ( Platform::Exception^ e )
+          {
+            numberOfErrors++;
+            continue;
+          }
         }
-        catch ( Platform::Exception^ e )
+      }
+
+      if ( nestedElement->Attributes->GetNamedItem( L"Date" ) != nullptr )
+      {
+        Platform::String^ dateAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Date" )->NodeValue );
+        if ( !dateAttribute->IsEmpty() )
         {
-          numberOfErrors++;
-          continue;
+          try
+          {
+            SetTransformDate( transformName, dateAttribute );
+          }
+          catch ( Platform::Exception^ e )
+          {
+            numberOfErrors++;
+            continue;
+          }
         }
       }
     }
@@ -701,13 +747,13 @@ namespace UWPOpenIGTLink
   // Attributes: Persistent="TRUE/FALSE" Valid="TRUE/FALSE" => add it to ReadConfiguration, too
   void TransformRepository::WriteConfigurationGeneric( XmlDocument^ doc, bool copyAllTransforms )
   {
-    auto xpath = ref new Platform::String( L"/TransformRepository/CoordinateDefinitions" );
+    auto xpath = ref new Platform::String( L"/HoloIntervention/CoordinateDefinitions" );
     if ( doc->SelectNodes( xpath )->Length == 0 )
     {
-      auto trXpath = ref new Platform::String( L"/TransformRepository" );
+      auto trXpath = ref new Platform::String( L"/HoloIntervention" );
       if ( doc->SelectNodes( trXpath )->Length == 0 )
       {
-        XmlElement^ trElem = doc->CreateElement( L"TransformRepository" );
+        XmlElement^ trElem = doc->CreateElement( L"HoloIntervention" );
         doc->AppendChild( trElem );
       }
       XmlElement^ elem = doc->CreateElement( L"CoordinateDefinitions" );
@@ -770,13 +816,13 @@ namespace UWPOpenIGTLink
             GetLocalTime( &st );
             std::wstringstream woss;
             woss << std::setfill( L'0' );
-            woss << st.wYear << L"-";
+            woss << st.wYear
+                 << L".";
             woss << std::setw( 2 );
             woss << st.wMonth
-                 << L"-" << st.wDay
+                 << L"." << st.wDay
                  << L" " << st.wHour
                  << L":" << st.wMinute
-                 << L":" << st.wSecond
                  << L"." << std::endl;
             newTransformElement->SetAttribute( "Date", ref new Platform::String( woss.str().c_str() ) );
           }
