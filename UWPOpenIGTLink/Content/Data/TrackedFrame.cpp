@@ -97,14 +97,14 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  IMap<Platform::String^, Platform::String^>^ TrackedFrame::FrameFields::get()
+  IMapView<Platform::String^, Platform::String^>^ TrackedFrame::FrameFields::get()
   {
     auto map = ref new Map<Platform::String^, Platform::String^>();
     for ( auto pair : m_frameFields )
     {
       map->Insert( ref new Platform::String( pair.first.c_str() ), ref new Platform::String( pair.second.c_str() ) );
     }
-    return map;
+    return map->GetView();
   }
 
   //----------------------------------------------------------------------------
@@ -499,16 +499,15 @@ namespace UWPOpenIGTLink
       transformNameStr.append( TRANSFORM_POSTFIX );
     }
 
-    Platform::String^ value = GetCustomFrameField( transformName->GetTransformName() );
-    if ( value == nullptr )
+    std::wstring value;
+    if ( !GetCustomFrameField( transformNameStr, value ) )
     {
       throw ref new Platform::Exception( E_INVALIDARG, L"Frame value not found for field: " + transformName->GetTransformName() );
     }
-    std::wstring valueStr( value->Data() );
 
     // Find default frame transform
     float vals[16];
-    std::wistringstream transformFieldValue( valueStr );
+    std::wistringstream transformFieldValue(value);
     float item;
     int i = 0;
     while ( transformFieldValue >> item && i < 16 )
@@ -564,6 +563,12 @@ namespace UWPOpenIGTLink
       return ref new Platform::String( fieldIterator->second.c_str() );
     }
     return nullptr;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrame::SetCustomFrameField( const std::wstring& fieldName, const std::wstring& value )
+  {
+    m_frameFields[fieldName] = value;
   }
 
   //----------------------------------------------------------------------------

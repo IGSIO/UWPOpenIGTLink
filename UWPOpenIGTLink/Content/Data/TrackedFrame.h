@@ -123,7 +123,7 @@ namespace UWPOpenIGTLink
     typedef std::map<std::wstring, std::wstring> FieldMapType;
 
   public:
-    property IMap<Platform::String^, Platform::String^>^ FrameFields {IMap<Platform::String^, Platform::String^>^ get(); }
+    property IMapView<Platform::String^, Platform::String^>^ FrameFields {IMapView<Platform::String^, Platform::String^>^ get(); }
     property int32 ImageSizeBytes { int32 get(); void set( int32 arg ); }
     property IVectorView<uint16>^ FrameSize { IVectorView<uint16>^ get(); void set( IVectorView<uint16>^ arg ); }
     property uint16 NumberOfComponents { uint16 get(); void set( uint16 arg ); }
@@ -155,6 +155,7 @@ namespace UWPOpenIGTLink
     void SetEmbeddedImageTransform( const DirectX::XMFLOAT4X4& matrix );
     const DirectX::XMFLOAT4X4& GetEmbeddedImageTransform();
 
+    void SetCustomFrameField( const std::wstring& fieldName, const std::wstring& value );
     bool GetCustomFrameField( const std::wstring& fieldName, std::wstring& value );
 
     /// Returns true if the input string ends with "Transform", else false
@@ -164,10 +165,10 @@ namespace UWPOpenIGTLink
     static bool IsTransformStatus( const std::wstring& str );
 
     /*! Convert from field status string to field status enum */
-    static TrackedFrameFieldStatus ConvertFieldStatusFromString(const std::wstring& statusStr);
+    static TrackedFrameFieldStatus ConvertFieldStatusFromString( const std::wstring& statusStr );
 
     /*! Convert from field status enum to field status string */
-    static std::wstring ConvertFieldStatusToString(TrackedFrameFieldStatus status);
+    static std::wstring ConvertFieldStatusToString( TrackedFrameFieldStatus status );
 
   protected private:
     // Tracking/other related fields

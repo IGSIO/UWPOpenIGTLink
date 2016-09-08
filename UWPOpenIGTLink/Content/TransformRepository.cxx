@@ -6,6 +6,7 @@
 
 // Local includes
 #include "pch.h"
+#include "IGTCommon.h"
 #include "TrackedFrame.h"
 #include "TransformRepository.h"
 
@@ -45,7 +46,6 @@ namespace UWPOpenIGTLink
     m_IsPersistent = obj.m_IsPersistent;
     m_Date = obj.m_Date;
     m_Error = obj.m_Error;
-
   }
   //----------------------------------------------------------------------------
   TransformRepository::TransformInfo& TransformRepository::TransformInfo::operator=( const TransformInfo& obj )
@@ -96,16 +96,6 @@ namespace UWPOpenIGTLink
 
     for ( auto transformName : transformNames )
     {
-      std::wstring trName;
-      try
-      {
-        trName = std::wstring( transformName->GetTransformName()->Data() );
-      }
-      catch ( Platform::Exception^ e )
-      {
-        continue;
-      }
-
       if ( transformName->From() == transformName->To() )
       {
         numberOfErrors++;
@@ -260,36 +250,30 @@ namespace UWPOpenIGTLink
     // Check if we can find the transform by combining the input transforms
     // To improve performance the already found paths could be stored in a map of transform name -> transformInfoList
     TransformInfoListType transformInfoList;
-    if ( FindPath( aTransformName, transformInfoList ) )
+    if ( !FindPath( aTransformName, transformInfoList ) )
     {
       // the transform cannot be computed, error has been already logged by FindPath
-      throw ref new Platform::Exception( E_FAIL, L"A transform path already exists between " + aTransformName->From() +
-                                         L" and " + aTransformName->To() );
+      throw ref new Platform::Exception( E_FAIL, L"Transform " + aTransformName->GetTransformName() + L" cannot be computed. See debug output for available transforms." );
     }
 
     // Create transform chain and compute transform status
-    DirectX::XMMATRIX combinedTransform = DirectX::XMLoadFloat4x4( &float4x4::identity() );
+    float4x4 combinedTransform = float4x4::identity();
     bool combinedTransformValid( true );
     for ( auto& transformInfo : transformInfoList )
     {
-      DirectX::XMMATRIX curTransform = DirectX::XMLoadFloat4x4( &transformInfo->m_Transform );
-      // TODO : make sure this is correct result
-      combinedTransform = curTransform * combinedTransform;
+      combinedTransform = combinedTransform * transformInfo->m_Transform; // even though this operator shows m_transform on the right, this is actually premultiplication
       if ( !transformInfo->m_IsValid )
       {
         combinedTransformValid = false;
       }
     }
-    // Save the results
-    float4x4 result;
-    DirectX::XMStoreFloat4x4( &result, combinedTransform );
 
     if ( isValid != NULL )
     {
       ( *isValid ) = combinedTransformValid;
     }
 
-    return result;
+    return combinedTransform;
   }
 
   //----------------------------------------------------------------------------

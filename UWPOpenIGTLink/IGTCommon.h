@@ -24,11 +24,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
 #include <string>
+#include <sstream>
+
+using namespace Windows::Foundation::Numerics;
 
 namespace UWPOpenIGTLink
 {
   //--------------------------------------------------------
-  void LogMessage( const std::string& msg, const char* fileName, int lineNumber )
+  inline void LogMessage( const std::string& msg, const char* fileName, int lineNumber )
   {
     std::ostringstream log;
     log << "|TRACE| ";
@@ -45,7 +48,7 @@ namespace UWPOpenIGTLink
   }
 
   //--------------------------------------------------------
-  void LogMessage( const std::wstring& msg, const char* fileName, int lineNumber )
+  inline void LogMessage( const std::wstring& msg, const char* fileName, int lineNumber )
   {
     std::wostringstream log;
     log << L"|TRACE| ";
@@ -59,6 +62,29 @@ namespace UWPOpenIGTLink
     }
 
     OutputDebugStringW( log.str().c_str() );
+  }
+
+  //--------------------------------------------------------
+  inline std::wstring PrintMatrix(const float4x4& matrix)
+  {
+    std::wostringstream woss;
+    woss << matrix.m11 << " "
+      << matrix.m12 << " "
+      << matrix.m13 << " "
+      << matrix.m14 << "    "
+      << matrix.m21 << " "
+      << matrix.m22 << " "
+      << matrix.m23 << " "
+      << matrix.m24 << "    "
+      << matrix.m31 << " "
+      << matrix.m32 << " "
+      << matrix.m33 << " "
+      << matrix.m34 << "    "
+      << matrix.m41 << " "
+      << matrix.m42 << " "
+      << matrix.m43 << " "
+      << matrix.m44 << std::endl;
+    return woss.str();
   }
 }
 

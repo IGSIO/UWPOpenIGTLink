@@ -165,14 +165,14 @@ namespace UWPOpenIGTLink
       {
         std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
         std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+        frame->SetCustomFrameField( keyWideStr, valueWideStr );
       }
 
       for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
       {
         std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
         std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+        frame->SetCustomFrameField( keyWideStr, valueWideStr );
       }
 
       // Image related fields
@@ -223,14 +223,14 @@ namespace UWPOpenIGTLink
       {
         std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
         std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+        frame->SetCustomFrameField( keyWideStr, valueWideStr );
       }
 
       for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
       {
         std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
         std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        frame->FrameFields->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+        frame->SetCustomFrameField( keyWideStr, valueWideStr );
       }
 
       // Image related fields
