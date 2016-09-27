@@ -91,12 +91,6 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  double TrackedFrameMessage::GetTimestamp()
-  {
-    return this->m_timestamp;
-  }
-
-  //----------------------------------------------------------------------------
   igtl_uint16* TrackedFrameMessage::GetFrameSize()
   {
     return this->m_messageHeader.m_FrameSize;
@@ -240,7 +234,10 @@ namespace igtl
 
     auto rootAttributes = document.GetElementsByTagName( L"TrackedFrame" )->Item( 0 )->Attributes;
 
-    this->m_timestamp = _wtof( dynamic_cast<Platform::String^>( rootAttributes->GetNamedItem( L"Timestamp" )->NodeValue )->Data() );
+    igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
+    ts->SetTime( _wtof( dynamic_cast<Platform::String^>( rootAttributes->GetNamedItem( L"Timestamp" )->NodeValue )->Data() ) );
+    this->SetTimeStamp( ts );
+
     this->m_imageValid = dynamic_cast<Platform::String^>( rootAttributes->GetNamedItem( L"ImageDataValid" )->NodeValue ) == L"true";
 
     if ( this->m_imageValid )
@@ -263,11 +260,6 @@ namespace igtl
         this->m_customFrameFields[std::string( nameWide.begin(), nameWide.end() )] = std::string( valueWide.begin(), valueWide.end() );
       }
     }
-
-    // Set timestamp
-    igtl::TimeStamp::Pointer timestamp = igtl::TimeStamp::New();
-    timestamp->GetTime();
-    this->m_timestamp = timestamp->GetTimeStamp();
 
     return 1;
   }

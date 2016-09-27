@@ -140,66 +140,9 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetOldestTrackedFrame( TrackedFrame^ frame, double* oldestTimestamp )
-  {
-    igtl::MessageBase::Pointer igtMessage = nullptr;
-    {
-      // Retrieve the next available tracked frame reply
-      Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
-      for ( auto replyIter = m_messages.begin(); replyIter != m_messages.end(); ++replyIter )
-      {
-        if ( typeid( *( *replyIter ) ) == typeid( igtl::TrackedFrameMessage ) )
-        {
-          igtMessage = *replyIter;
-          break;
-        }
-      }
-    }
-
-    if ( igtMessage != nullptr )
-    {
-      igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( igtMessage.GetPointer() );
-
-      // Tracking/other related fields
-      for ( auto pair : trackedFrameMsg->GetMetaData() )
-      {
-        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
-        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        frame->SetCustomFrameField( keyWideStr, valueWideStr );
-      }
-
-      for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
-      {
-        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
-        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        frame->SetCustomFrameField( keyWideStr, valueWideStr );
-      }
-
-      // Image related fields
-      auto vec = ref new Vector<uint16>;
-      vec->Append( trackedFrameMsg->GetFrameSize()[0] );
-      vec->Append( trackedFrameMsg->GetFrameSize()[1] );
-      vec->Append( trackedFrameMsg->GetFrameSize()[2] );
-      frame->FrameSize = vec->GetView();
-      frame->Timestamp = trackedFrameMsg->GetTimestamp();
-      frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
-      frame->SetImageData( trackedFrameMsg->GetImage() );
-      frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
-      frame->ScalarType = trackedFrameMsg->GetScalarType();
-      frame->SetEmbeddedImageTransform( trackedFrameMsg->GetEmbeddedImageTransform() );
-      frame->ImageType = ( uint16 )trackedFrameMsg->GetImageType();
-      frame->ImageOrientation = ( uint16 )trackedFrameMsg->GetImageOrientation();
-
-      return true;
-    }
-
-    return false;
-  }
-
-  //----------------------------------------------------------------------------
   bool IGTLinkClient::GetLatestTrackedFrame( TrackedFrame^ frame, double* latestTimestamp )
   {
-    igtl::MessageBase::Pointer igtMessage = nullptr;
+    igtl::TrackedFrameMessage::Pointer trackedFrameMsg = nullptr;
     {
       // Retrieve the next available tracked frame reply
       Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
@@ -207,125 +150,65 @@ namespace UWPOpenIGTLink
       {
         if ( typeid( *( *replyIter ) ) == typeid( igtl::TrackedFrameMessage ) )
         {
-          igtMessage = *replyIter;
+          trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( ( *replyIter ).GetPointer() );
           break;
         }
       }
     }
 
-    // TODO : implement timestamp analysis and population
-    if ( igtMessage != nullptr )
+    if ( latestTimestamp != nullptr )
     {
-      igtl::TrackedFrameMessage::Pointer trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( igtMessage.GetPointer() );
+      auto ts = igtl::TimeStamp::New();
+      trackedFrameMsg->GetTimeStamp( ts );
 
-      // Tracking/other related fields
-      for ( auto pair : trackedFrameMsg->GetMetaData() )
+      if ( ts->GetTimeStamp() <= *latestTimestamp )
       {
-        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
-        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        frame->SetCustomFrameField( keyWideStr, valueWideStr );
+        // No new messages since requested timestamp
+        return false;
       }
-
-      for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
+      else
       {
-        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
-        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        frame->SetCustomFrameField( keyWideStr, valueWideStr );
+        *latestTimestamp = ts->GetTimeStamp();
       }
-
-      // Image related fields
-      auto vec = ref new Vector<uint16>;
-      vec->Append( trackedFrameMsg->GetFrameSize()[0] );
-      vec->Append( trackedFrameMsg->GetFrameSize()[1] );
-      vec->Append( trackedFrameMsg->GetFrameSize()[2] );
-      frame->FrameSize = vec->GetView();
-      frame->Timestamp = trackedFrameMsg->GetTimestamp();
-      frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
-      frame->SetImageData( trackedFrameMsg->GetImage() );
-      frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
-      frame->ScalarType = trackedFrameMsg->GetScalarType();
-      frame->SetEmbeddedImageTransform( trackedFrameMsg->GetEmbeddedImageTransform() );
-      frame->ImageType = ( uint16 )trackedFrameMsg->GetImageType();
-      frame->ImageOrientation = ( uint16 )trackedFrameMsg->GetImageOrientation();
-
-      return true;
     }
 
-    return false;
+    // Tracking/other related fields
+    for ( auto pair : trackedFrameMsg->GetMetaData() )
+    {
+      std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+      std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+      frame->SetCustomFrameField( keyWideStr, valueWideStr );
+    }
+
+    for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
+    {
+      std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
+      std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
+      frame->SetCustomFrameField( keyWideStr, valueWideStr );
+    }
+
+    // Image related fields
+    auto vec = ref new Vector<uint16>;
+    vec->Append( trackedFrameMsg->GetFrameSize()[0] );
+    vec->Append( trackedFrameMsg->GetFrameSize()[1] );
+    vec->Append( trackedFrameMsg->GetFrameSize()[2] );
+    frame->FrameSize = vec->GetView();
+    igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
+    trackedFrameMsg->GetTimeStamp(ts);
+    frame->Timestamp = ts->GetTimeStamp();
+    frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
+    frame->SetImageData( trackedFrameMsg->GetImage() );
+    frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
+    frame->ScalarType = trackedFrameMsg->GetScalarType();
+    frame->SetEmbeddedImageTransform( trackedFrameMsg->GetEmbeddedImageTransform() );
+    frame->ImageType = ( uint16 )trackedFrameMsg->GetImageType();
+    frame->ImageOrientation = ( uint16 )trackedFrameMsg->GetImageOrientation();
+
+    return true;
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetOldestCommand( UWPOpenIGTLink::Command^ cmd )
-  {
-    igtl::MessageBase::Pointer igtMessage = nullptr;
-    {
-      // Retrieve the next available tracked frame reply
-      Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
-      for ( auto replyIter = m_messages.begin(); replyIter != m_messages.end(); ++replyIter )
-      {
-        if ( typeid( *( *replyIter ) ) == typeid( igtl::RTSCommandMessage ) )
-        {
-          igtMessage = *replyIter;
-          break;
-        }
-      }
-    }
-
-    if ( igtMessage != nullptr )
-    {
-      auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>( igtMessage.GetPointer() );
-
-      cmd->CommandContent = ref new Platform::String( std::wstring( cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end() ).c_str() );
-      cmd->CommandName = ref new Platform::String( std::wstring( cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end() ).c_str() );
-      cmd->OriginalCommandId = cmdMsg->GetCommandId();
-
-      XmlDocument^ doc = ref new XmlDocument();
-      doc->LoadXml( cmd->CommandContent );
-
-      for ( IXmlNode^ node : doc->ChildNodes )
-      {
-        if ( dynamic_cast<Platform::String^>( node->NodeName ) == L"Result" )
-        {
-          cmd->Result = ( dynamic_cast<Platform::String^>( node->NodeValue ) == L"true" );
-          break;
-        }
-      }
-
-      if ( !cmd->Result )
-      {
-        bool found( false );
-        // Parse for the error string
-        for ( IXmlNode^ node : doc->ChildNodes )
-        {
-          if ( dynamic_cast<Platform::String^>( node->NodeName ) == L"Error" )
-          {
-            cmd->ErrorString = dynamic_cast<Platform::String^>( node->NodeValue );
-            found = true;
-            break;
-          }
-        }
-
-        if ( !found )
-        {
-          // TODO : quiet error reporting
-        }
-      }
-
-      for ( auto pair : cmdMsg->GetMetaData() )
-      {
-        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
-        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        cmd->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
-      }
-
-      return true;
-    }
-
-    return false;
-  }
-
-  //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetLatestCommand( UWPOpenIGTLink::Command^ cmd )
+  bool IGTLinkClient::GetLatestCommand( UWPOpenIGTLink::Command^ cmd, double* latestTimestamp )
   {
     igtl::MessageBase::Pointer igtMessage = nullptr;
     {
@@ -343,6 +226,22 @@ namespace UWPOpenIGTLink
 
     if ( igtMessage != nullptr )
     {
+      if ( latestTimestamp != nullptr )
+      {
+        auto ts = igtl::TimeStamp::New();
+        igtMessage->GetTimeStamp( ts );
+
+        if ( ts->GetTimeStamp() <= *latestTimestamp )
+        {
+          // No new messages since requested timestamp
+          return false;
+        }
+        else
+        {
+          *latestTimestamp = ts->GetTimeStamp();
+        }
+      }
+
       auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>( igtMessage.GetPointer() );
 
       cmd->CommandContent = ref new Platform::String( std::wstring( cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end() ).c_str() );
