@@ -154,6 +154,9 @@ namespace UWPOpenIGTLink
           break;
         }
       }
+
+      // No message found
+      return false;
     }
 
     if ( latestTimestamp != nullptr )
@@ -194,7 +197,7 @@ namespace UWPOpenIGTLink
     vec->Append( trackedFrameMsg->GetFrameSize()[2] );
     frame->FrameSize = vec->GetView();
     igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-    trackedFrameMsg->GetTimeStamp(ts);
+    trackedFrameMsg->GetTimeStamp( ts );
     frame->Timestamp = ts->GetTimeStamp();
     frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
     frame->SetImageData( trackedFrameMsg->GetImage() );
