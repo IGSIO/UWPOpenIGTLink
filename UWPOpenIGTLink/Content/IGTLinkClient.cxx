@@ -155,8 +155,11 @@ namespace UWPOpenIGTLink
         }
       }
 
-      // No message found
-      return false;
+      if ( trackedFrameMsg == nullptr )
+      {
+        // No message found
+        return false;
+      }
     }
 
     if ( latestTimestamp != nullptr )
