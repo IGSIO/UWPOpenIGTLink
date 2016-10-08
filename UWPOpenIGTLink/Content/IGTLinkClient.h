@@ -23,19 +23,18 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
-// Data structure includes
+// Local includes
 #include "Command.h"
+#include "IGTCommon.h"
 #include "TrackedFrame.h"
-
-// Message type includes
 #include "TrackedFrameMessage.h"
 
 // IGT includes
-#include "igtlClientSocket.h"
-#include "igtlMessageHeader.h"
-#include "igtlMessageFactory.h"
+#include <igtlClientSocket.h>
+#include <igtlMessageHeader.h>
+#include <igtlMessageFactory.h>
 
-// STD includes
+// std includes
 #include <deque>
 #include <string>
 
@@ -43,6 +42,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <ppltasks.h>
 #include <concrt.h>
 #include <vccorlib.h>
+#include <collection.h>
 
 using namespace Concurrency;
 using namespace Windows::Foundation;
@@ -65,33 +65,36 @@ namespace UWPOpenIGTLink
     IGTLinkClient();
     virtual ~IGTLinkClient();
 
-    property int ServerPort {int get(); void set( int ); }
-    property Platform::String^ ServerHost { Platform::String ^ get(); void set( Platform::String^ ); }
-    property int ServerIGTLVersion { int get(); void set( int ); }
+    property int ServerPort {int get(); void set(int); }
+    property Platform::String^ ServerHost { Platform::String ^ get(); void set(Platform::String^); }
+    property int ServerIGTLVersion { int get(); void set(int); }
     property bool Connected { bool get(); }
 
     /// If timeoutSec > 0 then connection will be attempted multiple times until successfully connected or the timeout elapse
-    IAsyncOperation<bool>^ ConnectAsync( double timeoutSec );
+    IAsyncOperation<bool>^ ConnectAsync(double timeoutSec);
 
     /// Disconnect from the connected server
     void Disconnect();
 
     /// Retrieve the latest tracked frame reply
-    bool GetLatestTrackedFrame( TrackedFrame^ frame, double* latestTimestamp );
+    bool GetLatestTrackedFrame(TrackedFrame^ frame, double* latestTimestamp);
 
     /// Retrieve the latest command
-    bool GetLatestCommand( UWPOpenIGTLink::Command^ cmd, double* latestTimestamp );
+    bool GetLatestCommand(UWPOpenIGTLink::Command^ cmd, double* latestTimestamp);
+
+    /// Send a message to the connected server
+    bool SendMessage(MessageBasePointerPtr messageBasePointerAsIntPtr);
 
   internal:
     /// Send a packed message to the connected server
-    bool SendMessage( igtl::MessageBase::Pointer packedMessage );
+    bool SendMessage(igtl::MessageBase::Pointer packedMessage);
 
     /// Threaded function to receive data from the connected server
-    static void DataReceiverPump( IGTLinkClient^ self, concurrency::cancellation_token token );
+    static void DataReceiverPump(IGTLinkClient^ self, concurrency::cancellation_token token);
 
   protected private:
     /// Thread-safe method that allows child classes to read data from the socket
-    int SocketReceive( void* data, int length );
+    int SocketReceive(void* data, int length);
 
   protected private:
     /// igtl Factory for message sending
@@ -108,7 +111,8 @@ namespace UWPOpenIGTLink
     igtl::ClientSocket::Pointer m_clientSocket;
 
     /// List of messages received through the socket, transformed to igtl messages
-    std::deque<igtl::MessageBase::Pointer> m_messages;
+    std::deque<igtl::MessageBase::Pointer> m_receiveMessages;
+    std::vector<igtl::MessageBase::Pointer> m_sendMessages;
 
     /// Stored WriteableBitmap to reduce overhead of memory reallocation unless necessary
     Imaging::WriteableBitmap^ m_writeableBitmap;
@@ -123,7 +127,7 @@ namespace UWPOpenIGTLink
     static const uint32 MESSAGE_LIST_MAX_SIZE;
 
   private:
-    IGTLinkClient( IGTLinkClient^ ) {}
-    void operator=( IGTLinkClient^ ) {}
+    IGTLinkClient(IGTLinkClient^) {}
+    void operator=(IGTLinkClient^) {}
   };
 }

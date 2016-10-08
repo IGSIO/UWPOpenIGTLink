@@ -60,72 +60,72 @@ namespace UWPOpenIGTLink
 
   //----------------------------------------------------------------------------
   IGTLinkClient::IGTLinkClient()
-    : m_igtlMessageFactory( igtl::MessageFactory::New() )
-    , m_clientSocket( igtl::ClientSocket::New() )
+    : m_igtlMessageFactory(igtl::MessageFactory::New())
+    , m_clientSocket(igtl::ClientSocket::New())
   {
-    m_igtlMessageFactory->AddMessageType( "TRACKEDFRAME", ( igtl::MessageFactory::PointerToMessageBaseNew )&igtl::TrackedFrameMessage::New );
+    m_igtlMessageFactory->AddMessageType("TRACKEDFRAME", (igtl::MessageFactory::PointerToMessageBaseNew)&igtl::TrackedFrameMessage::New);
     this->ServerHost = L"127.0.0.1";
     this->ServerPort = 18944;
     this->ServerIGTLVersion = IGTL_HEADER_VERSION_2;
 
-    this->m_frameSize.assign( 3, 0 );
+    this->m_frameSize.assign(3, 0);
   }
 
   //----------------------------------------------------------------------------
   IGTLinkClient::~IGTLinkClient()
   {
     this->Disconnect();
-    auto disconnectTask = concurrency::create_task( [this]()
+    auto disconnectTask = concurrency::create_task([this]()
     {
-      while ( this->Connected )
+      while (this->Connected)
       {
-        Sleep( 33 );
+        Sleep(33);
       }
-    } );
+    });
     disconnectTask.wait();
   }
 
   //----------------------------------------------------------------------------
-  IAsyncOperation<bool>^ IGTLinkClient::ConnectAsync( double timeoutSec )
+  IAsyncOperation<bool>^ IGTLinkClient::ConnectAsync(double timeoutSec)
   {
     this->Disconnect();
 
     this->m_cancellationTokenSource = cancellation_token_source();
 
-    return create_async( [ = ]() -> bool
+    return create_async([ = ]() -> bool
     {
       const int retryDelaySec = 1.0;
       int errorCode = 1;
       auto start = std::chrono::high_resolution_clock::now();
-      while ( errorCode != 0 )
+      while (errorCode != 0)
       {
-        std::wstring wideStr( this->ServerHost->Begin() );
-        std::string str( wideStr.begin(), wideStr.end() );
-        errorCode = this->m_clientSocket->ConnectToServer( str.c_str(), this->ServerPort );
+        std::wstring wideStr(this->ServerHost->Begin());
+        std::string str(wideStr.begin(), wideStr.end());
+        errorCode = this->m_clientSocket->ConnectToServer(str.c_str(), this->ServerPort);
         std::chrono::duration<double, std::milli> timeDiff = std::chrono::high_resolution_clock::now() - start;
-        if ( timeDiff.count() > timeoutSec * 1000 )
+        if (timeDiff.count() > timeoutSec * 1000)
         {
           // time is up
           break;
         }
-        std::this_thread::sleep_for( std::chrono::seconds( retryDelaySec ) );
+        std::this_thread::sleep_for(std::chrono::seconds(retryDelaySec));
       }
 
-      if ( errorCode != 0 )
+      if (errorCode != 0)
       {
         return false;
       }
 
-      this->m_clientSocket->SetTimeout( CLIENT_SOCKET_TIMEOUT_MSEC );
+      this->m_clientSocket->SetTimeout(CLIENT_SOCKET_TIMEOUT_MSEC);
 
       // We're connected, start the data receiver thread
-      create_task( [this]( void )
+      create_task([this](void)
       {
-        this->DataReceiverPump( this, m_cancellationTokenSource.get_token() );
-      } );
+        this->DataReceiverPump(this, m_cancellationTokenSource.get_token());
+      });
 
       return true;
-    } );
+    });
   }
 
   //----------------------------------------------------------------------------
@@ -134,40 +134,40 @@ namespace UWPOpenIGTLink
     this->m_cancellationTokenSource.cancel();
 
     {
-      critical_section::scoped_lock lock( this->m_socketMutex );
+      critical_section::scoped_lock lock(this->m_socketMutex);
       this->m_clientSocket->CloseSocket();
     }
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetLatestTrackedFrame( TrackedFrame^ frame, double* latestTimestamp )
+  bool IGTLinkClient::GetLatestTrackedFrame(TrackedFrame^ frame, double* latestTimestamp)
   {
     igtl::TrackedFrameMessage::Pointer trackedFrameMsg = nullptr;
     {
       // Retrieve the next available tracked frame reply
-      Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
-      for ( auto replyIter = m_messages.rbegin(); replyIter != m_messages.rend(); ++replyIter )
+      Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
+      for (auto replyIter = m_receiveMessages.rbegin(); replyIter != m_receiveMessages.rend(); ++replyIter)
       {
-        if ( typeid( *( *replyIter ) ) == typeid( igtl::TrackedFrameMessage ) )
+        if (typeid(*(*replyIter)) == typeid(igtl::TrackedFrameMessage))
         {
-          trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>( ( *replyIter ).GetPointer() );
+          trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>((*replyIter).GetPointer());
           break;
         }
       }
 
-      if ( trackedFrameMsg == nullptr )
+      if (trackedFrameMsg == nullptr)
       {
         // No message found
         return false;
       }
     }
 
-    if ( latestTimestamp != nullptr )
+    if (latestTimestamp != nullptr)
     {
       auto ts = igtl::TimeStamp::New();
-      trackedFrameMsg->GetTimeStamp( ts );
+      trackedFrameMsg->GetTimeStamp(ts);
 
-      if ( ts->GetTimeStamp() <= *latestTimestamp )
+      if (ts->GetTimeStamp() <= *latestTimestamp)
       {
         // No new messages since requested timestamp
         return false;
@@ -179,50 +179,50 @@ namespace UWPOpenIGTLink
     }
 
     // Tracking/other related fields
-    for ( auto pair : trackedFrameMsg->GetMetaData() )
+    for (auto pair : trackedFrameMsg->GetMetaData())
     {
-      std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
-      std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-      frame->SetCustomFrameField( keyWideStr, valueWideStr );
+      std::wstring keyWideStr(pair.first.begin(), pair.first.end());
+      std::wstring valueWideStr(pair.second.begin(), pair.second.end());
+      frame->SetCustomFrameField(keyWideStr, valueWideStr);
     }
 
-    for ( auto pair : trackedFrameMsg->GetCustomFrameFields() )
+    for (auto pair : trackedFrameMsg->GetCustomFrameFields())
     {
-      std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
-      std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-      frame->SetCustomFrameField( keyWideStr, valueWideStr );
+      std::wstring keyWideStr(pair.first.begin(), pair.first.end());
+      std::wstring valueWideStr(pair.second.begin(), pair.second.end());
+      frame->SetCustomFrameField(keyWideStr, valueWideStr);
     }
 
     // Image related fields
     auto vec = ref new Vector<uint16>;
-    vec->Append( trackedFrameMsg->GetFrameSize()[0] );
-    vec->Append( trackedFrameMsg->GetFrameSize()[1] );
-    vec->Append( trackedFrameMsg->GetFrameSize()[2] );
+    vec->Append(trackedFrameMsg->GetFrameSize()[0]);
+    vec->Append(trackedFrameMsg->GetFrameSize()[1]);
+    vec->Append(trackedFrameMsg->GetFrameSize()[2]);
     frame->FrameSize = vec->GetView();
     igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-    trackedFrameMsg->GetTimeStamp( ts );
+    trackedFrameMsg->GetTimeStamp(ts);
     frame->Timestamp = ts->GetTimeStamp();
     frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
-    frame->SetImageData( trackedFrameMsg->GetImage() );
+    frame->SetImageData(trackedFrameMsg->GetImage());
     frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
     frame->ScalarType = trackedFrameMsg->GetScalarType();
-    frame->SetEmbeddedImageTransform( trackedFrameMsg->GetEmbeddedImageTransform() );
-    frame->ImageType = ( uint16 )trackedFrameMsg->GetImageType();
-    frame->ImageOrientation = ( uint16 )trackedFrameMsg->GetImageOrientation();
+    frame->SetEmbeddedImageTransform(trackedFrameMsg->GetEmbeddedImageTransform());
+    frame->ImageType = (uint16)trackedFrameMsg->GetImageType();
+    frame->ImageOrientation = (uint16)trackedFrameMsg->GetImageOrientation();
 
     return true;
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetLatestCommand( UWPOpenIGTLink::Command^ cmd, double* latestTimestamp )
+  bool IGTLinkClient::GetLatestCommand(UWPOpenIGTLink::Command^ cmd, double* latestTimestamp)
   {
     igtl::MessageBase::Pointer igtMessage = nullptr;
     {
       // Retrieve the next available tracked frame reply
-      Concurrency::critical_section::scoped_lock lock( m_messageListMutex );
-      for ( auto replyIter = m_messages.rbegin(); replyIter != m_messages.rend(); ++replyIter )
+      Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
+      for (auto replyIter = m_receiveMessages.rbegin(); replyIter != m_receiveMessages.rend(); ++replyIter)
       {
-        if ( typeid( *( *replyIter ) ) == typeid( igtl::RTSCommandMessage ) )
+        if (typeid(*(*replyIter)) == typeid(igtl::RTSCommandMessage))
         {
           igtMessage = *replyIter;
           break;
@@ -230,14 +230,14 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if ( igtMessage != nullptr )
+    if (igtMessage != nullptr)
     {
-      if ( latestTimestamp != nullptr )
+      if (latestTimestamp != nullptr)
       {
         auto ts = igtl::TimeStamp::New();
-        igtMessage->GetTimeStamp( ts );
+        igtMessage->GetTimeStamp(ts);
 
-        if ( ts->GetTimeStamp() <= *latestTimestamp )
+        if (ts->GetTimeStamp() <= *latestTimestamp)
         {
           // No new messages since requested timestamp
           return false;
@@ -248,49 +248,49 @@ namespace UWPOpenIGTLink
         }
       }
 
-      auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>( igtMessage.GetPointer() );
+      auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>(igtMessage.GetPointer());
 
-      cmd->CommandContent = ref new Platform::String( std::wstring( cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end() ).c_str() );
-      cmd->CommandName = ref new Platform::String( std::wstring( cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end() ).c_str() );
+      cmd->CommandContent = ref new Platform::String(std::wstring(cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end()).c_str());
+      cmd->CommandName = ref new Platform::String(std::wstring(cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end()).c_str());
       cmd->OriginalCommandId = cmdMsg->GetCommandId();
 
       XmlDocument^ doc = ref new XmlDocument();
-      doc->LoadXml( cmd->CommandContent );
+      doc->LoadXml(cmd->CommandContent);
 
-      for ( IXmlNode^ node : doc->ChildNodes )
+      for (IXmlNode^ node : doc->ChildNodes)
       {
-        if ( dynamic_cast<Platform::String^>( node->NodeName ) == L"Result" )
+        if (dynamic_cast<Platform::String^>(node->NodeName) == L"Result")
         {
-          cmd->Result = ( dynamic_cast<Platform::String^>( node->NodeValue ) == L"true" );
+          cmd->Result = (dynamic_cast<Platform::String^>(node->NodeValue) == L"true");
           break;
         }
       }
 
-      if ( !cmd->Result )
+      if (!cmd->Result)
       {
-        bool found( false );
+        bool found(false);
         // Parse for the error string
-        for ( IXmlNode^ node : doc->ChildNodes )
+        for (IXmlNode^ node : doc->ChildNodes)
         {
-          if ( dynamic_cast<Platform::String^>( node->NodeName ) == L"Error" )
+          if (dynamic_cast<Platform::String^>(node->NodeName) == L"Error")
           {
-            cmd->ErrorString = dynamic_cast<Platform::String^>( node->NodeValue );
+            cmd->ErrorString = dynamic_cast<Platform::String^>(node->NodeValue);
             found = true;
             break;
           }
         }
 
-        if ( !found )
+        if (!found)
         {
           // TODO : quiet error reporting
         }
       }
 
-      for ( auto pair : cmdMsg->GetMetaData() )
+      for (auto pair : cmdMsg->GetMetaData())
       {
-        std::wstring keyWideStr( pair.first.begin(), pair.first.end() );
-        std::wstring valueWideStr( pair.second.begin(), pair.second.end() );
-        cmd->Parameters->Insert( ref new Platform::String( keyWideStr.c_str() ), ref new Platform::String( valueWideStr.c_str() ) );
+        std::wstring keyWideStr(pair.first.begin(), pair.first.end());
+        std::wstring valueWideStr(pair.second.begin(), pair.second.end());
+        cmd->Parameters->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
       }
 
       return true;
@@ -300,14 +300,14 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::SendMessage( igtl::MessageBase::Pointer packedMessage )
+  bool IGTLinkClient::SendMessage(igtl::MessageBase::Pointer packedMessage)
   {
     int success = 0;
     {
-      critical_section::scoped_lock lock( m_socketMutex );
-      success = this->m_clientSocket->Send( packedMessage->GetBufferPointer(), packedMessage->GetBufferSize() );
+      critical_section::scoped_lock lock(m_socketMutex);
+      success = this->m_clientSocket->Send(packedMessage->GetBufferPointer(), packedMessage->GetBufferSize());
     }
-    if ( !success )
+    if (!success)
     {
       std::cerr << "OpenIGTLink client couldn't send message to server." << std::endl;
       return false;
@@ -316,36 +316,43 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void IGTLinkClient::DataReceiverPump( IGTLinkClient^ self, concurrency::cancellation_token token )
+  bool IGTLinkClient::SendMessage(MessageBasePointerPtr messageBasePointerPtr)
   {
-    LOG_TRACE( L"IGTLinkClient::DataReceiverPump" );
+    igtl::MessageBase::Pointer* messageBasePointer = (igtl::MessageBase::Pointer*)(messageBasePointerPtr);
+    return this->SendMessage(*messageBasePointer);
+  }
 
-    while ( !token.is_canceled() )
+  //----------------------------------------------------------------------------
+  void IGTLinkClient::DataReceiverPump(IGTLinkClient^ self, concurrency::cancellation_token token)
+  {
+    LOG_TRACE(L"IGTLinkClient::DataReceiverPump");
+
+    while (!token.is_canceled())
     {
-      auto headerMsg = self->m_igtlMessageFactory->CreateHeaderMessage( IGTL_HEADER_VERSION_1 );
+      auto headerMsg = self->m_igtlMessageFactory->CreateHeaderMessage(IGTL_HEADER_VERSION_1);
 
       // Receive generic header from the socket
       int numOfBytesReceived = 0;
       {
-        critical_section::scoped_lock lock( self->m_socketMutex );
-        if ( !self->m_clientSocket->GetConnected() )
+        critical_section::scoped_lock lock(self->m_socketMutex);
+        if (!self->m_clientSocket->GetConnected())
         {
           // We've become disconnected while waiting for the socket, we're done here!
           return;
         }
-        numOfBytesReceived = self->m_clientSocket->Receive( headerMsg->GetBufferPointer(), headerMsg->GetBufferSize() );
+        numOfBytesReceived = self->m_clientSocket->Receive(headerMsg->GetBufferPointer(), headerMsg->GetBufferSize());
       }
-      if ( numOfBytesReceived == 0 // No message received
-           || numOfBytesReceived != headerMsg->GetBufferSize() // Received data is not as we expected
+      if (numOfBytesReceived == 0  // No message received
+          || numOfBytesReceived != headerMsg->GetBufferSize() // Received data is not as we expected
          )
       {
         // Failed to receive data, maybe the socket is disconnected
-        std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         continue;
       }
 
-      int c = headerMsg->Unpack( 1 );
-      if ( !( c & igtl::MessageHeader::UNPACK_HEADER ) )
+      int c = headerMsg->Unpack(1);
+      if (!(c & igtl::MessageHeader::UNPACK_HEADER))
       {
         std::cerr << "Failed to receive reply (invalid header)" << std::endl;
         continue;
@@ -354,38 +361,38 @@ namespace UWPOpenIGTLink
       igtl::MessageBase::Pointer bodyMsg = nullptr;
       try
       {
-        bodyMsg = self->m_igtlMessageFactory->CreateReceiveMessage( headerMsg );
+        bodyMsg = self->m_igtlMessageFactory->CreateReceiveMessage(headerMsg);
       }
-      catch ( const std::exception& )
+      catch (const std::exception&)
       {
         // Message header was not correct, skip this message
         // Will be impossible to tell if the body of this message is in the socket... this is a pretty bad corruption.
         // Force re-connect?
-        LOG_TRACE( "Corruption in the message header. Serious error." );
+        LOG_TRACE("Corruption in the message header. Serious error.");
         continue;
       }
 
-      if ( bodyMsg.IsNull() )
+      if (bodyMsg.IsNull())
       {
-        LOG_TRACE( "Unable to create message of type: " << headerMsg->GetMessageType() );
+        LOG_TRACE("Unable to create message of type: " << headerMsg->GetMessageType());
         continue;
       }
 
       // Accept all messages but status messages, they are used as a keep alive mechanism
-      if ( typeid( *bodyMsg ) != typeid( igtl::StatusMessage ) )
+      if (typeid(*bodyMsg) != typeid(igtl::StatusMessage))
       {
         {
-          critical_section::scoped_lock lock( self->m_socketMutex );
-          if ( !self->m_clientSocket->GetConnected() )
+          critical_section::scoped_lock lock(self->m_socketMutex);
+          if (!self->m_clientSocket->GetConnected())
           {
             // We've become disconnected while waiting for the socket, we're done here!
             return;
           }
-          self->m_clientSocket->Receive( bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize() );
+          self->m_clientSocket->Receive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
         }
 
-        int c = bodyMsg->Unpack( 1 );
-        if ( !( c & igtl::MessageHeader::UNPACK_BODY ) )
+        int c = bodyMsg->Unpack(1);
+        if (!(c & igtl::MessageHeader::UNPACK_BODY))
         {
           std::cerr << "Failed to receive reply (invalid body)" << std::endl;
           continue;
@@ -393,30 +400,30 @@ namespace UWPOpenIGTLink
 
         {
           // save reply
-          critical_section::scoped_lock lock( self->m_messageListMutex );
+          critical_section::scoped_lock lock(self->m_messageListMutex);
 
-          self->m_messages.push_back( bodyMsg );
+          self->m_receiveMessages.push_back(bodyMsg);
         }
       }
       else
       {
-        critical_section::scoped_lock lock( self->m_socketMutex );
+        critical_section::scoped_lock lock(self->m_socketMutex);
 
-        if ( !self->m_clientSocket->GetConnected() )
+        if (!self->m_clientSocket->GetConnected())
         {
           // We've become disconnected while waiting for the socket, we're done here!
           return;
         }
-        self->m_clientSocket->Skip( headerMsg->GetBodySizeToRead(), 0 );
+        self->m_clientSocket->Skip(headerMsg->GetBodySizeToRead(), 0);
       }
 
-      if ( self->m_messages.size() > MESSAGE_LIST_MAX_SIZE )
+      if (self->m_receiveMessages.size() > MESSAGE_LIST_MAX_SIZE)
       {
-        critical_section::scoped_lock lock( self->m_messageListMutex );
+        critical_section::scoped_lock lock(self->m_messageListMutex);
 
         // erase the front N results
-        uint32 toErase = self->m_messages.size() - MESSAGE_LIST_MAX_SIZE;
-        self->m_messages.erase( self->m_messages.begin(), self->m_messages.begin() + toErase );
+        uint32 toErase = self->m_receiveMessages.size() - MESSAGE_LIST_MAX_SIZE;
+        self->m_receiveMessages.erase(self->m_receiveMessages.begin(), self->m_receiveMessages.begin() + toErase);
       }
     }
 
@@ -424,10 +431,10 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  int IGTLinkClient::SocketReceive( void* data, int length )
+  int IGTLinkClient::SocketReceive(void* data, int length)
   {
-    critical_section::scoped_lock lock( m_socketMutex );
-    return m_clientSocket->Receive( data, length );
+    critical_section::scoped_lock lock(m_socketMutex);
+    return m_clientSocket->Receive(data, length);
   }
 
   //----------------------------------------------------------------------------
@@ -437,7 +444,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void IGTLinkClient::ServerPort::set( int arg )
+  void IGTLinkClient::ServerPort::set(int arg)
   {
     this->m_ServerPort = arg;
   }
@@ -449,7 +456,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void IGTLinkClient::ServerHost::set( Platform::String^ arg )
+  void IGTLinkClient::ServerHost::set(Platform::String^ arg)
   {
     this->m_ServerHost = arg;
   }
@@ -461,7 +468,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void IGTLinkClient::ServerIGTLVersion::set( int arg )
+  void IGTLinkClient::ServerIGTLVersion::set(int arg)
   {
     this->m_ServerIGTLVersion = arg;
   }

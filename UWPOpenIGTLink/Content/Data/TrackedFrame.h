@@ -24,6 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
 // Local includes
+#include "IGTCommon.h"
 #include "TransformName.h"
 
 // IGT includes
@@ -101,12 +102,6 @@ enum US_IMAGE_ORIENTATION
   US_IMG_ORIENT_NM, /*!< image x axis = near transducer axis, image y axis = marked transducer axis (usually for RF frames)*/
   US_IMG_ORIENT_LAST   /*!< just a placeholder for range checking, this must be the last defined orientation item */
 };
-
-#ifdef _WIN64
-typedef int64 SharedBytePtr;
-#else
-typedef int32 SharedBytePtr;
-#endif
 
 namespace UWPOpenIGTLink
 {

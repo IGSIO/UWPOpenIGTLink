@@ -23,13 +23,45 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
+// std includes
 #include <string>
 #include <sstream>
+
+// WinRT includes
+#include <collection.h>
 
 using namespace Windows::Foundation::Numerics;
 
 namespace UWPOpenIGTLink
 {
+  typedef Platform::Collections::Map<Platform::String^, Platform::String^> StringMap;
+
+#ifdef _WIN64
+  typedef int64 SharedBytePtr;
+  typedef int64 MessageBasePointerPtr;
+#else
+  typedef int32 SharedBytePtr;
+  typedef int32 MessageBasePointerPtr;
+#endif
+
+#define RETRY_UNTIL_TRUE(command_, numberOfRetryAttempts_, delayBetweenRetryAttemptsMSec_) \
+  { \
+    bool success = false; \
+    int numOfTries = 0; \
+    while ( !success && numOfTries < numberOfRetryAttempts_ ) \
+    { \
+      success = (command_);   \
+      if (success)  \
+      { \
+        /* command successfully completed, continue without waiting */ \
+        break; \
+      } \
+      /* command failed, wait for some time and retry */ \
+      numOfTries++;   \
+      Sleep(delayBetweenRetryAttemptsMSec_); \
+    } \
+  }
+
   //--------------------------------------------------------
   inline void LogMessage( const std::string& msg, const char* fileName, int lineNumber )
   {
