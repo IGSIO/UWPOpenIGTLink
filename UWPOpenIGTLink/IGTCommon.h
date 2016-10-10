@@ -58,7 +58,7 @@ namespace UWPOpenIGTLink
       } \
       /* command failed, wait for some time and retry */ \
       numOfTries++;   \
-      Sleep(delayBetweenRetryAttemptsMSec_); \
+      std::this_thread::sleep_for(std::chrono::milliseconds(delayBetweenRetryAttemptsMSec_)); \
     } \
   }
 

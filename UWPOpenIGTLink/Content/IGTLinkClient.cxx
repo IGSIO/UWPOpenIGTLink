@@ -54,7 +54,6 @@ using namespace Windows::Data::Xml::Dom;
 
 namespace UWPOpenIGTLink
 {
-
   const int IGTLinkClient::CLIENT_SOCKET_TIMEOUT_MSEC = 500;
   const uint32 IGTLinkClient::MESSAGE_LIST_MAX_SIZE = 200;
 
@@ -79,7 +78,7 @@ namespace UWPOpenIGTLink
     {
       while (this->Connected)
       {
-        Sleep(33);
+        std::this_thread::sleep_for(std::chrono::milliseconds(33));
       }
     });
     disconnectTask.wait();
@@ -140,8 +139,25 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetLatestTrackedFrame(TrackedFrame^ frame, double* latestTimestamp)
+  bool IGTLinkClient::GetLatestTrackedFrame(TrackedFrame^& frame, double* latestTimestamp)
   {
+    // Determine latest timestamp if not requested
+    double timestamp(0);
+    if (latestTimestamp == nullptr)
+    {
+      timestamp = GetLatestTrackedFrameTimestamp();
+    }
+    else
+    {
+      timestamp = *latestTimestamp;
+    }
+
+    if (m_receiveUWPMessages.find(timestamp) != m_receiveUWPMessages.end())
+    {
+      frame = m_receiveUWPMessages.at(timestamp);
+      return true;
+    }
+
     igtl::TrackedFrameMessage::Pointer trackedFrameMsg = nullptr;
     {
       // Retrieve the next available tracked frame reply
@@ -162,31 +178,26 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if (latestTimestamp != nullptr)
+    auto ts = igtl::TimeStamp::New();
+    trackedFrameMsg->GetTimeStamp(ts);
+    if (ts->GetTimeStamp() <= timestamp)
     {
-      auto ts = igtl::TimeStamp::New();
-      trackedFrameMsg->GetTimeStamp(ts);
-
-      if (ts->GetTimeStamp() <= *latestTimestamp)
-      {
-        // No new messages since requested timestamp
-        return false;
-      }
-      else
-      {
-        *latestTimestamp = ts->GetTimeStamp();
-      }
+      // No new messages since requested timestamp
+      return false;
     }
 
+    frame = ref new TrackedFrame();
+    m_receiveUWPMessages[timestamp] = frame;
+
     // Tracking/other related fields
-    for (auto pair : trackedFrameMsg->GetMetaData())
+    for (auto& pair : trackedFrameMsg->GetMetaData())
     {
       std::wstring keyWideStr(pair.first.begin(), pair.first.end());
       std::wstring valueWideStr(pair.second.begin(), pair.second.end());
       frame->SetCustomFrameField(keyWideStr, valueWideStr);
     }
 
-    for (auto pair : trackedFrameMsg->GetCustomFrameFields())
+    for (auto& pair : trackedFrameMsg->GetCustomFrameFields())
     {
       std::wstring keyWideStr(pair.first.begin(), pair.first.end());
       std::wstring valueWideStr(pair.second.begin(), pair.second.end());
@@ -199,8 +210,6 @@ namespace UWPOpenIGTLink
     vec->Append(trackedFrameMsg->GetFrameSize()[1]);
     vec->Append(trackedFrameMsg->GetFrameSize()[2]);
     frame->FrameSize = vec->GetView();
-    igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-    trackedFrameMsg->GetTimeStamp(ts);
     frame->Timestamp = ts->GetTimeStamp();
     frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
     frame->SetImageData(trackedFrameMsg->GetImage());
@@ -214,8 +223,25 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetLatestCommand(UWPOpenIGTLink::Command^ cmd, double* latestTimestamp)
+  bool IGTLinkClient::GetLatestCommand(UWPOpenIGTLink::Command^& cmd, double* latestTimestamp)
   {
+    // Determine latest timestamp if not requested
+    double timestamp(0);
+    if (latestTimestamp == nullptr)
+    {
+      timestamp = GetLatestTrackedFrameTimestamp();
+    }
+    else
+    {
+      timestamp = *latestTimestamp;
+    }
+
+    if (m_receiveUWPCommands.find(timestamp) != m_receiveUWPCommands.end())
+    {
+      cmd = m_receiveUWPCommands.at(timestamp);
+      return true;
+    }
+
     igtl::MessageBase::Pointer igtMessage = nullptr;
     {
       // Retrieve the next available tracked frame reply
@@ -228,75 +254,71 @@ namespace UWPOpenIGTLink
           break;
         }
       }
+
+      if (igtMessage == nullptr)
+      {
+        return false;
+      }
     }
 
-    if (igtMessage != nullptr)
+    auto ts = igtl::TimeStamp::New();
+    igtMessage->GetTimeStamp(ts);
+
+    if (ts->GetTimeStamp() <= timestamp)
     {
-      if (latestTimestamp != nullptr)
+      // No new messages since requested timestamp
+      return false;
+    }
+
+    cmd = ref new Command();
+    m_receiveUWPCommands[timestamp] = cmd;
+
+    auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>(igtMessage.GetPointer());
+
+    cmd->CommandContent = ref new Platform::String(std::wstring(cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end()).c_str());
+    cmd->CommandName = ref new Platform::String(std::wstring(cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end()).c_str());
+    cmd->OriginalCommandId = cmdMsg->GetCommandId();
+
+    XmlDocument^ doc = ref new XmlDocument();
+    doc->LoadXml(cmd->CommandContent);
+
+    for (IXmlNode^ node : doc->ChildNodes)
+    {
+      if (dynamic_cast<Platform::String^>(node->NodeName) == L"Result")
       {
-        auto ts = igtl::TimeStamp::New();
-        igtMessage->GetTimeStamp(ts);
-
-        if (ts->GetTimeStamp() <= *latestTimestamp)
-        {
-          // No new messages since requested timestamp
-          return false;
-        }
-        else
-        {
-          *latestTimestamp = ts->GetTimeStamp();
-        }
+        cmd->Result = (dynamic_cast<Platform::String^>(node->NodeValue) == L"true");
+        break;
       }
+    }
 
-      auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>(igtMessage.GetPointer());
-
-      cmd->CommandContent = ref new Platform::String(std::wstring(cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end()).c_str());
-      cmd->CommandName = ref new Platform::String(std::wstring(cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end()).c_str());
-      cmd->OriginalCommandId = cmdMsg->GetCommandId();
-
-      XmlDocument^ doc = ref new XmlDocument();
-      doc->LoadXml(cmd->CommandContent);
-
+    if (!cmd->Result)
+    {
+      bool found(false);
+      // Parse for the error string
       for (IXmlNode^ node : doc->ChildNodes)
       {
-        if (dynamic_cast<Platform::String^>(node->NodeName) == L"Result")
+        if (dynamic_cast<Platform::String^>(node->NodeName) == L"Error")
         {
-          cmd->Result = (dynamic_cast<Platform::String^>(node->NodeValue) == L"true");
+          cmd->ErrorString = dynamic_cast<Platform::String^>(node->NodeValue);
+          found = true;
           break;
         }
       }
 
-      if (!cmd->Result)
+      if (!found)
       {
-        bool found(false);
-        // Parse for the error string
-        for (IXmlNode^ node : doc->ChildNodes)
-        {
-          if (dynamic_cast<Platform::String^>(node->NodeName) == L"Error")
-          {
-            cmd->ErrorString = dynamic_cast<Platform::String^>(node->NodeValue);
-            found = true;
-            break;
-          }
-        }
-
-        if (!found)
-        {
-          // TODO : quiet error reporting
-        }
+        // TODO : quiet error reporting
       }
-
-      for (auto pair : cmdMsg->GetMetaData())
-      {
-        std::wstring keyWideStr(pair.first.begin(), pair.first.end());
-        std::wstring valueWideStr(pair.second.begin(), pair.second.end());
-        cmd->Parameters->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
-      }
-
-      return true;
     }
 
-    return false;
+    for (auto& pair : cmdMsg->GetMetaData())
+    {
+      std::wstring keyWideStr(pair.first.begin(), pair.first.end());
+      std::wstring valueWideStr(pair.second.begin(), pair.second.end());
+      cmd->Parameters->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
+    }
+
+    return true;
   }
 
   //----------------------------------------------------------------------------
@@ -425,6 +447,30 @@ namespace UWPOpenIGTLink
         uint32 toErase = self->m_receiveMessages.size() - MESSAGE_LIST_MAX_SIZE;
         self->m_receiveMessages.erase(self->m_receiveMessages.begin(), self->m_receiveMessages.begin() + toErase);
       }
+
+      auto oldestTimestamp = self->GetOldestTrackedFrameTimestamp();
+      if (oldestTimestamp > 0)
+      {
+        for (auto it = self->m_receiveUWPMessages.begin(); it != self->m_receiveUWPMessages.end(); ++it)
+        {
+          if (it->first < self->GetOldestTrackedFrameTimestamp())
+          {
+            it = self->m_receiveUWPMessages.erase(it);
+          }
+        }
+      }
+
+      oldestTimestamp = self->GetOldestCommandTimestamp();
+      if (oldestTimestamp > 0)
+      {
+        for (auto it = self->m_receiveUWPCommands.begin(); it != self->m_receiveUWPCommands.end(); ++it)
+        {
+          if (it->first < self->GetOldestTrackedFrameTimestamp())
+          {
+            it = self->m_receiveUWPCommands.erase(it);
+          }
+        }
+      }
     }
 
     return;
@@ -435,6 +481,72 @@ namespace UWPOpenIGTLink
   {
     critical_section::scoped_lock lock(m_socketMutex);
     return m_clientSocket->Receive(data, length);
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTLinkClient::GetLatestTrackedFrameTimestamp()
+  {
+    // Retrieve the next available tracked frame reply
+    Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
+    for (auto replyIter = m_receiveMessages.rbegin(); replyIter != m_receiveMessages.rend(); ++replyIter)
+    {
+      if (typeid(*(*replyIter)) == typeid(igtl::TrackedFrameMessage))
+      {
+        igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
+        (*replyIter)->GetTimeStamp(ts);
+        return ts->GetTimeStamp();
+      }
+    }
+    return -1.0;
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTLinkClient::GetOldestTrackedFrameTimestamp()
+  {
+    // Retrieve the next available tracked frame reply
+    Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
+    for (auto replyIter = m_receiveMessages.begin(); replyIter != m_receiveMessages.end(); ++replyIter)
+    {
+      if (typeid(*(*replyIter)) == typeid(igtl::TrackedFrameMessage))
+      {
+        igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
+        (*replyIter)->GetTimeStamp(ts);
+        return ts->GetTimeStamp();
+      }
+    }
+    return -1.0;
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTLinkClient::GetLatestCommandTimestamp()
+  {
+    Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
+    for (auto replyIter = m_receiveMessages.rbegin(); replyIter != m_receiveMessages.rend(); ++replyIter)
+    {
+      if (typeid(*(*replyIter)) == typeid(igtl::CommandMessage))
+      {
+        igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
+        (*replyIter)->GetTimeStamp(ts);
+        return ts->GetTimeStamp();
+      }
+    }
+    return -1.0;
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTLinkClient::GetOldestCommandTimestamp()
+  {
+    Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
+    for (auto replyIter = m_receiveMessages.begin(); replyIter != m_receiveMessages.end(); ++replyIter)
+    {
+      if (typeid(*(*replyIter)) == typeid(igtl::CommandMessage))
+      {
+        igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
+        (*replyIter)->GetTimeStamp(ts);
+        return ts->GetTimeStamp();
+      }
+    }
+    return -1.0;
   }
 
   //----------------------------------------------------------------------------

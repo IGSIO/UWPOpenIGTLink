@@ -77,10 +77,10 @@ namespace UWPOpenIGTLink
     void Disconnect();
 
     /// Retrieve the latest tracked frame reply
-    bool GetLatestTrackedFrame(TrackedFrame^ frame, double* latestTimestamp);
+    bool GetLatestTrackedFrame(TrackedFrame^& frame, double* latestTimestamp);
 
     /// Retrieve the latest command
-    bool GetLatestCommand(UWPOpenIGTLink::Command^ cmd, double* latestTimestamp);
+    bool GetLatestCommand(UWPOpenIGTLink::Command^& cmd, double* latestTimestamp);
 
     /// Send a message to the connected server
     bool SendMessage(MessageBasePointerPtr messageBasePointerAsIntPtr);
@@ -95,6 +95,18 @@ namespace UWPOpenIGTLink
   protected private:
     /// Thread-safe method that allows child classes to read data from the socket
     int SocketReceive(void* data, int length);
+
+    /// Query the list of retrieved frames and determine the latest timestamp
+    double GetLatestTrackedFrameTimestamp();
+
+    /// Query the list of retrieved frames and determine the oldest timestamp
+    double GetOldestTrackedFrameTimestamp();
+
+    /// Query the list of retrieved frames and determine the latest timestamp
+    double GetLatestCommandTimestamp();
+
+    /// Query the list of retrieved frames and determine the oldest timestamp
+    double GetOldestCommandTimestamp();
 
   protected private:
     /// igtl Factory for message sending
@@ -113,6 +125,10 @@ namespace UWPOpenIGTLink
     /// List of messages received through the socket, transformed to igtl messages
     std::deque<igtl::MessageBase::Pointer> m_receiveMessages;
     std::vector<igtl::MessageBase::Pointer> m_sendMessages;
+
+    /// List of messages converted to UWP run time
+    std::map<double, TrackedFrame^> m_receiveUWPMessages;
+    std::map<double, Command^> m_receiveUWPCommands;
 
     /// Stored WriteableBitmap to reduce overhead of memory reallocation unless necessary
     Imaging::WriteableBitmap^ m_writeableBitmap;
