@@ -139,7 +139,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetLatestTrackedFrame(TrackedFrame^& frame, double* latestTimestamp)
+  TrackedFrame^ IGTLinkClient::GetLatestTrackedFrame(double* latestTimestamp)
   {
     // Determine latest timestamp if not requested
     double timestamp(0);
@@ -154,8 +154,7 @@ namespace UWPOpenIGTLink
 
     if (m_receiveUWPMessages.find(timestamp) != m_receiveUWPMessages.end())
     {
-      frame = m_receiveUWPMessages.at(timestamp);
-      return true;
+      return m_receiveUWPMessages.at(timestamp);
     }
 
     igtl::TrackedFrameMessage::Pointer trackedFrameMsg = nullptr;
@@ -174,7 +173,7 @@ namespace UWPOpenIGTLink
       if (trackedFrameMsg == nullptr)
       {
         // No message found
-        return false;
+        return nullptr;
       }
     }
 
@@ -183,10 +182,10 @@ namespace UWPOpenIGTLink
     if (ts->GetTimeStamp() <= timestamp)
     {
       // No new messages since requested timestamp
-      return false;
+      return nullptr;
     }
 
-    frame = ref new TrackedFrame();
+    auto frame = ref new TrackedFrame();
     m_receiveUWPMessages[timestamp] = frame;
 
     // Tracking/other related fields
@@ -219,11 +218,11 @@ namespace UWPOpenIGTLink
     frame->ImageType = (uint16)trackedFrameMsg->GetImageType();
     frame->ImageOrientation = (uint16)trackedFrameMsg->GetImageOrientation();
 
-    return true;
+    return frame;
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLinkClient::GetLatestCommand(UWPOpenIGTLink::Command^& cmd, double* latestTimestamp)
+  Command^ IGTLinkClient::GetLatestCommand(double* latestTimestamp)
   {
     // Determine latest timestamp if not requested
     double timestamp(0);
@@ -238,8 +237,7 @@ namespace UWPOpenIGTLink
 
     if (m_receiveUWPCommands.find(timestamp) != m_receiveUWPCommands.end())
     {
-      cmd = m_receiveUWPCommands.at(timestamp);
-      return true;
+      return m_receiveUWPCommands.at(timestamp);
     }
 
     igtl::MessageBase::Pointer igtMessage = nullptr;
@@ -257,7 +255,7 @@ namespace UWPOpenIGTLink
 
       if (igtMessage == nullptr)
       {
-        return false;
+        return nullptr;
       }
     }
 
@@ -267,10 +265,10 @@ namespace UWPOpenIGTLink
     if (ts->GetTimeStamp() <= timestamp)
     {
       // No new messages since requested timestamp
-      return false;
+      return nullptr;
     }
 
-    cmd = ref new Command();
+    auto cmd = ref new Command();
     m_receiveUWPCommands[timestamp] = cmd;
 
     auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>(igtMessage.GetPointer());
@@ -318,7 +316,7 @@ namespace UWPOpenIGTLink
       cmd->Parameters->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
     }
 
-    return true;
+    return cmd;
   }
 
   //----------------------------------------------------------------------------

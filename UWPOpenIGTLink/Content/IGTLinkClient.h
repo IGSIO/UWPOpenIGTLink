@@ -77,10 +77,10 @@ namespace UWPOpenIGTLink
     void Disconnect();
 
     /// Retrieve the latest tracked frame reply
-    bool GetLatestTrackedFrame(TrackedFrame^& frame, double* latestTimestamp);
+    TrackedFrame^ GetLatestTrackedFrame(double* latestTimestamp);
 
     /// Retrieve the latest command
-    bool GetLatestCommand(UWPOpenIGTLink::Command^& cmd, double* latestTimestamp);
+    Command^ GetLatestCommand(double* latestTimestamp);
 
     /// Send a message to the connected server
     bool SendMessage(MessageBasePointerPtr messageBasePointerAsIntPtr);
