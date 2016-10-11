@@ -77,10 +77,10 @@ namespace UWPOpenIGTLink
     void Disconnect();
 
     /// Retrieve the latest tracked frame reply
-    TrackedFrame^ GetLatestTrackedFrame(double* latestTimestamp);
+    TrackedFrame^ GetLatestTrackedFrame(double lastKnownTimestamp);
 
     /// Retrieve the latest command
-    Command^ GetLatestCommand(double* latestTimestamp);
+    Command^ GetLatestCommand(double lastKnownTimestamp);
 
     /// Send a message to the connected server
     bool SendMessage(MessageBasePointerPtr messageBasePointerAsIntPtr);
@@ -113,7 +113,7 @@ namespace UWPOpenIGTLink
     igtl::MessageFactory::Pointer m_igtlMessageFactory;
 
     task<void> m_dataReceiverTask;
-    cancellation_token_source m_cancellationTokenSource;
+    cancellation_token_source m_receiverPumpTokenSource;
 
     /// Mutex instance for safe data access
     critical_section m_messageListMutex;

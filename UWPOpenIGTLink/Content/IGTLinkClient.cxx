@@ -63,20 +63,20 @@ namespace UWPOpenIGTLink
     , m_clientSocket(igtl::ClientSocket::New())
   {
     m_igtlMessageFactory->AddMessageType("TRACKEDFRAME", (igtl::MessageFactory::PointerToMessageBaseNew)&igtl::TrackedFrameMessage::New);
-    this->ServerHost = L"127.0.0.1";
-    this->ServerPort = 18944;
-    this->ServerIGTLVersion = IGTL_HEADER_VERSION_2;
+    ServerHost = L"127.0.0.1";
+    ServerPort = 18944;
+    ServerIGTLVersion = IGTL_HEADER_VERSION_2;
 
-    this->m_frameSize.assign(3, 0);
+    m_frameSize.assign(3, 0);
   }
 
   //----------------------------------------------------------------------------
   IGTLinkClient::~IGTLinkClient()
   {
-    this->Disconnect();
+    Disconnect();
     auto disconnectTask = concurrency::create_task([this]()
     {
-      while (this->Connected)
+      while (Connected)
       {
         std::this_thread::sleep_for(std::chrono::milliseconds(33));
       }
@@ -87,9 +87,9 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   IAsyncOperation<bool>^ IGTLinkClient::ConnectAsync(double timeoutSec)
   {
-    this->Disconnect();
+    Disconnect();
 
-    this->m_cancellationTokenSource = cancellation_token_source();
+    m_receiverPumpTokenSource = cancellation_token_source();
 
     return create_async([ = ]() -> bool
     {
@@ -98,9 +98,9 @@ namespace UWPOpenIGTLink
       auto start = std::chrono::high_resolution_clock::now();
       while (errorCode != 0)
       {
-        std::wstring wideStr(this->ServerHost->Begin());
+        std::wstring wideStr(ServerHost->Begin());
         std::string str(wideStr.begin(), wideStr.end());
-        errorCode = this->m_clientSocket->ConnectToServer(str.c_str(), this->ServerPort);
+        errorCode = m_clientSocket->ConnectToServer(str.c_str(), ServerPort);
         std::chrono::duration<double, std::milli> timeDiff = std::chrono::high_resolution_clock::now() - start;
         if (timeDiff.count() > timeoutSec * 1000)
         {
@@ -115,12 +115,12 @@ namespace UWPOpenIGTLink
         return false;
       }
 
-      this->m_clientSocket->SetTimeout(CLIENT_SOCKET_TIMEOUT_MSEC);
+      m_clientSocket->SetTimeout(CLIENT_SOCKET_TIMEOUT_MSEC);
 
       // We're connected, start the data receiver thread
-      create_task([this](void)
+      create_task([this]()
       {
-        this->DataReceiverPump(this, m_cancellationTokenSource.get_token());
+        DataReceiverPump(this, m_receiverPumpTokenSource.get_token());
       });
 
       return true;
@@ -130,33 +130,17 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void IGTLinkClient::Disconnect()
   {
-    this->m_cancellationTokenSource.cancel();
+    m_receiverPumpTokenSource.cancel();
 
     {
-      critical_section::scoped_lock lock(this->m_socketMutex);
-      this->m_clientSocket->CloseSocket();
+      critical_section::scoped_lock lock(m_socketMutex);
+      m_clientSocket->CloseSocket();
     }
   }
 
   //----------------------------------------------------------------------------
-  TrackedFrame^ IGTLinkClient::GetLatestTrackedFrame(double* latestTimestamp)
+  TrackedFrame^ IGTLinkClient::GetLatestTrackedFrame(double lastKnownTimestamp)
   {
-    // Determine latest timestamp if not requested
-    double timestamp(0);
-    if (latestTimestamp == nullptr)
-    {
-      timestamp = GetLatestTrackedFrameTimestamp();
-    }
-    else
-    {
-      timestamp = *latestTimestamp;
-    }
-
-    if (m_receiveUWPMessages.find(timestamp) != m_receiveUWPMessages.end())
-    {
-      return m_receiveUWPMessages.at(timestamp);
-    }
-
     igtl::TrackedFrameMessage::Pointer trackedFrameMsg = nullptr;
     {
       // Retrieve the next available tracked frame reply
@@ -179,14 +163,18 @@ namespace UWPOpenIGTLink
 
     auto ts = igtl::TimeStamp::New();
     trackedFrameMsg->GetTimeStamp(ts);
-    if (ts->GetTimeStamp() <= timestamp)
+    if (ts->GetTimeStamp() <= lastKnownTimestamp)
     {
       // No new messages since requested timestamp
+      if (m_receiveUWPMessages.find(lastKnownTimestamp) != m_receiveUWPMessages.end())
+      {
+        return m_receiveUWPMessages.at(lastKnownTimestamp);
+      }
       return nullptr;
     }
 
     auto frame = ref new TrackedFrame();
-    m_receiveUWPMessages[timestamp] = frame;
+    m_receiveUWPMessages[ts->GetTimeStamp()] = frame;
 
     // Tracking/other related fields
     for (auto& pair : trackedFrameMsg->GetMetaData())
@@ -222,22 +210,11 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  Command^ IGTLinkClient::GetLatestCommand(double* latestTimestamp)
+  Command^ IGTLinkClient::GetLatestCommand(double lastKnownTimestamp)
   {
-    // Determine latest timestamp if not requested
-    double timestamp(0);
-    if (latestTimestamp == nullptr)
+    if (m_receiveUWPCommands.find(lastKnownTimestamp) != m_receiveUWPCommands.end())
     {
-      timestamp = GetLatestTrackedFrameTimestamp();
-    }
-    else
-    {
-      timestamp = *latestTimestamp;
-    }
-
-    if (m_receiveUWPCommands.find(timestamp) != m_receiveUWPCommands.end())
-    {
-      return m_receiveUWPCommands.at(timestamp);
+      return m_receiveUWPCommands.at(lastKnownTimestamp);
     }
 
     igtl::MessageBase::Pointer igtMessage = nullptr;
@@ -261,21 +238,25 @@ namespace UWPOpenIGTLink
 
     auto ts = igtl::TimeStamp::New();
     igtMessage->GetTimeStamp(ts);
-
-    if (ts->GetTimeStamp() <= timestamp)
+    if (ts->GetTimeStamp() <= lastKnownTimestamp)
     {
       // No new messages since requested timestamp
+      if (m_receiveUWPCommands.find(lastKnownTimestamp) != m_receiveUWPCommands.end())
+      {
+        return m_receiveUWPCommands.at(lastKnownTimestamp);
+      }
       return nullptr;
     }
 
     auto cmd = ref new Command();
-    m_receiveUWPCommands[timestamp] = cmd;
+    m_receiveUWPCommands[ts->GetTimeStamp()] = cmd;
 
     auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>(igtMessage.GetPointer());
 
     cmd->CommandContent = ref new Platform::String(std::wstring(cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end()).c_str());
     cmd->CommandName = ref new Platform::String(std::wstring(cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end()).c_str());
     cmd->OriginalCommandId = cmdMsg->GetCommandId();
+    cmd->Timestamp = lastKnownTimestamp;
 
     XmlDocument^ doc = ref new XmlDocument();
     doc->LoadXml(cmd->CommandContent);
@@ -325,7 +306,7 @@ namespace UWPOpenIGTLink
     int success = 0;
     {
       critical_section::scoped_lock lock(m_socketMutex);
-      success = this->m_clientSocket->Send(packedMessage->GetBufferPointer(), packedMessage->GetBufferSize());
+      success = m_clientSocket->Send(packedMessage->GetBufferPointer(), packedMessage->GetBufferSize());
     }
     if (!success)
     {
@@ -339,7 +320,7 @@ namespace UWPOpenIGTLink
   bool IGTLinkClient::SendMessage(MessageBasePointerPtr messageBasePointerPtr)
   {
     igtl::MessageBase::Pointer* messageBasePointer = (igtl::MessageBase::Pointer*)(messageBasePointerPtr);
-    return this->SendMessage(*messageBasePointer);
+    return SendMessage(*messageBasePointer);
   }
 
   //----------------------------------------------------------------------------
@@ -414,7 +395,7 @@ namespace UWPOpenIGTLink
         int c = bodyMsg->Unpack(1);
         if (!(c & igtl::MessageHeader::UNPACK_BODY))
         {
-          std::cerr << "Failed to receive reply (invalid body)" << std::endl;
+          LOG_TRACE("Failed to receive reply (invalid body)");
           continue;
         }
 
@@ -449,11 +430,15 @@ namespace UWPOpenIGTLink
       auto oldestTimestamp = self->GetOldestTrackedFrameTimestamp();
       if (oldestTimestamp > 0)
       {
-        for (auto it = self->m_receiveUWPMessages.begin(); it != self->m_receiveUWPMessages.end(); ++it)
+        for (auto it = self->m_receiveUWPMessages.begin(); it != self->m_receiveUWPMessages.end();)
         {
-          if (it->first < self->GetOldestTrackedFrameTimestamp())
+          if (it->first < oldestTimestamp)
           {
             it = self->m_receiveUWPMessages.erase(it);
+          }
+          else
+          {
+            ++it;
           }
         }
       }
@@ -461,11 +446,15 @@ namespace UWPOpenIGTLink
       oldestTimestamp = self->GetOldestCommandTimestamp();
       if (oldestTimestamp > 0)
       {
-        for (auto it = self->m_receiveUWPCommands.begin(); it != self->m_receiveUWPCommands.end(); ++it)
+        for (auto it = self->m_receiveUWPCommands.begin(); it != self->m_receiveUWPCommands.end();)
         {
-          if (it->first < self->GetOldestTrackedFrameTimestamp())
+          if (it->first < oldestTimestamp)
           {
             it = self->m_receiveUWPCommands.erase(it);
+          }
+          else
+          {
+            ++it;
           }
         }
       }
@@ -550,42 +539,42 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   int IGTLinkClient::ServerPort::get()
   {
-    return this->m_ServerPort;
+    return m_ServerPort;
   }
 
   //----------------------------------------------------------------------------
   void IGTLinkClient::ServerPort::set(int arg)
   {
-    this->m_ServerPort = arg;
+    m_ServerPort = arg;
   }
 
   //----------------------------------------------------------------------------
   Platform::String^ IGTLinkClient::ServerHost::get()
   {
-    return this->m_ServerHost;
+    return m_ServerHost;
   }
 
   //----------------------------------------------------------------------------
   void IGTLinkClient::ServerHost::set(Platform::String^ arg)
   {
-    this->m_ServerHost = arg;
+    m_ServerHost = arg;
   }
 
   //----------------------------------------------------------------------------
   int IGTLinkClient::ServerIGTLVersion::get()
   {
-    return this->m_ServerIGTLVersion;
+    return m_ServerIGTLVersion;
   }
 
   //----------------------------------------------------------------------------
   void IGTLinkClient::ServerIGTLVersion::set(int arg)
   {
-    this->m_ServerIGTLVersion = arg;
+    m_ServerIGTLVersion = arg;
   }
 
   //----------------------------------------------------------------------------
   bool IGTLinkClient::Connected::get()
   {
-    return this->m_clientSocket->GetConnected();
+    return m_clientSocket->GetConnected();
   }
 }

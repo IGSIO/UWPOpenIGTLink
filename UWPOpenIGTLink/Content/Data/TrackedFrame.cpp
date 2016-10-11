@@ -46,13 +46,13 @@ namespace UWPOpenIGTLink
   static std::wstring TRANSFORM_STATUS_POSTFIX = L"TransformStatus";
 
   //----------------------------------------------------------------------------
-  int32 TrackedFrame::ImageSizeBytes::get()
+  uint32 TrackedFrame::ImageSizeBytes::get()
   {
     return m_frameSizeBytes;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::ImageSizeBytes::set( int32 arg )
+  void TrackedFrame::ImageSizeBytes::set(uint32 arg)
   {
     m_frameSizeBytes = arg;
   }
@@ -64,7 +64,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::NumberOfComponents::set( uint16 arg )
+  void TrackedFrame::NumberOfComponents::set(uint16 arg)
   {
     m_numberOfComponents = arg;
   }
@@ -73,26 +73,26 @@ namespace UWPOpenIGTLink
   IVectorView<uint16>^ TrackedFrame::FrameSize::get()
   {
     auto vec = ref new Vector<uint16>();
-    vec->Append( m_frameSize[0] );
-    vec->Append( m_frameSize[1] );
-    vec->Append( m_frameSize[2] );
+    vec->Append(m_frameSize[0]);
+    vec->Append(m_frameSize[1]);
+    vec->Append(m_frameSize[2]);
     return vec->GetView();
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::FrameSize::set( IVectorView<uint16>^ arg )
+  void TrackedFrame::FrameSize::set(IVectorView<uint16>^ arg)
   {
-    if ( arg->Size > 0 )
+    if (arg->Size > 0)
     {
-      m_frameSize[0] = arg->GetAt( 0 );
+      m_frameSize[0] = arg->GetAt(0);
     }
-    if ( arg->Size > 1 )
+    if (arg->Size > 1)
     {
-      m_frameSize[1] = arg->GetAt( 1 );
+      m_frameSize[1] = arg->GetAt(1);
     }
-    if ( arg->Size > 2 )
+    if (arg->Size > 2)
     {
-      m_frameSize[2] = arg->GetAt( 2 );
+      m_frameSize[2] = arg->GetAt(2);
     }
   }
 
@@ -100,107 +100,113 @@ namespace UWPOpenIGTLink
   IMapView<Platform::String^, Platform::String^>^ TrackedFrame::FrameFields::get()
   {
     auto map = ref new Map<Platform::String^, Platform::String^>();
-    for ( auto pair : m_frameFields )
+    for (auto pair : m_frameFields)
     {
-      map->Insert( ref new Platform::String( pair.first.c_str() ), ref new Platform::String( pair.second.c_str() ) );
+      map->Insert(ref new Platform::String(pair.first.c_str()), ref new Platform::String(pair.second.c_str()));
     }
     return map->GetView();
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::SetParameter( Platform::String^ key, Platform::String^ value )
+  bool TrackedFrame::HasImage()
   {
-    m_frameFields[std::wstring( key->Data() )] = std::wstring( value->Data() );
+    return m_imageData != nullptr;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrame::SetParameter(Platform::String^ key, Platform::String^ value)
+  {
+    m_frameFields[std::wstring(key->Data())] = std::wstring(value->Data());
   }
 
   //----------------------------------------------------------------------------
   IBuffer^ TrackedFrame::ImageData::get()
   {
-    Platform::ArrayReference<byte> arraywrapper( m_imageData.get(), m_frameSizeBytes );
-    return Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray( arraywrapper );
+    Platform::ArrayReference<byte> arraywrapper(m_imageData.get(), m_frameSizeBytes);
+    return Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray(arraywrapper);
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::ImageData::set( IBuffer^ imageData )
+  void TrackedFrame::ImageData::set(IBuffer^ imageData)
   {
-    if ( imageData == nullptr )
+    if (imageData == nullptr)
     {
       return;
     }
 
     unsigned int bufferLength = imageData->Length;
 
-    if ( !( bufferLength > 0 ) )
+    if (!(bufferLength > 0))
     {
       return;
     }
 
     HRESULT hr = S_OK;
 
-    Microsoft::WRL::ComPtr<IUnknown> pUnknown = reinterpret_cast<IUnknown*>( imageData );
+    Microsoft::WRL::ComPtr<IUnknown> pUnknown = reinterpret_cast<IUnknown*>(imageData);
     Microsoft::WRL::ComPtr<IBufferByteAccess> spByteAccess;
-    hr = pUnknown.As( &spByteAccess );
-    if ( FAILED( hr ) )
+    hr = pUnknown.As(&spByteAccess);
+    if (FAILED(hr))
     {
       return;
     }
 
     byte* pRawData = nullptr;
-    hr = spByteAccess->Buffer( &pRawData );
-    if ( FAILED( hr ) )
+    hr = spByteAccess->Buffer(&pRawData);
+    if (FAILED(hr))
     {
       return;
     }
 
-    m_imageData = std::shared_ptr<byte>( new byte[bufferLength], std::default_delete<byte[]>() );
-    memcpy( m_imageData.get(), pRawData, bufferLength * sizeof( byte ) );
+    m_imageData = std::shared_ptr<byte>(new byte[bufferLength], std::default_delete<byte[]>());
+    memcpy(m_imageData.get(), pRawData, bufferLength * sizeof(byte));
   }
 
   //----------------------------------------------------------------------------
   int32 TrackedFrame::ScalarType::get()
   {
-    return ( int32 )m_scalarType;
+    return (int32)m_scalarType;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::ScalarType::set( int32 arg )
+  void TrackedFrame::ScalarType::set(int32 arg)
   {
-    m_scalarType = ( IGTLScalarType )arg;
+    m_scalarType = (IGTLScalarType)arg;
   }
 
   //----------------------------------------------------------------------------
   SharedBytePtr TrackedFrame::ImageDataSharedPtr::get()
   {
-    return ( SharedBytePtr )&m_imageData;
+    return (SharedBytePtr)&m_imageData;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::ImageDataSharedPtr::set( SharedBytePtr arg )
+  void TrackedFrame::ImageDataSharedPtr::set(SharedBytePtr arg)
   {
-    m_imageData = *( std::shared_ptr<byte>* )arg;
+    m_imageData = *(std::shared_ptr<byte>*)arg;
   }
 
   //----------------------------------------------------------------------------
   float4x4 TrackedFrame::EmbeddedImageTransform::get()
   {
     float4x4 result;
-    XMStoreFloat4x4( &result, XMLoadFloat4x4( &m_embeddedImageTransform ) );
+    XMStoreFloat4x4(&result, XMLoadFloat4x4(&m_embeddedImageTransform));
     return result;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::EmbeddedImageTransform::set( float4x4 arg )
+  void TrackedFrame::EmbeddedImageTransform::set(float4x4 arg)
   {
-    XMStoreFloat4x4( &m_embeddedImageTransform, DirectX::XMLoadFloat4x4( &arg ) );
+    XMStoreFloat4x4(&m_embeddedImageTransform, DirectX::XMLoadFloat4x4(&arg));
   }
 
   //----------------------------------------------------------------------------
   uint32 TrackedFrame::PixelFormat::get()
   {
-    switch ( m_numberOfComponents )
+    switch (m_numberOfComponents)
     {
     case 1:
-      switch ( m_scalarType )
+      switch (m_scalarType)
       {
       case IGTL_SCALARTYPE_INT8:
         return DXGI_FORMAT_R8_SNORM;
@@ -219,7 +225,7 @@ namespace UWPOpenIGTLink
       }
       break;
     case 2:
-      switch ( m_scalarType )
+      switch (m_scalarType)
       {
       case IGTL_SCALARTYPE_INT8:
         return DXGI_FORMAT_R8G8_SNORM;
@@ -238,7 +244,7 @@ namespace UWPOpenIGTLink
       }
       break;
     case 3:
-      switch ( m_scalarType )
+      switch (m_scalarType)
       {
       case IGTL_SCALARTYPE_INT8:
         return DXGI_FORMAT_R8G8B8A8_SNORM;
@@ -256,7 +262,7 @@ namespace UWPOpenIGTLink
         return DXGI_FORMAT_R32G32B32_FLOAT;
       }
     case 4:
-      switch ( m_scalarType )
+      switch (m_scalarType)
       {
       case IGTL_SCALARTYPE_INT8:
         return DXGI_FORMAT_R8G8B8A8_SNORM;
@@ -279,10 +285,10 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::PixelFormat::set( uint32 arg )
+  void TrackedFrame::PixelFormat::set(uint32 arg)
   {
-    DXGI_FORMAT pixelFormat = ( DXGI_FORMAT )arg;
-    switch ( arg )
+    DXGI_FORMAT pixelFormat = (DXGI_FORMAT)arg;
+    switch (arg)
     {
     case DXGI_FORMAT_R32G32B32A32_FLOAT:
       m_numberOfComponents = 4;
@@ -406,9 +412,9 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::ImageType::set( uint16 arg )
+  void TrackedFrame::ImageType::set(uint16 arg)
   {
-    m_imageType = ( US_IMAGE_TYPE )arg;
+    m_imageType = (US_IMAGE_TYPE)arg;
   }
 
   //----------------------------------------------------------------------------
@@ -418,9 +424,9 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::ImageOrientation::set( uint16 arg )
+  void TrackedFrame::ImageOrientation::set(uint16 arg)
   {
-    m_imageOrientation = ( US_IMAGE_ORIENTATION )arg;
+    m_imageOrientation = (US_IMAGE_ORIENTATION)arg;
   }
 
   //----------------------------------------------------------------------------
@@ -448,7 +454,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::Timestamp::set( double arg )
+  void TrackedFrame::Timestamp::set(double arg)
   {
     m_timestamp = arg;
   }
@@ -457,11 +463,11 @@ namespace UWPOpenIGTLink
   IMapView<Platform::String^, Platform::String^>^ TrackedFrame::GetValidTransforms()
   {
     Map<Platform::String^, Platform::String^>^ outputMap = ref new Map<Platform::String^, Platform::String^>;
-    for ( auto entry : m_frameFields )
+    for (auto entry : m_frameFields)
     {
-      if ( entry.first.find( L"TransformStatus" ) != std::wstring::npos )
+      if (entry.first.find(L"TransformStatus") != std::wstring::npos)
       {
-        if ( entry.second.compare( L"OK" ) != 0 )
+        if (entry.second.compare(L"OK") != 0)
         {
           continue;
         }
@@ -470,9 +476,9 @@ namespace UWPOpenIGTLink
           // This entry is valid, so find the corresponding transform and put it in the list
           //ImageToCroppedImageTransformStatus
           //ImageToCroppedImageTransform
-          std::wstring lookupKey( entry.first.substr( 0, entry.first.find( L"Status" ) ) );
-          Platform::String^ refLookupKey = ref new Platform::String( lookupKey.c_str() );
-          outputMap->Insert( refLookupKey, ref new Platform::String( m_frameFields[lookupKey].c_str() ) );
+          std::wstring lookupKey(entry.first.substr(0, entry.first.find(L"Status")));
+          Platform::String^ refLookupKey = ref new Platform::String(lookupKey.c_str());
+          outputMap->Insert(refLookupKey, ref new Platform::String(m_frameFields[lookupKey].c_str()));
         }
       }
     }
@@ -481,28 +487,28 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  float4x4 TrackedFrame::GetCustomFrameTransform( TransformName^ transformName )
+  float4x4 TrackedFrame::GetCustomFrameTransform(TransformName^ transformName)
   {
     std::wstring transformNameStr;
     try
     {
-      transformNameStr = std::wstring( transformName->GetTransformName()->Data() );
+      transformNameStr = std::wstring(transformName->GetTransformName()->Data());
     }
-    catch ( Platform::Exception^ e )
+    catch (Platform::Exception^ e)
     {
       throw e;
     }
 
     // Append Transform to the end of the transform name
-    if ( !IsTransform( transformNameStr ) )
+    if (!IsTransform(transformNameStr))
     {
-      transformNameStr.append( TRANSFORM_POSTFIX );
+      transformNameStr.append(TRANSFORM_POSTFIX);
     }
 
     std::wstring value;
-    if ( !GetCustomFrameField( transformNameStr, value ) )
+    if (!GetCustomFrameField(transformNameStr, value))
     {
-      throw ref new Platform::Exception( E_INVALIDARG, L"Frame value not found for field: " + transformName->GetTransformName() );
+      throw ref new Platform::Exception(E_INVALIDARG, L"Frame value not found for field: " + transformName->GetTransformName());
     }
 
     // Find default frame transform
@@ -510,73 +516,73 @@ namespace UWPOpenIGTLink
     std::wistringstream transformFieldValue(value);
     float item;
     int i = 0;
-    while ( transformFieldValue >> item && i < 16 )
+    while (transformFieldValue >> item && i < 16)
     {
       vals[i++] = item;
     }
-    return float4x4( vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9], vals[10], vals[11], vals[12], vals[13], vals[14], vals[15] );
+    return float4x4(vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9], vals[10], vals[11], vals[12], vals[13], vals[14], vals[15]);
   }
 
   //----------------------------------------------------------------------------
-  int TrackedFrame::GetCustomFrameTransformStatus( TransformName^ transformName )
+  int TrackedFrame::GetCustomFrameTransformStatus(TransformName^ transformName)
   {
     TrackedFrameFieldStatus status = FIELD_INVALID;
     std::wstring transformStatusName;
     try
     {
-      transformStatusName = std::wstring( transformName->GetTransformName()->Data() );
+      transformStatusName = std::wstring(transformName->GetTransformName()->Data());
     }
-    catch ( Platform::Exception^ e )
+    catch (Platform::Exception^ e)
     {
       throw e;
     }
 
     // Append TransformStatus to the end of the transform name
-    if ( IsTransform( transformStatusName ) )
+    if (IsTransform(transformStatusName))
     {
-      transformStatusName.append( L"Status" );
+      transformStatusName.append(L"Status");
     }
-    else if ( !IsTransformStatus( transformStatusName ) )
+    else if (!IsTransformStatus(transformStatusName))
     {
-      transformStatusName.append( TRANSFORM_STATUS_POSTFIX );
+      transformStatusName.append(TRANSFORM_STATUS_POSTFIX);
     }
 
     std::wstring strStatus;
-    if ( !GetCustomFrameField( transformStatusName, strStatus ) )
+    if (!GetCustomFrameField(transformStatusName, strStatus))
     {
-      throw ref new Platform::Exception( E_FAIL, L"Unable to locate custom frame field: " + transformName->GetTransformName() );
+      throw ref new Platform::Exception(E_FAIL, L"Unable to locate custom frame field: " + transformName->GetTransformName());
     }
 
-    status = TrackedFrame::ConvertFieldStatusFromString( strStatus );
+    status = TrackedFrame::ConvertFieldStatusFromString(strStatus);
 
     return status;
   }
 
   //----------------------------------------------------------------------------
-  Platform::String^ TrackedFrame::GetCustomFrameField( Platform::String^ fieldName )
+  Platform::String^ TrackedFrame::GetCustomFrameField(Platform::String^ fieldName)
   {
-    std::wstring field( fieldName->Data() );
+    std::wstring field(fieldName->Data());
     FieldMapType::iterator fieldIterator;
-    fieldIterator = m_frameFields.find( field );
-    if ( fieldIterator != m_frameFields.end() )
+    fieldIterator = m_frameFields.find(field);
+    if (fieldIterator != m_frameFields.end())
     {
-      return ref new Platform::String( fieldIterator->second.c_str() );
+      return ref new Platform::String(fieldIterator->second.c_str());
     }
     return nullptr;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::SetCustomFrameField( const std::wstring& fieldName, const std::wstring& value )
+  void TrackedFrame::SetCustomFrameField(const std::wstring& fieldName, const std::wstring& value)
   {
     m_frameFields[fieldName] = value;
   }
 
   //----------------------------------------------------------------------------
-  bool TrackedFrame::GetCustomFrameField( const std::wstring& fieldName, std::wstring& value )
+  bool TrackedFrame::GetCustomFrameField(const std::wstring& fieldName, std::wstring& value)
   {
     FieldMapType::iterator fieldIterator;
-    fieldIterator = m_frameFields.find( fieldName );
-    if ( fieldIterator != m_frameFields.end() )
+    fieldIterator = m_frameFields.find(fieldName);
+    if (fieldIterator != m_frameFields.end())
     {
       value = fieldIterator->second;
       return true;
@@ -585,7 +591,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::SetEmbeddedImageTransform( const DirectX::XMFLOAT4X4& matrix )
+  void TrackedFrame::SetEmbeddedImageTransform(const DirectX::XMFLOAT4X4& matrix)
   {
     m_embeddedImageTransform = matrix;
   }
@@ -597,7 +603,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::SetImageData( std::shared_ptr<byte> imageData )
+  void TrackedFrame::SetImageData(std::shared_ptr<byte> imageData)
   {
     m_imageData = imageData;
   }
@@ -612,45 +618,45 @@ namespace UWPOpenIGTLink
   IVectorView<TransformName^>^ TrackedFrame::GetCustomFrameTransformNameList()
   {
     Vector<TransformName^>^ vec = ref new Vector<TransformName^>();
-    for ( auto pair : m_frameFields )
+    for (auto pair : m_frameFields)
     {
-      if ( IsTransform( pair.first ) )
+      if (IsTransform(pair.first))
       {
         TransformName^ trName = ref new TransformName();
-        trName->SetTransformName( ref new Platform::String( pair.first.substr( 0, pair.first.length() - TRANSFORM_POSTFIX.length() ).c_str() ) );
-        vec->Append( trName );
+        trName->SetTransformName(ref new Platform::String(pair.first.substr(0, pair.first.length() - TRANSFORM_POSTFIX.length()).c_str()));
+        vec->Append(trName);
       }
     }
     return vec->GetView();
   }
 
   //----------------------------------------------------------------------------
-  bool TrackedFrame::IsTransform( const std::wstring& str )
+  bool TrackedFrame::IsTransform(const std::wstring& str)
   {
-    if ( str.length() <= TRANSFORM_POSTFIX.length() )
+    if (str.length() <= TRANSFORM_POSTFIX.length())
     {
       return false;
     }
 
-    return !str.substr( str.length() - TRANSFORM_POSTFIX.length() ).compare( TRANSFORM_POSTFIX );
+    return !str.substr(str.length() - TRANSFORM_POSTFIX.length()).compare(TRANSFORM_POSTFIX);
   }
 
   //----------------------------------------------------------------------------
-  bool TrackedFrame::IsTransformStatus( const std::wstring& str )
+  bool TrackedFrame::IsTransformStatus(const std::wstring& str)
   {
-    if ( str.length() <= TRANSFORM_STATUS_POSTFIX.length() )
+    if (str.length() <= TRANSFORM_STATUS_POSTFIX.length())
     {
       return false;
     }
 
-    return !str.substr( str.length() - TRANSFORM_STATUS_POSTFIX.length() ).compare( TRANSFORM_STATUS_POSTFIX );
+    return !str.substr(str.length() - TRANSFORM_STATUS_POSTFIX.length()).compare(TRANSFORM_STATUS_POSTFIX);
   }
 
   //----------------------------------------------------------------------------
-  TrackedFrameFieldStatus TrackedFrame::ConvertFieldStatusFromString( const std::wstring& statusStr )
+  TrackedFrameFieldStatus TrackedFrame::ConvertFieldStatusFromString(const std::wstring& statusStr)
   {
     TrackedFrameFieldStatus status = FIELD_INVALID;
-    if ( statusStr.compare( L"OK" ) == 0 )
+    if (statusStr.compare(L"OK") == 0)
     {
       status = FIELD_OK;
     }
@@ -659,9 +665,9 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  std::wstring TrackedFrame::ConvertFieldStatusToString( TrackedFrameFieldStatus status )
+  std::wstring TrackedFrame::ConvertFieldStatusToString(TrackedFrameFieldStatus status)
   {
-    return status == FIELD_OK ? std::wstring( L"OK" ) : std::wstring( L"INVALID" );
+    return status == FIELD_OK ? std::wstring(L"OK") : std::wstring(L"INVALID");
   }
 
 }

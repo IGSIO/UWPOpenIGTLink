@@ -59,8 +59,8 @@ namespace igtl
     typedef SmartPointer<Self>              Pointer;
     typedef SmartPointer<const Self>        ConstPointer;
 
-    igtlTypeMacro( igtl::TrackedFrameMessage, igtl::MessageBase );
-    igtlNewMacro( igtl::TrackedFrameMessage );
+    igtlTypeMacro(igtl::TrackedFrameMessage, igtl::MessageBase);
+    igtlNewMacro(igtl::TrackedFrameMessage);
 
   public:
     /*! Override clone so that we use the plus igtl factory */
@@ -75,6 +75,7 @@ namespace igtl
     igtl_uint32 GetImageSizeInBytes();
     US_IMAGE_ORIENTATION GetImageOrientation();
     IGTLScalarType GetScalarType();
+    double GetTimestamp();
 
     /*! Set the embedded transform of the underlying image */
     void SetEmbeddedImageTransform(const DirectX::XMFLOAT4X4& matrix);
@@ -109,14 +110,13 @@ namespace igtl
     TrackedFrameMessage();
     ~TrackedFrameMessage();
 
-    std::map<std::string, std::string> m_customFrameFields;
-    std::shared_ptr<byte> m_image;
-    std::string m_trackedFrameXmlData;
-    bool m_imageValid;
+    std::map<std::string, std::string>    m_customFrameFields;
+    std::shared_ptr<byte>                 m_image = nullptr;
+    std::string                           m_trackedFrameXmlData;
+    bool                                  m_imageValid = false;
+    double                                m_timestamp = 0.0;
 
-    int32 m_imageSizeInBytes;
-
-    TrackedFrameHeader m_messageHeader;
+    TrackedFrameHeader                    m_messageHeader;
   };
 
 #pragma pack()

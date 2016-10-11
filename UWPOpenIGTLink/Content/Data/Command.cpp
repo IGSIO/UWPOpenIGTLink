@@ -40,7 +40,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void Command::Result::set( bool arg )
+  void Command::Result::set(bool arg)
   {
     m_Result = arg;
   }
@@ -52,7 +52,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void Command::Parameters::set( IMap<String^, String^>^ arg )
+  void Command::Parameters::set(IMap<String^, String^>^ arg)
   {
     m_Parameters = arg;
   }
@@ -64,7 +64,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void Command::OriginalCommandId::set( uint32_t arg )
+  void Command::OriginalCommandId::set(uint32_t arg)
   {
     m_OriginalCommandId = arg;
   }
@@ -76,7 +76,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void Command::ErrorString::set( String^ arg )
+  void Command::ErrorString::set(String^ arg)
   {
     m_ErrorString = arg;
   }
@@ -88,7 +88,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void Command::CommandContent::set( String^ arg )
+  void Command::CommandContent::set(String^ arg)
   {
     m_CommandContent = arg;
   }
@@ -100,8 +100,21 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void Command::CommandName::set( String^ arg )
+  void Command::CommandName::set(String^ arg)
   {
     m_CommandName = arg;
   }
+
+  //----------------------------------------------------------------------------
+  double Command::Timestamp::get()
+  {
+    return m_timestamp;
+  }
+
+  //----------------------------------------------------------------------------
+  void Command::Timestamp::set(double arg)
+  {
+    m_timestamp = arg;
+  }
+
 }

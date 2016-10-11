@@ -37,19 +37,21 @@ namespace UWPOpenIGTLink
   public ref class Command sealed
   {
   public:
-    property bool Result {bool get(); void set( bool arg ); }
-    property IMap<String^, String^>^ Parameters {IMap<String^, String^>^ get(); void set( IMap<String^, String^>^ arg ); }
-    property uint32_t OriginalCommandId {uint32_t get(); void set(uint32_t arg ); }
-    property String^ ErrorString {String ^ get(); void set( String ^ arg ); }
-    property String^ CommandContent {String ^ get(); void set( String ^ arg ); }
-    property String^ CommandName {String ^ get(); void set( String ^ arg ); }
+    property bool Result {bool get(); void set(bool arg); }
+    property IMap<String^, String^>^ Parameters {IMap<String^, String^>^ get(); void set(IMap<String^, String^>^ arg); }
+    property uint32_t OriginalCommandId {uint32_t get(); void set(uint32_t arg); }
+    property String^ ErrorString {String ^ get(); void set(String ^ arg); }
+    property String^ CommandContent {String ^ get(); void set(String ^ arg); }
+    property String^ CommandName {String ^ get(); void set(String ^ arg); }
+    property double Timestamp {double get(); void set(double arg); }
 
   protected private:
-    bool m_Result;
-    IMap<String^, String^>^ m_Parameters;
-    uint32_t m_OriginalCommandId;
-    String^ m_ErrorString;
-    String^ m_CommandContent;
-    String^ m_CommandName;
+    bool                        m_Result;
+    IMap<String^, String^>^     m_Parameters;
+    uint32_t                    m_OriginalCommandId;
+    String^                     m_ErrorString;
+    String^                     m_CommandContent;
+    String^                     m_CommandName;
+    double                      m_timestamp;
   };
 }

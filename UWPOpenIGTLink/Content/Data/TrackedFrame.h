@@ -119,65 +119,66 @@ namespace UWPOpenIGTLink
 
   public:
     property IMapView<Platform::String^, Platform::String^>^ FrameFields {IMapView<Platform::String^, Platform::String^>^ get(); }
-    property int32 ImageSizeBytes { int32 get(); void set( int32 arg ); }
-    property IVectorView<uint16>^ FrameSize { IVectorView<uint16>^ get(); void set( IVectorView<uint16>^ arg ); }
-    property uint16 NumberOfComponents { uint16 get(); void set( uint16 arg ); }
-    property IBuffer^ ImageData { IBuffer ^ get(); void set( IBuffer ^ arg ); }
-    property SharedBytePtr ImageDataSharedPtr { SharedBytePtr get(); void set( SharedBytePtr arg ); }
-    property int32 ScalarType { int32 get(); void set( int32 arg ); }
-    property float4x4 EmbeddedImageTransform { float4x4 get(); void set( float4x4 arg ); }
-    property uint32 PixelFormat { uint32 get(); void set( uint32 arg ); }
-    property uint16 ImageType { uint16 get(); void set( uint16 arg ); }
-    property uint16 ImageOrientation { uint16 get(); void set( uint16 arg ); }
-    property double Timestamp { double get(); void set( double arg ); }
+    property uint32 ImageSizeBytes { uint32 get(); void set(uint32 arg); }
+    property IVectorView<uint16>^ FrameSize { IVectorView<uint16>^ get(); void set(IVectorView<uint16>^ arg); }
+    property uint16 NumberOfComponents { uint16 get(); void set(uint16 arg); }
+    property IBuffer^ ImageData { IBuffer ^ get(); void set(IBuffer ^ arg); }
+    property SharedBytePtr ImageDataSharedPtr { SharedBytePtr get(); void set(SharedBytePtr arg); }
+    property int32 ScalarType { int32 get(); void set(int32 arg); }
+    property float4x4 EmbeddedImageTransform { float4x4 get(); void set(float4x4 arg); }
+    property uint32 PixelFormat { uint32 get(); void set(uint32 arg); }
+    property uint16 ImageType { uint16 get(); void set(uint16 arg); }
+    property uint16 ImageOrientation { uint16 get(); void set(uint16 arg); }
+    property double Timestamp { double get(); void set(double arg); }
     property uint16 Width { uint16 get(); }
     property uint16 Height { uint16 get(); }
     property uint16 Depth { uint16 get(); }
 
   public:
-    void SetParameter( Platform::String^ key, Platform::String^ value );
+    void SetParameter(Platform::String^ key, Platform::String^ value);
     IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
 
     IVectorView<TransformName^>^ TrackedFrame::GetCustomFrameTransformNameList();
-    float4x4 GetCustomFrameTransform( TransformName^ transformName );
-    Platform::String^ GetCustomFrameField( Platform::String^ fieldName );
-    int GetCustomFrameTransformStatus( TransformName^ transformName );
+    float4x4 GetCustomFrameTransform(TransformName^ transformName);
+    Platform::String^ GetCustomFrameField(Platform::String^ fieldName);
+    int GetCustomFrameTransformStatus(TransformName^ transformName);
+    bool HasImage();
 
   internal:
-    void SetImageData( std::shared_ptr<byte> imageData );
+    void SetImageData(std::shared_ptr<byte> imageData);
     std::shared_ptr<byte> GetImageData();
 
-    void SetEmbeddedImageTransform( const DirectX::XMFLOAT4X4& matrix );
+    void SetEmbeddedImageTransform(const DirectX::XMFLOAT4X4& matrix);
     const DirectX::XMFLOAT4X4& GetEmbeddedImageTransform();
 
-    void SetCustomFrameField( const std::wstring& fieldName, const std::wstring& value );
-    bool GetCustomFrameField( const std::wstring& fieldName, std::wstring& value );
+    void SetCustomFrameField(const std::wstring& fieldName, const std::wstring& value);
+    bool GetCustomFrameField(const std::wstring& fieldName, std::wstring& value);
 
     /// Returns true if the input string ends with "Transform", else false
-    static bool IsTransform( const std::wstring& str );
+    static bool IsTransform(const std::wstring& str);
 
     /// Returns true if the input string ends with "TransformStatus", else false
-    static bool IsTransformStatus( const std::wstring& str );
+    static bool IsTransformStatus(const std::wstring& str);
 
     /*! Convert from field status string to field status enum */
-    static TrackedFrameFieldStatus ConvertFieldStatusFromString( const std::wstring& statusStr );
+    static TrackedFrameFieldStatus ConvertFieldStatusFromString(const std::wstring& statusStr);
 
     /*! Convert from field status enum to field status string */
-    static std::wstring ConvertFieldStatusToString( TrackedFrameFieldStatus status );
+    static std::wstring ConvertFieldStatusToString(TrackedFrameFieldStatus status);
 
   protected private:
     // Tracking/other related fields
-    FieldMapType m_frameFields;
+    FieldMapType              m_frameFields;
 
     // Image related fields
-    double                    m_timestamp;
-    std::shared_ptr<byte>     m_imageData;
-    std::array<uint16, 3>     m_frameSize;
-    uint16                    m_numberOfComponents;
-    int32                     m_frameSizeBytes;
-    US_IMAGE_TYPE             m_imageType;
-    US_IMAGE_ORIENTATION      m_imageOrientation;
-    IGTLScalarType            m_scalarType;
+    double                    m_timestamp = 0.0;
+    std::shared_ptr<byte>     m_imageData = nullptr;
+    std::array<uint16, 3>     m_frameSize = { 0, 0, 0 };
+    uint16                    m_numberOfComponents = 0;
+    uint32                    m_frameSizeBytes = 0;
+    US_IMAGE_TYPE             m_imageType = US_IMG_TYPE_XX;
+    US_IMAGE_ORIENTATION      m_imageOrientation = US_IMG_ORIENT_XX;
+    IGTLScalarType            m_scalarType = IGTL_SCALARTYPE_UNKNOWN;
     DirectX::XMFLOAT4X4       m_embeddedImageTransform;
   };
 }
