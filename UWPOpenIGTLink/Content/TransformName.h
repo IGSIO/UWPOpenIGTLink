@@ -62,15 +62,15 @@ namespace UWPOpenIGTLink
   public:
     TransformName();
     virtual ~TransformName();
-    TransformName( Platform::String^ aFrom, Platform::String^ aTo );
-    TransformName( Platform::String^ transformName );
+    TransformName(Platform::String^ aFrom, Platform::String^ aTo);
+    TransformName(Platform::String^ transformName);
 
     /*!
     Set 'From' and 'To' coordinate frame names from a combined transform name with the following format [FrameFrom]To[FrameTo].
     The combined transform name might contain only one 'To' phrase followed by a capital letter (e.g. ImageToToProbe is not allowed)
     and the coordinate frame names should be in camel case format starting with capitalized letters.
     */
-    void SetTransformName( Platform::String^ aTransformName );
+    void SetTransformName(Platform::String^ aTransformName);
 
     /// Return combined transform name between 'From' and 'To' coordinate frames: [From]To[To]
     Platform::String^ GetTransformName();
@@ -89,7 +89,7 @@ namespace UWPOpenIGTLink
 
   protected private:
     /// Check if the input string is capitalized, if not capitalize it
-    void Capitalize( std::wstring& aString );
+    void Capitalize(std::wstring& aString);
 
   protected private:
     /// From coordinate frame name
