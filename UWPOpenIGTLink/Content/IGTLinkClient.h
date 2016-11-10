@@ -44,12 +44,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <vccorlib.h>
 #include <collection.h>
 
-using namespace Concurrency;
-using namespace Windows::Foundation;
-using namespace Windows::Foundation::Collections;
-using namespace Windows::UI::Xaml::Controls;
-using namespace Windows::UI::Xaml::Media;
-
 namespace UWPOpenIGTLink
 {
   ///
@@ -77,10 +71,10 @@ namespace UWPOpenIGTLink
     void Disconnect();
 
     /// Retrieve the latest tracked frame reply
-    TrackedFrame^ GetLatestTrackedFrame(double lastKnownTimestamp);
+    TrackedFrame^ GetTrackedFrame(double lastKnownTimestamp);
 
     /// Retrieve the latest command
-    Command^ GetLatestCommand(double lastKnownTimestamp);
+    Command^ GetCommand(double lastKnownTimestamp);
 
     /// Send a message to the connected server
     bool SendMessage(MessageBasePointerPtr messageBasePointerAsIntPtr);
@@ -102,45 +96,38 @@ namespace UWPOpenIGTLink
     /// Query the list of retrieved frames and determine the oldest timestamp
     double GetOldestTrackedFrameTimestamp();
 
-    /// Query the list of retrieved frames and determine the latest timestamp
-    double GetLatestCommandTimestamp();
-
-    /// Query the list of retrieved frames and determine the oldest timestamp
-    double GetOldestCommandTimestamp();
-
   protected private:
     /// igtl Factory for message sending
-    igtl::MessageFactory::Pointer m_igtlMessageFactory;
+    igtl::MessageFactory::Pointer             m_igtlMessageFactory;
 
-    task<void> m_dataReceiverTask;
-    cancellation_token_source m_receiverPumpTokenSource;
+    Concurrency::task<void>                   m_dataReceiverTask;
+    Concurrency::cancellation_token_source    m_receiverPumpTokenSource;
 
     /// Mutex instance for safe data access
-    critical_section m_messageListMutex;
-    critical_section m_socketMutex;
+    std::mutex                                m_messageListMutex;
+    std::mutex                                m_socketMutex;
 
     /// Socket that is connected to the server
-    igtl::ClientSocket::Pointer m_clientSocket;
+    igtl::ClientSocket::Pointer               m_clientSocket;
 
     /// List of messages received through the socket, transformed to igtl messages
-    std::deque<igtl::MessageBase::Pointer> m_receiveMessages;
-    std::vector<igtl::MessageBase::Pointer> m_sendMessages;
+    std::deque<igtl::MessageBase::Pointer>    m_receivedMessages;
+    std::vector<igtl::MessageBase::Pointer>   m_sendMessages;
 
     /// List of messages converted to UWP run time
-    std::map<double, TrackedFrame^> m_receiveUWPMessages;
-    std::map<double, Command^> m_receiveUWPCommands;
+    std::map<double, TrackedFrame^>           m_receivedUWPMessages;
 
     /// Stored WriteableBitmap to reduce overhead of memory reallocation unless necessary
-    Imaging::WriteableBitmap^ m_writeableBitmap;
-    std::vector<uint32> m_frameSize;
+    Windows::UI::Xaml::Media::Imaging::WriteableBitmap^   m_writeableBitmap;
+    std::vector<uint32>                                   m_frameSize;
 
     /// Server information
-    Platform::String^ m_ServerHost;
-    int m_ServerPort;
-    int m_ServerIGTLVersion;
+    Platform::String^                         m_serverHost;
+    int                                       m_serverPort;
+    int                                       m_serverIGTLVersion;
 
-    static const int CLIENT_SOCKET_TIMEOUT_MSEC;
-    static const uint32 MESSAGE_LIST_MAX_SIZE;
+    static const int                          CLIENT_SOCKET_TIMEOUT_MSEC;
+    static const uint32                       MESSAGE_LIST_MAX_SIZE;
 
   private:
     IGTLinkClient(IGTLinkClient^) {}

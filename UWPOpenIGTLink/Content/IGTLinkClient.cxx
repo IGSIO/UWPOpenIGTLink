@@ -133,19 +133,19 @@ namespace UWPOpenIGTLink
     m_receiverPumpTokenSource.cancel();
 
     {
-      critical_section::scoped_lock lock(m_socketMutex);
+      std::lock_guard<std::mutex> guard(m_socketMutex);
       m_clientSocket->CloseSocket();
     }
   }
 
   //----------------------------------------------------------------------------
-  TrackedFrame^ IGTLinkClient::GetLatestTrackedFrame(double lastKnownTimestamp)
+  TrackedFrame^ IGTLinkClient::GetTrackedFrame(double lastKnownTimestamp)
   {
     igtl::TrackedFrameMessage::Pointer trackedFrameMsg = nullptr;
     {
       // Retrieve the next available tracked frame reply
-      Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
-      for (auto replyIter = m_receiveMessages.rbegin(); replyIter != m_receiveMessages.rend(); ++replyIter)
+      std::lock_guard<std::mutex> guard(m_messageListMutex);
+      for (auto replyIter = m_receivedMessages.rbegin(); replyIter != m_receivedMessages.rend(); ++replyIter)
       {
         if (typeid(*(*replyIter)) == typeid(igtl::TrackedFrameMessage))
         {
@@ -166,15 +166,15 @@ namespace UWPOpenIGTLink
     if (ts->GetTimeStamp() <= lastKnownTimestamp)
     {
       // No new messages since requested timestamp
-      if (m_receiveUWPMessages.find(lastKnownTimestamp) != m_receiveUWPMessages.end())
+      if (m_receivedUWPMessages.find(lastKnownTimestamp) != m_receivedUWPMessages.end())
       {
-        return m_receiveUWPMessages.at(lastKnownTimestamp);
+        return m_receivedUWPMessages.at(lastKnownTimestamp);
       }
       return nullptr;
     }
 
     auto frame = ref new TrackedFrame();
-    m_receiveUWPMessages[ts->GetTimeStamp()] = frame;
+    m_receivedUWPMessages[ts->GetTimeStamp()] = frame;
 
     // Tracking/other related fields
     for (auto& pair : trackedFrameMsg->GetMetaData())
@@ -210,18 +210,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  Command^ IGTLinkClient::GetLatestCommand(double lastKnownTimestamp)
+  Command^ IGTLinkClient::GetCommand(double lastKnownTimestamp)
   {
-    if (m_receiveUWPCommands.find(lastKnownTimestamp) != m_receiveUWPCommands.end())
-    {
-      return m_receiveUWPCommands.at(lastKnownTimestamp);
-    }
-
     igtl::MessageBase::Pointer igtMessage = nullptr;
     {
       // Retrieve the next available tracked frame reply
-      Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
-      for (auto replyIter = m_receiveMessages.rbegin(); replyIter != m_receiveMessages.rend(); ++replyIter)
+      std::lock_guard<std::mutex> guard(m_messageListMutex);
+      for (auto replyIter = m_receivedMessages.rbegin(); replyIter != m_receivedMessages.rend(); ++replyIter)
       {
         if (typeid(*(*replyIter)) == typeid(igtl::RTSCommandMessage))
         {
@@ -240,17 +235,10 @@ namespace UWPOpenIGTLink
     igtMessage->GetTimeStamp(ts);
     if (ts->GetTimeStamp() <= lastKnownTimestamp)
     {
-      // No new messages since requested timestamp
-      if (m_receiveUWPCommands.find(lastKnownTimestamp) != m_receiveUWPCommands.end())
-      {
-        return m_receiveUWPCommands.at(lastKnownTimestamp);
-      }
       return nullptr;
     }
 
     auto cmd = ref new Command();
-    m_receiveUWPCommands[ts->GetTimeStamp()] = cmd;
-
     auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>(igtMessage.GetPointer());
 
     cmd->CommandContent = ref new Platform::String(std::wstring(cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end()).c_str());
@@ -305,7 +293,7 @@ namespace UWPOpenIGTLink
   {
     int success = 0;
     {
-      critical_section::scoped_lock lock(m_socketMutex);
+      std::lock_guard<std::mutex> guard(m_socketMutex);
       success = m_clientSocket->Send(packedMessage->GetBufferPointer(), packedMessage->GetBufferSize());
     }
     if (!success)
@@ -335,7 +323,7 @@ namespace UWPOpenIGTLink
       // Receive generic header from the socket
       int numOfBytesReceived = 0;
       {
-        critical_section::scoped_lock lock(self->m_socketMutex);
+        std::lock_guard<std::mutex> guard(self->m_socketMutex);
         if (!self->m_clientSocket->GetConnected())
         {
           // We've become disconnected while waiting for the socket, we're done here!
@@ -383,7 +371,7 @@ namespace UWPOpenIGTLink
       if (typeid(*bodyMsg) != typeid(igtl::StatusMessage))
       {
         {
-          critical_section::scoped_lock lock(self->m_socketMutex);
+          std::lock_guard<std::mutex> guard(self->m_socketMutex);
           if (!self->m_clientSocket->GetConnected())
           {
             // We've become disconnected while waiting for the socket, we're done here!
@@ -401,56 +389,33 @@ namespace UWPOpenIGTLink
 
         {
           // save reply
-          critical_section::scoped_lock lock(self->m_messageListMutex);
-
-          self->m_receiveMessages.push_back(bodyMsg);
+          std::lock_guard<std::mutex> guard(self->m_messageListMutex);
+          self->m_receivedMessages.push_back(bodyMsg);
         }
       }
       else
       {
-        critical_section::scoped_lock lock(self->m_socketMutex);
-
-        if (!self->m_clientSocket->GetConnected())
-        {
-          // We've become disconnected while waiting for the socket, we're done here!
-          return;
-        }
+        std::lock_guard<std::mutex> guard(self->m_socketMutex);
         self->m_clientSocket->Skip(headerMsg->GetBodySizeToRead(), 0);
       }
 
-      if (self->m_receiveMessages.size() > MESSAGE_LIST_MAX_SIZE)
+      if (self->m_receivedMessages.size() > MESSAGE_LIST_MAX_SIZE)
       {
-        critical_section::scoped_lock lock(self->m_messageListMutex);
+        std::lock_guard<std::mutex> guard(self->m_messageListMutex);
 
         // erase the front N results
-        uint32 toErase = self->m_receiveMessages.size() - MESSAGE_LIST_MAX_SIZE;
-        self->m_receiveMessages.erase(self->m_receiveMessages.begin(), self->m_receiveMessages.begin() + toErase);
+        uint32 toErase = self->m_receivedMessages.size() - MESSAGE_LIST_MAX_SIZE;
+        self->m_receivedMessages.erase(self->m_receivedMessages.begin(), self->m_receivedMessages.begin() + toErase);
       }
 
       auto oldestTimestamp = self->GetOldestTrackedFrameTimestamp();
       if (oldestTimestamp > 0)
       {
-        for (auto it = self->m_receiveUWPMessages.begin(); it != self->m_receiveUWPMessages.end();)
+        for (auto it = self->m_receivedUWPMessages.begin(); it != self->m_receivedUWPMessages.end();)
         {
           if (it->first < oldestTimestamp)
           {
-            it = self->m_receiveUWPMessages.erase(it);
-          }
-          else
-          {
-            ++it;
-          }
-        }
-      }
-
-      oldestTimestamp = self->GetOldestCommandTimestamp();
-      if (oldestTimestamp > 0)
-      {
-        for (auto it = self->m_receiveUWPCommands.begin(); it != self->m_receiveUWPCommands.end();)
-        {
-          if (it->first < oldestTimestamp)
-          {
-            it = self->m_receiveUWPCommands.erase(it);
+            it = self->m_receivedUWPMessages.erase(it);
           }
           else
           {
@@ -466,7 +431,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   int IGTLinkClient::SocketReceive(void* data, int length)
   {
-    critical_section::scoped_lock lock(m_socketMutex);
+    std::lock_guard<std::mutex> guard(m_socketMutex);
     return m_clientSocket->Receive(data, length);
   }
 
@@ -474,8 +439,8 @@ namespace UWPOpenIGTLink
   double IGTLinkClient::GetLatestTrackedFrameTimestamp()
   {
     // Retrieve the next available tracked frame reply
-    Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
-    for (auto replyIter = m_receiveMessages.rbegin(); replyIter != m_receiveMessages.rend(); ++replyIter)
+    std::lock_guard<std::mutex> guard(m_messageListMutex);
+    for (auto replyIter = m_receivedMessages.rbegin(); replyIter != m_receivedMessages.rend(); ++replyIter)
     {
       if (typeid(*(*replyIter)) == typeid(igtl::TrackedFrameMessage))
       {
@@ -491,8 +456,8 @@ namespace UWPOpenIGTLink
   double IGTLinkClient::GetOldestTrackedFrameTimestamp()
   {
     // Retrieve the next available tracked frame reply
-    Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
-    for (auto replyIter = m_receiveMessages.begin(); replyIter != m_receiveMessages.end(); ++replyIter)
+    std::lock_guard<std::mutex> guard(m_messageListMutex);
+    for (auto replyIter = m_receivedMessages.begin(); replyIter != m_receivedMessages.end(); ++replyIter)
     {
       if (typeid(*(*replyIter)) == typeid(igtl::TrackedFrameMessage))
       {
@@ -505,71 +470,39 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  double IGTLinkClient::GetLatestCommandTimestamp()
-  {
-    Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
-    for (auto replyIter = m_receiveMessages.rbegin(); replyIter != m_receiveMessages.rend(); ++replyIter)
-    {
-      if (typeid(*(*replyIter)) == typeid(igtl::CommandMessage))
-      {
-        igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-        (*replyIter)->GetTimeStamp(ts);
-        return ts->GetTimeStamp();
-      }
-    }
-    return -1.0;
-  }
-
-  //----------------------------------------------------------------------------
-  double IGTLinkClient::GetOldestCommandTimestamp()
-  {
-    Concurrency::critical_section::scoped_lock lock(m_messageListMutex);
-    for (auto replyIter = m_receiveMessages.begin(); replyIter != m_receiveMessages.end(); ++replyIter)
-    {
-      if (typeid(*(*replyIter)) == typeid(igtl::CommandMessage))
-      {
-        igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-        (*replyIter)->GetTimeStamp(ts);
-        return ts->GetTimeStamp();
-      }
-    }
-    return -1.0;
-  }
-
-  //----------------------------------------------------------------------------
   int IGTLinkClient::ServerPort::get()
   {
-    return m_ServerPort;
+    return m_serverPort;
   }
 
   //----------------------------------------------------------------------------
   void IGTLinkClient::ServerPort::set(int arg)
   {
-    m_ServerPort = arg;
+    m_serverPort = arg;
   }
 
   //----------------------------------------------------------------------------
   Platform::String^ IGTLinkClient::ServerHost::get()
   {
-    return m_ServerHost;
+    return m_serverHost;
   }
 
   //----------------------------------------------------------------------------
   void IGTLinkClient::ServerHost::set(Platform::String^ arg)
   {
-    m_ServerHost = arg;
+    m_serverHost = arg;
   }
 
   //----------------------------------------------------------------------------
   int IGTLinkClient::ServerIGTLVersion::get()
   {
-    return m_ServerIGTLVersion;
+    return m_serverIGTLVersion;
   }
 
   //----------------------------------------------------------------------------
   void IGTLinkClient::ServerIGTLVersion::set(int arg)
   {
-    m_ServerIGTLVersion = arg;
+    m_serverIGTLVersion = arg;
   }
 
   //----------------------------------------------------------------------------
