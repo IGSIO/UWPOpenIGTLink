@@ -101,6 +101,10 @@ namespace UWPOpenIGTLink
         std::wstring wideStr(ServerHost->Begin());
         std::string str(wideStr.begin(), wideStr.end());
         errorCode = m_clientSocket->ConnectToServer(str.c_str(), ServerPort);
+        if (errorCode == 0)
+        {
+          break;
+        }
         std::chrono::duration<double, std::milli> timeDiff = std::chrono::high_resolution_clock::now() - start;
         if (timeDiff.count() > timeoutSec * 1000)
         {
@@ -116,6 +120,7 @@ namespace UWPOpenIGTLink
       }
 
       m_clientSocket->SetTimeout(CLIENT_SOCKET_TIMEOUT_MSEC);
+      m_clientSocket->SetReceiveBlocking(true);
 
       // We're connected, start the data receiver thread
       create_task([this]()
@@ -343,7 +348,7 @@ namespace UWPOpenIGTLink
       int c = headerMsg->Unpack(1);
       if (!(c & igtl::MessageHeader::UNPACK_HEADER))
       {
-        std::cerr << "Failed to receive reply (invalid header)" << std::endl;
+        std::cerr << "Failed to receive message (invalid header)" << std::endl;
         continue;
       }
 
