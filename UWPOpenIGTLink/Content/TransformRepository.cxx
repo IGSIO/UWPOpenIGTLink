@@ -18,16 +18,17 @@
 #include <boost/tokenizer.hpp>
 
 using namespace Windows::Data::Xml::Dom;
+using namespace Windows::Foundation::Collections;
 
 namespace UWPOpenIGTLink
 {
   //----------------------------------------------------------------------------
   TransformRepository::TransformInfo::TransformInfo()
-    : m_Transform( float4x4::identity() )
-    , m_IsValid( true )
-    , m_IsComputed( false )
-    , m_IsPersistent( false )
-    , m_Error( -1.0 )
+    : m_Transform(float4x4::identity())
+    , m_IsValid(true)
+    , m_IsComputed(false)
+    , m_IsPersistent(false)
+    , m_Error(-1.0)
   {
 
   }
@@ -38,7 +39,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  TransformRepository::TransformInfo::TransformInfo( const TransformInfo& obj )
+  TransformRepository::TransformInfo::TransformInfo(const TransformInfo& obj)
   {
     m_Transform = obj.m_Transform;
     m_IsComputed = obj.m_IsComputed;
@@ -48,7 +49,7 @@ namespace UWPOpenIGTLink
     m_Error = obj.m_Error;
   }
   //----------------------------------------------------------------------------
-  TransformRepository::TransformInfo& TransformRepository::TransformInfo::operator=( const TransformInfo& obj )
+  TransformRepository::TransformInfo& TransformRepository::TransformInfo::operator=(const TransformInfo& obj)
   {
     m_Transform = obj.m_Transform;
     m_IsComputed = obj.m_IsComputed;
@@ -70,107 +71,63 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  TransformRepository::TransformInfo* TransformRepository::GetOriginalTransform( TransformName^ aTransformName )
+  TransformRepository::TransformInfo* TransformRepository::GetOriginalTransform(TransformName^ aTransformName)
   {
-    std::wstring fromStr = std::wstring( aTransformName->From()->Data() );
-    std::wstring toStr = std::wstring( aTransformName->To()->Data() );
+    std::wstring fromStr = std::wstring(aTransformName->From()->Data());
+    std::wstring toStr = std::wstring(aTransformName->To()->Data());
     CoordFrameToTransformMapType& fromCoordFrame = this->m_CoordinateFrames[fromStr];
 
     // Check if the transform already exist
-    CoordFrameToTransformMapType::iterator fromToTransformInfoIt = fromCoordFrame.find( toStr );
-    if ( fromToTransformInfoIt != fromCoordFrame.end() )
+    CoordFrameToTransformMapType::iterator fromToTransformInfoIt = fromCoordFrame.find(toStr);
+    if (fromToTransformInfoIt != fromCoordFrame.end())
     {
       // transform is found
-      return &( fromToTransformInfoIt->second );
+      return &(fromToTransformInfoIt->second);
     }
     // transform is not found
     return NULL;
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransforms( TrackedFrame^ trackedFrame )
+  void TransformRepository::SetTransforms(TrackedFrame^ trackedFrame)
   {
-    IVectorView<TransformName^>^ transformNames = trackedFrame->GetCustomFrameTransformNameList();
-
-    int numberOfErrors( 0 );
-
-    for ( auto transformName : transformNames )
+    auto transforms = trackedFrame->GetFrameTransformsInternal();
+    for (auto& entry : transforms)
     {
-      if ( transformName->From() == transformName->To() )
-      {
-        numberOfErrors++;
-        continue;
-      }
-
-      float4x4 matrix;
-      try
-      {
-        matrix = trackedFrame->GetCustomFrameTransform( transformName );
-      }
-      catch ( Platform::Exception^ e )
-      {
-        numberOfErrors++;
-        continue;
-      }
-
-      TrackedFrameFieldStatus status = FIELD_INVALID;
-      try
-      {
-        status = ( TrackedFrameFieldStatus )trackedFrame->GetCustomFrameTransformStatus( transformName );
-      }
-      catch ( Platform::Exception^ e )
-      {
-        numberOfErrors++;
-        continue;
-      }
-
-      try
-      {
-        SetTransform( transformName, &matrix, status == FIELD_OK );
-      }
-      catch ( Platform::Exception^ e )
-      {
-        numberOfErrors++;
-        continue;
-      }
-    }
-
-    if ( numberOfErrors > 0 )
-    {
-      throw ref new Platform::Exception( E_FAIL, L"Unable to parse all transforms in list. Partial success may be achieved." );
+      SetTransform(std::get<0>(entry), &std::get<1>(entry), std::get<2>(entry));
     }
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransform( TransformName^ aTransformName, float4x4* matrix, bool isValid )
+  void TransformRepository::SetTransform(TransformName^ aTransformName, float4x4* matrix, bool isValid)
   {
-    if ( !aTransformName->IsValid() )
+    if (!aTransformName->IsValid())
     {
-      throw ref new Platform::Exception( E_INVALIDARG, L"Invalid transform name sent: " + aTransformName->GetTransformName() );
+      throw ref new Platform::Exception(E_INVALIDARG, L"Invalid transform name sent: " + aTransformName->GetTransformName());
     }
 
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception( E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName() );
+      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
     }
 
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
 
     // Check if the transform already exist
-    TransformInfo* fromToTransformInfo = GetOriginalTransform( aTransformName );
-    if ( fromToTransformInfo != NULL )
+    TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
+    if (fromToTransformInfo != NULL)
     {
       // Transform already exists
-      if ( fromToTransformInfo->m_IsComputed )
+      if (fromToTransformInfo->m_IsComputed)
       {
         // The transform already exists and it is computed (not original), so reject the transformation update
-        throw ref new Platform::Exception( E_INVALIDARG, L"The " + aTransformName->From() + L"To" + aTransformName->To() +
-                                           L" transform cannot be set, as the inverse (" + aTransformName->To() + L"To" +
-                                           aTransformName->From() + L") transform already exists" );
+        throw ref new Platform::Exception(E_INVALIDARG, L"The " + aTransformName->From() + L"To" + aTransformName->To() +
+                                          L" transform cannot be set, as the inverse (" + aTransformName->To() + L"To" +
+                                          aTransformName->From() + L") transform already exists");
       }
 
       // Update the matrix
-      if ( matrix != NULL )
+      if (matrix != NULL)
       {
         fromToTransformInfo->m_Transform = *matrix;
       }
@@ -179,12 +136,12 @@ namespace UWPOpenIGTLink
       fromToTransformInfo->m_IsValid = isValid;
 
       // Set the same status for the computed inverse transform
-      TransformName^ toFromTransformName = ref new TransformName( aTransformName->To(), aTransformName->From() );
-      TransformInfo* toFromTransformInfo = GetOriginalTransform( toFromTransformName );
-      if ( toFromTransformInfo == NULL )
+      TransformName^ toFromTransformName = ref new TransformName(aTransformName->To(), aTransformName->From());
+      TransformInfo* toFromTransformInfo = GetOriginalTransform(toFromTransformName);
+      if (toFromTransformInfo == NULL)
       {
-        throw ref new Platform::Exception( E_INVALIDARG, L"The computed " + aTransformName->To() + L"To" + aTransformName->From()
-                                           + L" transform is missing. Cannot set its status" );
+        throw ref new Platform::Exception(E_INVALIDARG, L"The computed " + aTransformName->To() + L"To" + aTransformName->From()
+                                          + L" transform is missing. Cannot set its status");
       }
       toFromTransformInfo->m_IsValid = isValid;
       return;
@@ -192,20 +149,20 @@ namespace UWPOpenIGTLink
     // The transform does not exist yet, add it now
 
     TransformInfoListType transformInfoList;
-    if ( FindPath( aTransformName, transformInfoList, NULL, true /*silent*/ ) )
+    if (FindPath(aTransformName, transformInfoList, NULL, true /*silent*/))
     {
       // a path already exist between the two coordinate frames
       // adding a new transform between these would result in a circle
-      throw ref new Platform::Exception( E_FAIL, L"A transform path already exists between " + aTransformName->From() +
-                                         L" and " + aTransformName->To() );
+      throw ref new Platform::Exception(E_FAIL, L"A transform path already exists between " + aTransformName->From() +
+                                        L" and " + aTransformName->To());
     }
 
     // Create the from->to transform
-    std::wstring fromStr( aTransformName->From()->Data() );
-    std::wstring toStr( aTransformName->To()->Data() );
+    std::wstring fromStr(aTransformName->From()->Data());
+    std::wstring toStr(aTransformName->To()->Data());
     CoordFrameToTransformMapType& fromCoordFrame = this->m_CoordinateFrames[fromStr];
     fromCoordFrame[toStr].m_IsComputed = false;
-    if ( matrix != NULL )
+    if (matrix != NULL)
     {
       fromCoordFrame[toStr].m_Transform = *matrix;
     }
@@ -214,248 +171,248 @@ namespace UWPOpenIGTLink
     // Create the to->from inverse transform
     CoordFrameToTransformMapType& toCoordFrame = this->m_CoordinateFrames[toStr];
     toCoordFrame[fromStr].m_IsComputed = true;
-    if ( matrix != NULL )
+    if (matrix != NULL)
     {
-      invert( *matrix, matrix );
+      invert(*matrix, matrix);
       toCoordFrame[fromStr].m_Transform = *matrix;
     }
     toCoordFrame[fromStr].m_IsValid = isValid;
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransformValid( TransformName^ aTransformName, bool isValid )
+  void TransformRepository::SetTransformValid(TransformName^ aTransformName, bool isValid)
   {
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception( E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName() );
+      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
     }
-    return SetTransform( aTransformName, NULL, isValid );
+    return SetTransform(aTransformName, NULL, isValid);
   }
 
   //----------------------------------------------------------------------------
-  float4x4 TransformRepository::GetTransform( TransformName^ aTransformName, bool* isValid )
+  float4x4 TransformRepository::GetTransform(TransformName^ aTransformName, bool* isValid)
   {
-    if ( !aTransformName->IsValid() )
+    if (!aTransformName->IsValid())
     {
-      throw ref new Platform::Exception( E_INVALIDARG, L"Invalid transform name sent: " + aTransformName->GetTransformName() );
+      throw ref new Platform::Exception(E_INVALIDARG, L"Invalid transform name sent: " + aTransformName->GetTransformName());
     }
 
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
       return float4x4::identity();
     }
 
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
 
     // Check if we can find the transform by combining the input transforms
     // To improve performance the already found paths could be stored in a map of transform name -> transformInfoList
     TransformInfoListType transformInfoList;
-    if ( !FindPath( aTransformName, transformInfoList ) )
+    if (!FindPath(aTransformName, transformInfoList))
     {
       // the transform cannot be computed, error has been already logged by FindPath
-      throw ref new Platform::Exception( E_FAIL, L"Transform " + aTransformName->GetTransformName() + L" cannot be computed. See debug output for available transforms." );
+      throw ref new Platform::Exception(E_FAIL, L"Transform " + aTransformName->GetTransformName() + L" cannot be computed. See debug output for available transforms.");
     }
 
     // Create transform chain and compute transform status
     float4x4 combinedTransform = float4x4::identity();
-    bool combinedTransformValid( true );
-    for ( auto& transformInfo : transformInfoList )
+    bool combinedTransformValid(true);
+    for (auto& transformInfo : transformInfoList)
     {
       combinedTransform = combinedTransform * transformInfo->m_Transform; // even though this operator shows m_transform on the right, this is actually premultiplication
-      if ( !transformInfo->m_IsValid )
+      if (!transformInfo->m_IsValid)
       {
         combinedTransformValid = false;
       }
     }
 
-    if ( isValid != NULL )
+    if (isValid != NULL)
     {
-      ( *isValid ) = combinedTransformValid;
+      (*isValid) = combinedTransformValid;
     }
 
     return combinedTransform;
   }
 
   //----------------------------------------------------------------------------
-  bool TransformRepository::GetTransformValid( TransformName^ aTransformName )
+  bool TransformRepository::GetTransformValid(TransformName^ aTransformName)
   {
     bool isValid;
-    GetTransform( aTransformName, &isValid );
+    GetTransform(aTransformName, &isValid);
     return isValid;
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransformPersistent( TransformName^ aTransformName, bool isPersistent )
+  void TransformRepository::SetTransformPersistent(TransformName^ aTransformName, bool isPersistent)
   {
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
 
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception( E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName() );
+      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
     }
 
-    TransformInfo* fromToTransformInfo = GetOriginalTransform( aTransformName );
-    if ( fromToTransformInfo != NULL )
+    TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
+    if (fromToTransformInfo != NULL)
     {
       fromToTransformInfo->m_IsPersistent = isPersistent;
       return;
     }
 
-    throw ref new Platform::Exception( E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To() +
-                                       L" transform is missing. Cannot set its persistent status" );
+    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To() +
+                                      L" transform is missing. Cannot set its persistent status");
   }
 
   //----------------------------------------------------------------------------
-  bool TransformRepository::GetTransformPersistent( TransformName^ aTransformName )
+  bool TransformRepository::GetTransformPersistent(TransformName^ aTransformName)
   {
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
 
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
       return false;
     }
 
-    TransformInfo* fromToTransformInfo = GetOriginalTransform( aTransformName );
-    if ( fromToTransformInfo != NULL )
+    TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
+    if (fromToTransformInfo != NULL)
     {
       return fromToTransformInfo->m_IsPersistent;
     }
 
-    throw ref new Platform::Exception( E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To() +
-                                       L" transform is missing. Cannot set its persistent status" );
+    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To() +
+                                      L" transform is missing. Cannot set its persistent status");
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransformError( TransformName^ aTransformName, double aError )
+  void TransformRepository::SetTransformError(TransformName^ aTransformName, double aError)
   {
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
 
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception( E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName() );
+      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
     }
 
-    TransformInfo* fromToTransformInfo = GetOriginalTransform( aTransformName );
-    if ( fromToTransformInfo != NULL )
+    TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
+    if (fromToTransformInfo != NULL)
     {
       fromToTransformInfo->m_Error = aError;
       return;
     }
 
-    throw ref new Platform::Exception( E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
-                                       + L" transform is missing. Cannot set computation error value." );
+    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
+                                      + L" transform is missing. Cannot set computation error value.");
   }
 
   //----------------------------------------------------------------------------
-  double TransformRepository::GetTransformError( TransformName^ aTransformName )
+  double TransformRepository::GetTransformError(TransformName^ aTransformName)
   {
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
       return 0.0;
     }
 
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
 
-    TransformInfo* fromToTransformInfo = GetOriginalTransform( aTransformName );
-    if ( fromToTransformInfo != NULL )
+    TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
+    if (fromToTransformInfo != NULL)
     {
       return fromToTransformInfo->m_Error;
     }
 
-    throw ref new Platform::Exception( E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
-                                       + L" transform is missing. Cannot get computation error value." );
+    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
+                                      + L" transform is missing. Cannot get computation error value.");
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransformDate( TransformName^ aTransformName, Platform::String^ aDate )
+  void TransformRepository::SetTransformDate(TransformName^ aTransformName, Platform::String^ aDate)
   {
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception( E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName() );
+      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
     }
 
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
 
-    TransformInfo* fromToTransformInfo = GetOriginalTransform( aTransformName );
-    if ( fromToTransformInfo != NULL )
+    TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
+    if (fromToTransformInfo != NULL)
     {
-      fromToTransformInfo->m_Date = std::wstring( aDate->Data() );
+      fromToTransformInfo->m_Date = std::wstring(aDate->Data());
       return;
     }
 
-    throw ref new Platform::Exception( E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
-                                       + L" transform is missing. Cannot set computation date." );
+    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
+                                      + L" transform is missing. Cannot set computation date.");
   }
 
   //----------------------------------------------------------------------------
-  Platform::String^ TransformRepository::GetTransformDate( TransformName^ aTransformName )
+  Platform::String^ TransformRepository::GetTransformDate(TransformName^ aTransformName)
   {
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
       return L"";
     }
 
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
 
-    TransformInfo* fromToTransformInfo = GetOriginalTransform( aTransformName );
-    if ( fromToTransformInfo != NULL )
+    TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
+    if (fromToTransformInfo != NULL)
     {
-      return ref new Platform::String( fromToTransformInfo->m_Date.c_str() );
+      return ref new Platform::String(fromToTransformInfo->m_Date.c_str());
     }
 
-    throw ref new Platform::Exception( E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
-                                       + L" transform is missing. Cannot get computation date." );
+    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
+                                      + L" transform is missing. Cannot get computation date.");
   }
 
   //----------------------------------------------------------------------------
-  bool TransformRepository::FindPath( TransformName^ aTransformName, TransformInfoListType& transformInfoList, const wchar_t* skipCoordFrameName /*=NULL*/, bool silent /*=false*/ )
+  bool TransformRepository::FindPath(TransformName^ aTransformName, TransformInfoListType& transformInfoList, const wchar_t* skipCoordFrameName /*=NULL*/, bool silent /*=false*/)
   {
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
       return false;
     }
 
-    TransformInfo* fromToTransformInfo = GetOriginalTransform( aTransformName );
-    if ( fromToTransformInfo != NULL )
+    TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
+    if (fromToTransformInfo != NULL)
     {
       // found a transform
-      transformInfoList.push_back( fromToTransformInfo );
+      transformInfoList.push_back(fromToTransformInfo);
       return true;
     }
     // not found, so try to find a path through all the connected coordinate frames
-    std::wstring fromStr = std::wstring( aTransformName->From()->Data() );
+    std::wstring fromStr = std::wstring(aTransformName->From()->Data());
     CoordFrameToTransformMapType& fromCoordFrame = this->m_CoordinateFrames[fromStr];
-    for ( CoordFrameToTransformMapType::iterator transformInfoIt = fromCoordFrame.begin(); transformInfoIt != fromCoordFrame.end(); ++transformInfoIt )
+    for (CoordFrameToTransformMapType::iterator transformInfoIt = fromCoordFrame.begin(); transformInfoIt != fromCoordFrame.end(); ++transformInfoIt)
     {
-      if ( skipCoordFrameName != NULL && transformInfoIt->first.compare( std::wstring( skipCoordFrameName ) ) == 0 )
+      if (skipCoordFrameName != NULL && transformInfoIt->first.compare(std::wstring(skipCoordFrameName)) == 0)
       {
         // coordinate frame shall be ignored
         // (probably it would just go back to the previous coordinate frame where we come from)
         continue;
       }
-      TransformName^ newTransformName = ref new TransformName( ref new Platform::String( transformInfoIt->first.c_str() ), aTransformName->To() );
-      if ( FindPath( newTransformName, transformInfoList, fromStr.c_str(), true /*silent*/ )  )
+      TransformName^ newTransformName = ref new TransformName(ref new Platform::String(transformInfoIt->first.c_str()), aTransformName->To());
+      if (FindPath(newTransformName, transformInfoList, fromStr.c_str(), true /*silent*/))
       {
-        transformInfoList.push_back( &( transformInfoIt->second ) );
+        transformInfoList.push_back(&(transformInfoIt->second));
         return true;
       }
     }
-    if ( !silent )
+    if (!silent)
     {
       // Print available transforms into a string, for troubleshooting information
       std::wostringstream osAvailableTransforms;
       bool firstPrintedTransform = true;
-      for ( auto& coordFrame : m_CoordinateFrames )
+      for (auto& coordFrame : m_CoordinateFrames)
       {
-        for ( auto& transformInfo : coordFrame.second )
+        for (auto& transformInfo : coordFrame.second)
         {
-          if ( transformInfo.second.m_IsComputed )
+          if (transformInfo.second.m_IsComputed)
           {
             // only print original transforms
             continue;
           }
           // don't print separator before the first transform
-          if ( firstPrintedTransform )
+          if (firstPrintedTransform)
           {
             firstPrintedTransform = false;
           }
@@ -464,74 +421,74 @@ namespace UWPOpenIGTLink
             osAvailableTransforms << ", ";
           }
           osAvailableTransforms << coordFrame.first << L"To" << transformInfo.first << L" ("
-                                << ( transformInfo.second.m_IsValid ? L"valid" : L"invalid" ) << ", "
-                                << ( transformInfo.second.m_IsPersistent ? L"persistent" : L"non-persistent" ) << ")";
+                                << (transformInfo.second.m_IsValid ? L"valid" : L"invalid") << ", "
+                                << (transformInfo.second.m_IsPersistent ? L"persistent" : L"non-persistent") << ")";
         }
       }
-      OutputDebugStringW( ( L"Transform path not found from " + aTransformName->From() + L" to " + aTransformName->To() + L" coordinate system."
-                            + L" Available transforms in the repository (including the inverse of these transforms): " + ref new Platform::String( osAvailableTransforms.str().c_str() ) )->Data() );
+      OutputDebugStringW((L"Transform path not found from " + aTransformName->From() + L" to " + aTransformName->To() + L" coordinate system."
+                          + L" Available transforms in the repository (including the inverse of these transforms): " + ref new Platform::String(osAvailableTransforms.str().c_str()))->Data());
     }
 
     return false;
   }
 
   //----------------------------------------------------------------------------
-  bool TransformRepository::IsExistingTransform( TransformName^ aTransformName, bool aSilent/* = true*/ )
+  bool TransformRepository::IsExistingTransform(TransformName^ aTransformName, bool aSilent/* = true*/)
   {
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
       return true;
     }
 
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
 
     TransformInfoListType transformInfoList;
-    return FindPath( aTransformName, transformInfoList, NULL, aSilent );
+    return FindPath(aTransformName, transformInfoList, NULL, aSilent);
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::DeleteTransform( TransformName^ aTransformName )
+  void TransformRepository::DeleteTransform(TransformName^ aTransformName)
   {
-    if ( aTransformName->From() == aTransformName->To() )
+    if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception( E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName() );
+      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
     }
 
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
 
-    std::wstring fromStr( aTransformName->From()->Data() );
-    std::wstring toStr( aTransformName->To()->Data() );
+    std::wstring fromStr(aTransformName->From()->Data());
+    std::wstring toStr(aTransformName->To()->Data());
 
     CoordFrameToTransformMapType& fromCoordFrame = this->m_CoordinateFrames[fromStr];
-    CoordFrameToTransformMapType::iterator fromToTransformInfoIt = fromCoordFrame.find( toStr );
+    CoordFrameToTransformMapType::iterator fromToTransformInfoIt = fromCoordFrame.find(toStr);
 
-    if ( fromToTransformInfoIt != fromCoordFrame.end() )
+    if (fromToTransformInfoIt != fromCoordFrame.end())
     {
       // from->to transform is found
-      if ( fromToTransformInfoIt->second.m_IsComputed )
+      if (fromToTransformInfoIt->second.m_IsComputed)
       {
         // this is not an original transform (has not been set by the user)
-        throw ref new Platform::Exception( E_FAIL, L"The " + aTransformName->From() + L" to " + aTransformName->To()
-                                           + L" transform cannot be deleted, only the inverse of the transform has been set in the repository ("
-                                           + aTransformName->From() + L" to " + aTransformName->To() + L")" );
+        throw ref new Platform::Exception(E_FAIL, L"The " + aTransformName->From() + L" to " + aTransformName->To()
+                                          + L" transform cannot be deleted, only the inverse of the transform has been set in the repository ("
+                                          + aTransformName->From() + L" to " + aTransformName->To() + L")");
       }
-      fromCoordFrame.erase( fromToTransformInfoIt );
+      fromCoordFrame.erase(fromToTransformInfoIt);
     }
     else
     {
-      throw ref new Platform::Exception( E_FAIL, L"Delete transform failed: could not find the " + aTransformName->From() + L" to " + aTransformName->To() + L" transform" );
+      throw ref new Platform::Exception(E_FAIL, L"Delete transform failed: could not find the " + aTransformName->From() + L" to " + aTransformName->To() + L" transform");
     }
 
     CoordFrameToTransformMapType& toCoordFrame = this->m_CoordinateFrames[toStr];
-    CoordFrameToTransformMapType::iterator toFromTransformInfoIt = toCoordFrame.find( fromStr );
-    if ( toFromTransformInfoIt != toCoordFrame.end() )
+    CoordFrameToTransformMapType::iterator toFromTransformInfoIt = toCoordFrame.find(fromStr);
+    if (toFromTransformInfoIt != toCoordFrame.end())
     {
       // to->from transform is found
-      toCoordFrame.erase( toFromTransformInfoIt );
+      toCoordFrame.erase(toFromTransformInfoIt);
     }
     else
     {
-      throw ref new Platform::Exception( E_FAIL, L"Delete transform failed: could not find the " + aTransformName->To() + L" to " + aTransformName->From() + L" transform" );
+      throw ref new Platform::Exception(E_FAIL, L"Delete transform failed: could not find the " + aTransformName->To() + L" to " + aTransformName->From() + L" transform");
     }
   }
 
@@ -542,64 +499,64 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::ReadConfiguration( XmlDocument^ doc )
+  void TransformRepository::ReadConfiguration(XmlDocument^ doc)
   {
-    auto xpath = ref new Platform::String( L"/HoloIntervention/CoordinateDefinitions" );
-    if ( doc->SelectNodes( xpath )->Length != 1 )
+    auto xpath = ref new Platform::String(L"/HoloIntervention/CoordinateDefinitions");
+    if (doc->SelectNodes(xpath)->Length != 1)
     {
-      throw ref new Platform::Exception( E_INVALIDARG, L"TransformRepository::ReadConfiguration: no CoordinateDefinitions element was found" );
+      throw ref new Platform::Exception(E_INVALIDARG, L"TransformRepository::ReadConfiguration: no CoordinateDefinitions element was found");
     }
 
-    IXmlNode^ coordinateDefinitions = doc->SelectNodes( xpath )->Item( 0 );
+    IXmlNode^ coordinateDefinitions = doc->SelectNodes(xpath)->Item(0);
 
     // Clear the transforms
     Clear();
 
-    int numberOfErrors( 0 );
-    for ( IXmlNode^ nestedElement : coordinateDefinitions->ChildNodes )
+    int numberOfErrors(0);
+    for (IXmlNode^ nestedElement : coordinateDefinitions->ChildNodes)
     {
-      if ( nestedElement->NodeName != L"Transform" )
+      if (nestedElement->NodeName != L"Transform")
       {
         continue;
       }
 
-      Platform::String^ fromAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"From" )->NodeValue );
-      Platform::String^ toAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"To" )->NodeValue );
+      Platform::String^ fromAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"From")->NodeValue);
+      Platform::String^ toAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"To")->NodeValue);
 
-      if ( fromAttribute->IsEmpty() || toAttribute->IsEmpty() )
+      if (fromAttribute->IsEmpty() || toAttribute->IsEmpty())
       {
         numberOfErrors++;
         continue;
       }
 
-      TransformName^ transformName = ref new TransformName( fromAttribute, toAttribute );
-      if ( !transformName->IsValid() )
+      TransformName^ transformName = ref new TransformName(fromAttribute, toAttribute);
+      if (!transformName->IsValid())
       {
         numberOfErrors++;
         continue;
       }
 
       float4x4 matrix;
-      if ( nestedElement->Attributes->GetNamedItem( L"Matrix" ) == nullptr )
+      if (nestedElement->Attributes->GetNamedItem(L"Matrix") == nullptr)
       {
         numberOfErrors++;
         continue;
       }
-      Platform::String^ matrixString = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Matrix" )->NodeValue );
-      if ( !matrixString->IsEmpty() )
+      Platform::String^ matrixString = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Matrix")->NodeValue);
+      if (!matrixString->IsEmpty())
       {
-        std::wstring matrixStr( matrixString->Data() );
+        std::wstring matrixStr(matrixString->Data());
 
-        boost::char_separator<wchar_t> sep( L", " );
-        boost::tokenizer<boost::char_separator<wchar_t>, std::wstring::const_iterator, std::wstring> tokens( matrixStr, sep );
+        boost::char_separator<wchar_t> sep(L", ");
+        boost::tokenizer<boost::char_separator<wchar_t>, std::wstring::const_iterator, std::wstring> tokens(matrixStr, sep);
 
         std::vector<float> vectorMatrix;
         int i = 0;
-        for ( const auto& t : tokens )
+        for (const auto& t : tokens)
         {
-          vectorMatrix.push_back( stof( t ) );
+          vectorMatrix.push_back(stof(t));
         }
-        if ( vectorMatrix.size() != 16 )
+        if (vectorMatrix.size() != 16)
         {
           numberOfErrors++;
           continue;
@@ -629,32 +586,32 @@ namespace UWPOpenIGTLink
 
       try
       {
-        SetTransform( transformName, &matrix, true );
+        SetTransform(transformName, &matrix, true);
       }
-      catch ( Platform::Exception^ e )
+      catch (Platform::Exception^ e)
       {
         numberOfErrors++;
         continue;
       }
 
       bool isPersistent = true;
-      if ( nestedElement->Attributes->GetNamedItem( L"Persistent" ) != nullptr )
+      if (nestedElement->Attributes->GetNamedItem(L"Persistent") != nullptr)
       {
-        Platform::String^ persistentAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Persistent" )->NodeValue );
-        if ( !persistentAttribute->IsEmpty() ) // if it exists, then it is non-persistent
+        Platform::String^ persistentAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Persistent")->NodeValue);
+        if (!persistentAttribute->IsEmpty())   // if it exists, then it is non-persistent
         {
-          std::wstring persistentString( persistentAttribute->Data() );
-          std::transform( persistentString.begin(), persistentString.end(), persistentString.begin(), towlower );
-          if ( persistentString == L"false" )
+          std::wstring persistentString(persistentAttribute->Data());
+          std::transform(persistentString.begin(), persistentString.end(), persistentString.begin(), towlower);
+          if (persistentString == L"false")
           {
             isPersistent = false;
           }
         }
         try
         {
-          SetTransformPersistent( transformName, isPersistent );
+          SetTransformPersistent(transformName, isPersistent);
         }
-        catch ( Platform::Exception^ e )
+        catch (Platform::Exception^ e)
         {
           numberOfErrors++;
           continue;
@@ -662,39 +619,39 @@ namespace UWPOpenIGTLink
       }
 
       bool isValid = true;
-      if ( nestedElement->Attributes->GetNamedItem( L"Valid" ) != nullptr )
+      if (nestedElement->Attributes->GetNamedItem(L"Valid") != nullptr)
       {
-        Platform::String^ validAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Valid" )->NodeValue );
-        if ( !validAttribute->IsEmpty() ) // if it exists, then it is non-persistent
+        Platform::String^ validAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Valid")->NodeValue);
+        if (!validAttribute->IsEmpty())   // if it exists, then it is non-persistent
         {
-          std::wstring validString( validAttribute->Data() );
-          std::transform( validString.begin(), validString.end(), validString.begin(), towlower );
-          if ( validString == L"false" )
+          std::wstring validString(validAttribute->Data());
+          std::transform(validString.begin(), validString.end(), validString.begin(), towlower);
+          if (validString == L"false")
           {
             isValid = false;
           }
         }
         try
         {
-          SetTransformValid( transformName, isValid );
+          SetTransformValid(transformName, isValid);
         }
-        catch ( Platform::Exception^ e )
+        catch (Platform::Exception^ e)
         {
           numberOfErrors++;
           continue;
         }
       }
 
-      if ( nestedElement->Attributes->GetNamedItem( L"Error" ) != nullptr )
+      if (nestedElement->Attributes->GetNamedItem(L"Error") != nullptr)
       {
-        Platform::String^ errorAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Error" )->NodeValue );
-        if ( !errorAttribute->IsEmpty() )
+        Platform::String^ errorAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Error")->NodeValue);
+        if (!errorAttribute->IsEmpty())
         {
           try
           {
-            SetTransformError( transformName, stod( std::wstring( errorAttribute->Data() ) ) );
+            SetTransformError(transformName, stod(std::wstring(errorAttribute->Data())));
           }
-          catch ( Platform::Exception^ e )
+          catch (Platform::Exception^ e)
           {
             numberOfErrors++;
             continue;
@@ -702,16 +659,16 @@ namespace UWPOpenIGTLink
         }
       }
 
-      if ( nestedElement->Attributes->GetNamedItem( L"Date" ) != nullptr )
+      if (nestedElement->Attributes->GetNamedItem(L"Date") != nullptr)
       {
-        Platform::String^ dateAttribute = dynamic_cast<Platform::String^>( nestedElement->Attributes->GetNamedItem( L"Date" )->NodeValue );
-        if ( !dateAttribute->IsEmpty() )
+        Platform::String^ dateAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Date")->NodeValue);
+        if (!dateAttribute->IsEmpty())
         {
           try
           {
-            SetTransformDate( transformName, dateAttribute );
+            SetTransformDate(transformName, dateAttribute);
           }
-          catch ( Platform::Exception^ e )
+          catch (Platform::Exception^ e)
           {
             numberOfErrors++;
             continue;
@@ -720,44 +677,44 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if ( numberOfErrors > 0 )
+    if (numberOfErrors > 0)
     {
-      throw ref new Platform::Exception( E_FAIL, L"Errors reported during reading of configuration." );
+      throw ref new Platform::Exception(E_FAIL, L"Errors reported during reading of configuration.");
     }
   }
 
   //----------------------------------------------------------------------------
   // copyAllTransforms: include non-persistent and invalid transforms
   // Attributes: Persistent="TRUE/FALSE" Valid="TRUE/FALSE" => add it to ReadConfiguration, too
-  void TransformRepository::WriteConfigurationGeneric( XmlDocument^ doc, bool copyAllTransforms )
+  void TransformRepository::WriteConfigurationGeneric(XmlDocument^ doc, bool copyAllTransforms)
   {
-    auto xpath = ref new Platform::String( L"/HoloIntervention/CoordinateDefinitions" );
-    if ( doc->SelectNodes( xpath )->Length == 0 )
+    auto xpath = ref new Platform::String(L"/HoloIntervention/CoordinateDefinitions");
+    if (doc->SelectNodes(xpath)->Length == 0)
     {
-      auto trXpath = ref new Platform::String( L"/HoloIntervention" );
-      if ( doc->SelectNodes( trXpath )->Length == 0 )
+      auto trXpath = ref new Platform::String(L"/HoloIntervention");
+      if (doc->SelectNodes(trXpath)->Length == 0)
       {
-        XmlElement^ trElem = doc->CreateElement( L"HoloIntervention" );
-        doc->AppendChild( trElem );
+        XmlElement^ trElem = doc->CreateElement(L"HoloIntervention");
+        doc->AppendChild(trElem);
       }
-      XmlElement^ elem = doc->CreateElement( L"CoordinateDefinitions" );
-      doc->SelectNodes( trXpath )->Item( 0 )->AppendChild( elem );
+      XmlElement^ elem = doc->CreateElement(L"CoordinateDefinitions");
+      doc->SelectNodes(trXpath)->Item(0)->AppendChild(elem);
     }
 
-    IXmlNode^ coordinateDefinitions = doc->SelectNodes( xpath )->Item( 0 );
-    XmlElement^ coordinateDefinitionsElement = dynamic_cast<XmlElement^>( coordinateDefinitions );
+    IXmlNode^ coordinateDefinitions = doc->SelectNodes(xpath)->Item(0);
+    XmlElement^ coordinateDefinitionsElement = dynamic_cast<XmlElement^>(coordinateDefinitions);
 
-    if ( coordinateDefinitionsElement == nullptr )
+    if (coordinateDefinitionsElement == nullptr)
     {
       return;
     }
 
-    for ( auto& coordFrame : m_CoordinateFrames )
+    for (auto& coordFrame : m_CoordinateFrames)
     {
-      for ( auto& transformInfo : coordFrame.second )
+      for (auto& transformInfo : coordFrame.second)
       {
         // if copyAllTransforms is true => copy non persistent and persistent. if false => copy only persistent
-        if ( ( transformInfo.second.m_IsPersistent || copyAllTransforms ) && !transformInfo.second.m_IsComputed )
+        if ((transformInfo.second.m_IsPersistent || copyAllTransforms) && !transformInfo.second.m_IsComputed)
         {
           const std::wstring& fromCoordinateFrame = coordFrame.first;
           const std::wstring& toCoordinateFrame = transformInfo.first;
@@ -765,16 +722,16 @@ namespace UWPOpenIGTLink
           const std::wstring& persistent = transformInfo.second.m_IsPersistent ? L"true" : L"false";
           const std::wstring& valid = transformInfo.second.m_IsValid ? L"true" : L"false";
 
-          XmlElement^ newTransformElement = doc->CreateElement( L"Transform" );
-          newTransformElement->SetAttribute( L"From", ref new Platform::String( fromCoordinateFrame.c_str() ) );
-          newTransformElement->SetAttribute( L"To", ref new Platform::String( toCoordinateFrame.c_str() ) );
-          if ( persistent.compare( L"false" ) == 0 )
+          XmlElement^ newTransformElement = doc->CreateElement(L"Transform");
+          newTransformElement->SetAttribute(L"From", ref new Platform::String(fromCoordinateFrame.c_str()));
+          newTransformElement->SetAttribute(L"To", ref new Platform::String(toCoordinateFrame.c_str()));
+          if (persistent.compare(L"false") == 0)
           {
-            newTransformElement->SetAttribute( "Persistent", L"false" );
+            newTransformElement->SetAttribute("Persistent", L"false");
           }
-          if ( valid.compare( L"false" ) == 0 )
+          if (valid.compare(L"false") == 0)
           {
-            newTransformElement->SetAttribute( "Valid", L"false" );
+            newTransformElement->SetAttribute("Valid", L"false");
           }
           std::wostringstream woss;
           woss << transform.m11 << " " << transform.m12 << " " << transform.m13 << " " << transform.m14
@@ -782,54 +739,54 @@ namespace UWPOpenIGTLink
                << " " << transform.m31 << " " << transform.m32 << " " << transform.m33 << " " << transform.m34
                << " " << transform.m41 << " " << transform.m42 << " " << transform.m43 << " " << transform.m44;
 
-          newTransformElement->SetAttribute( "Matrix", ref new Platform::String( woss.str().c_str() ) );
+          newTransformElement->SetAttribute("Matrix", ref new Platform::String(woss.str().c_str()));
 
-          if ( transformInfo.second.m_Error > 0 )
+          if (transformInfo.second.m_Error > 0)
           {
-            newTransformElement->SetAttribute( "Error", transformInfo.second.m_Error.ToString() );
+            newTransformElement->SetAttribute("Error", transformInfo.second.m_Error.ToString());
           }
 
-          if ( !transformInfo.second.m_Date.empty() )
+          if (!transformInfo.second.m_Date.empty())
           {
-            newTransformElement->SetAttribute( "Date", ref new Platform::String( transformInfo.second.m_Date.c_str() ) );
+            newTransformElement->SetAttribute("Date", ref new Platform::String(transformInfo.second.m_Date.c_str()));
           }
           else
           {
             // Add current date if it was not explicitly specified
             SYSTEMTIME st;
-            GetLocalTime( &st );
+            GetLocalTime(&st);
             std::wstringstream woss;
-            woss << std::setfill( L'0' );
+            woss << std::setfill(L'0');
             woss << st.wYear
                  << L".";
-            woss << std::setw( 2 );
+            woss << std::setw(2);
             woss << st.wMonth
                  << L"." << st.wDay
                  << L" " << st.wHour
                  << L":" << st.wMinute
                  << L"." << std::endl;
-            newTransformElement->SetAttribute( "Date", ref new Platform::String( woss.str().c_str() ) );
+            newTransformElement->SetAttribute("Date", ref new Platform::String(woss.str().c_str()));
           }
 
-          coordinateDefinitions->AppendChild( newTransformElement );
+          coordinateDefinitions->AppendChild(newTransformElement);
         }
       }
     }
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::WriteConfiguration( XmlDocument^ doc )
+  void TransformRepository::WriteConfiguration(XmlDocument^ doc)
   {
-    return this->WriteConfigurationGeneric( doc, false );
+    return this->WriteConfigurationGeneric(doc, false);
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::DeepCopy( TransformRepository^ sourceRepository, bool copyAllTransforms )
+  void TransformRepository::DeepCopy(TransformRepository^ sourceRepository, bool copyAllTransforms)
   {
-    std::lock_guard<std::mutex> guard( m_CriticalSection );
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
 
     XmlDocument^ doc = ref new XmlDocument();
-    sourceRepository->WriteConfigurationGeneric( doc, copyAllTransforms );
-    ReadConfiguration( doc );
+    sourceRepository->WriteConfigurationGeneric(doc, copyAllTransforms);
+    ReadConfiguration(doc);
   }
 }

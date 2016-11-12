@@ -79,9 +79,21 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  const std::map<std::string, std::string>& TrackedFrameMessage::GetCustomFrameFields()
+  const std::map<std::wstring, std::wstring>& TrackedFrameMessage::GetCustomFrameFields()
   {
     return this->m_customFrameFields;
+  }
+
+  //----------------------------------------------------------------------------
+  const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& TrackedFrameMessage::GetFrameTransforms()
+  {
+    return m_frameTransforms;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrameMessage::SetFrameTransforms(const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& transforms)
+  {
+    m_frameTransforms = transforms;
   }
 
   //----------------------------------------------------------------------------
@@ -261,8 +273,38 @@ namespace igtl
       {
         std::wstring nameWide(dynamic_cast<Platform::String^>(childNode->Attributes->GetNamedItem(L"Name")->NodeValue)->Data());
         std::wstring valueWide(dynamic_cast<Platform::String^>(childNode->Attributes->GetNamedItem(L"Value")->NodeValue)->Data());
+        this->m_customFrameFields[nameWide] = valueWide;
+      }
+    }
 
-        this->m_customFrameFields[std::string(nameWide.begin(), nameWide.end())] = std::string(valueWide.begin(), valueWide.end());
+    // Convert custom frame fields storing transforms, to transform entries
+    for (auto iter = m_customFrameFields.begin(); iter != m_customFrameFields.end();)
+    {
+      auto name = iter->first;
+      auto value = iter->second;
+      if (UWPOpenIGTLink::TrackedFrame::IsTransform(name))
+      {
+        std::wistringstream wiss(value);
+        float transform[16];
+        for (int i = 0; i < 16; ++i)
+        {
+          wiss >> transform[i];
+        }
+        DirectX::XMFLOAT4X4 matdx(transform);
+        float4x4 mat;
+        XMStoreFloat4x4(&mat, XMLoadFloat4x4(&matdx));
+        auto entry = ref new UWPOpenIGTLink::TrackedFrameTransformEntry();
+        entry->Transform = mat;
+        entry->Name = ref new UWPOpenIGTLink::TransformName(ref new Platform::String(name.c_str()));
+        auto statusStr = name;
+        statusStr.append(L"Status");
+        entry->Valid = m_customFrameFields[statusStr] == L"OK";
+        m_frameTransforms.push_back(entry);
+        iter = m_customFrameFields.erase(iter);
+      }
+      else
+      {
+        ++iter;
       }
     }
 

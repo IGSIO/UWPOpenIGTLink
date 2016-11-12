@@ -68,7 +68,7 @@ namespace igtl
 
     /// Accessors to the various parts of the message and message header
     std::shared_ptr<byte> GetImage();
-    const std::map<std::string, std::string>& GetCustomFrameFields();
+    const std::map<std::wstring, std::wstring>& GetCustomFrameFields();
     US_IMAGE_TYPE GetImageType();
     igtl_uint16* GetFrameSize();
     igtl_uint16 GetNumberOfComponents();
@@ -79,9 +79,11 @@ namespace igtl
 
     /*! Set the embedded transform of the underlying image */
     void SetEmbeddedImageTransform(const DirectX::XMFLOAT4X4& matrix);
-
     /*! Get the embedded transform of the underlying image */
     DirectX::XMFLOAT4X4 GetEmbeddedImageTransform();
+
+    const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& GetFrameTransforms();
+    void SetFrameTransforms(const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& transforms);
 
   protected:
     class TrackedFrameHeader
@@ -110,13 +112,14 @@ namespace igtl
     TrackedFrameMessage();
     ~TrackedFrameMessage();
 
-    std::map<std::string, std::string>    m_customFrameFields;
-    std::shared_ptr<byte>                 m_image = nullptr;
-    std::string                           m_trackedFrameXmlData;
-    bool                                  m_imageValid = false;
-    double                                m_timestamp = 0.0;
+    std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>  m_frameTransforms;
+    std::map<std::wstring, std::wstring>                      m_customFrameFields;
+    std::shared_ptr<byte>                                     m_image = nullptr;
+    std::string                                               m_trackedFrameXmlData;
+    bool                                                      m_imageValid = false;
+    double                                                    m_timestamp = 0.0;
 
-    TrackedFrameHeader                    m_messageHeader;
+    TrackedFrameHeader                                        m_messageHeader;
   };
 
 #pragma pack()

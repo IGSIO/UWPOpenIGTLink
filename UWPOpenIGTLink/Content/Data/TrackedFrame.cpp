@@ -463,7 +463,7 @@ namespace UWPOpenIGTLink
   IMapView<Platform::String^, Platform::String^>^ TrackedFrame::GetValidTransforms()
   {
     Map<Platform::String^, Platform::String^>^ outputMap = ref new Map<Platform::String^, Platform::String^>;
-    for (auto entry : m_frameFields)
+    for (auto& entry : m_frameFields)
     {
       if (entry.first.find(L"TransformStatus") != std::wstring::npos)
       {
@@ -484,6 +484,21 @@ namespace UWPOpenIGTLink
     }
 
     return outputMap->GetView();
+  }
+
+  //----------------------------------------------------------------------------
+  IVectorView<TrackedFrameTransformEntry^>^ TrackedFrame::GetFrameTransforms()
+  {
+    Vector<TrackedFrameTransformEntry^>^ vec = ref new Vector<TrackedFrameTransformEntry^>();
+    for (auto& entryInternal : m_frameTransforms)
+    {
+      auto entry = ref new TrackedFrameTransformEntry();
+      entry->Name = std::get<0>(entryInternal);
+      entry->Transform = std::get<1>(entryInternal);
+      entry->Valid = std::get<2>(entryInternal);
+      vec->Append(entry);
+    }
+    return vec->GetView();
   }
 
   //----------------------------------------------------------------------------
@@ -569,6 +584,14 @@ namespace UWPOpenIGTLink
       return ref new Platform::String(fieldIterator->second.c_str());
     }
     return nullptr;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrame::SetFrameSize(uint16 frameSize[3])
+  {
+    m_frameSize[0] = frameSize[0];
+    m_frameSize[1] = frameSize[1];
+    m_frameSize[2] = frameSize[2];
   }
 
   //----------------------------------------------------------------------------
@@ -670,4 +693,67 @@ namespace UWPOpenIGTLink
     return status == FIELD_OK ? std::wstring(L"OK") : std::wstring(L"INVALID");
   }
 
+  //----------------------------------------------------------------------------
+  const std::vector<TrackedFrame::TrackedFrameTransformEntryInternal>& TrackedFrame::GetFrameTransformsInternal()
+  {
+    return m_frameTransforms;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrame::SetFrameTransformsInternal(const std::vector<TrackedFrameTransformEntryInternal>& arg)
+  {
+    m_frameTransforms = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrame::SetFrameTransformsInternal(const std::vector<TrackedFrameTransformEntry^>& arg)
+  {
+    m_frameTransforms.clear();
+    for (auto& entry : arg)
+    {
+      m_frameTransforms.push_back(TrackedFrameTransformEntryInternal(entry->Name, entry->Transform, entry->Valid));
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  TransformName^ TrackedFrameTransformEntry::Name::get()
+  {
+    return m_transformName;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrameTransformEntry::Name::set(TransformName^ arg)
+  {
+    m_transformName = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  float4x4 TrackedFrameTransformEntry::Transform::get()
+  {
+    return m_transform;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrameTransformEntry::Transform::set(float4x4 arg)
+  {
+    m_transform = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  bool TrackedFrameTransformEntry::Valid::get()
+  {
+    return m_isValid;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrameTransformEntry::Valid::set(bool arg)
+  {
+    m_isValid = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  Windows::Foundation::Collections::IVectorView<TrackedFrameTransformEntry^>^ TrackedFrame::FrameTransforms::get()
+  {
+    return GetFrameTransforms();
+  }
 }
