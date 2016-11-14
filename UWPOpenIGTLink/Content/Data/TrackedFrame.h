@@ -157,8 +157,8 @@ namespace UWPOpenIGTLink
     void SetImageData(std::shared_ptr<byte> imageData);
     std::shared_ptr<byte> GetImageData();
 
-    void SetEmbeddedImageTransform(const DirectX::XMFLOAT4X4& matrix);
-    const DirectX::XMFLOAT4X4& GetEmbeddedImageTransform();
+    void SetEmbeddedImageTransform(const Windows::Foundation::Numerics::float4x4& matrix);
+    const Windows::Foundation::Numerics::float4x4& GetEmbeddedImageTransform();
 
     void SetCustomFrameField(const std::wstring& fieldName, const std::wstring& value);
     bool GetCustomFrameField(const std::wstring& fieldName, std::wstring& value);
@@ -196,6 +196,6 @@ namespace UWPOpenIGTLink
     US_IMAGE_TYPE                                   m_imageType = US_IMG_TYPE_XX;
     US_IMAGE_ORIENTATION                            m_imageOrientation = US_IMG_ORIENT_XX;
     IGTLScalarType                                  m_scalarType = IGTL_SCALARTYPE_UNKNOWN;
-    DirectX::XMFLOAT4X4                             m_embeddedImageTransform;
+    Windows::Foundation::Numerics::float4x4         m_embeddedImageTransform = Windows::Foundation::Numerics::float4x4::identity();
   };
 }

@@ -139,41 +139,52 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrameMessage::SetEmbeddedImageTransform(const DirectX::XMFLOAT4X4& matrix)
+  void TrackedFrameMessage::SetEmbeddedImageTransform(const float4x4& matrix)
   {
-    for (auto i :
-         {
-           0, 1, 2, 3
-         })
-    {
-      for (auto j :
-           {
-             0, 1, 2, 3
-           })
-      {
-        this->m_messageHeader.m_EmbeddedImageTransform[i][j] = matrix.m[i][j];
-      }
-    }
+    m_messageHeader.m_EmbeddedImageTransform[0][0] = matrix.m11;
+    m_messageHeader.m_EmbeddedImageTransform[0][1] = matrix.m12;
+    m_messageHeader.m_EmbeddedImageTransform[0][2] = matrix.m13;
+    m_messageHeader.m_EmbeddedImageTransform[0][3] = matrix.m14;
+
+    m_messageHeader.m_EmbeddedImageTransform[1][0] = matrix.m11;
+    m_messageHeader.m_EmbeddedImageTransform[1][1] = matrix.m12;
+    m_messageHeader.m_EmbeddedImageTransform[1][2] = matrix.m13;
+    m_messageHeader.m_EmbeddedImageTransform[1][3] = matrix.m14;
+
+    m_messageHeader.m_EmbeddedImageTransform[2][0] = matrix.m11;
+    m_messageHeader.m_EmbeddedImageTransform[2][1] = matrix.m12;
+    m_messageHeader.m_EmbeddedImageTransform[2][2] = matrix.m13;
+    m_messageHeader.m_EmbeddedImageTransform[2][3] = matrix.m14;
+
+    m_messageHeader.m_EmbeddedImageTransform[3][0] = matrix.m11;
+    m_messageHeader.m_EmbeddedImageTransform[3][1] = matrix.m12;
+    m_messageHeader.m_EmbeddedImageTransform[3][2] = matrix.m13;
+    m_messageHeader.m_EmbeddedImageTransform[3][3] = matrix.m14;
   }
 
   //----------------------------------------------------------------------------
-  DirectX::XMFLOAT4X4 TrackedFrameMessage::GetEmbeddedImageTransform()
+  float4x4 TrackedFrameMessage::GetEmbeddedImageTransform()
   {
-    DirectX::XMFLOAT4X4 matrix;
-    for (auto i :
-         {
-           0, 1, 2, 3
-         })
-    {
-      for (auto j :
-           {
-             0, 1, 2, 3
-           })
-      {
-        matrix.m[i][j] = this->m_messageHeader.m_EmbeddedImageTransform[i][j];
-      }
-    }
+    float4x4 matrix;
+    matrix.m11 = m_messageHeader.m_EmbeddedImageTransform[0][0];
+    matrix.m12 = m_messageHeader.m_EmbeddedImageTransform[0][1];
+    matrix.m13 = m_messageHeader.m_EmbeddedImageTransform[0][2];
+    matrix.m14 = m_messageHeader.m_EmbeddedImageTransform[0][3];
 
+    matrix.m21 = m_messageHeader.m_EmbeddedImageTransform[1][0];
+    matrix.m22 = m_messageHeader.m_EmbeddedImageTransform[1][1];
+    matrix.m23 = m_messageHeader.m_EmbeddedImageTransform[1][2];
+    matrix.m24 = m_messageHeader.m_EmbeddedImageTransform[1][3];
+
+    matrix.m31 = m_messageHeader.m_EmbeddedImageTransform[2][0];
+    matrix.m32 = m_messageHeader.m_EmbeddedImageTransform[2][1];
+    matrix.m33 = m_messageHeader.m_EmbeddedImageTransform[2][2];
+    matrix.m34 = m_messageHeader.m_EmbeddedImageTransform[2][3];
+
+    matrix.m41 = m_messageHeader.m_EmbeddedImageTransform[3][0];
+    matrix.m42 = m_messageHeader.m_EmbeddedImageTransform[3][1];
+    matrix.m43 = m_messageHeader.m_EmbeddedImageTransform[3][2];
+    matrix.m44 = m_messageHeader.m_EmbeddedImageTransform[3][3];
     return matrix;
   }
 
@@ -278,12 +289,15 @@ namespace igtl
     }
 
     // Convert custom frame fields storing transforms, to transform entries
+    //    We do this in a second loop so that status' are available as well
     for (auto iter = m_customFrameFields.begin(); iter != m_customFrameFields.end();)
     {
       auto name = iter->first;
       auto value = iter->second;
       if (UWPOpenIGTLink::TrackedFrame::IsTransform(name))
       {
+        auto entry = ref new UWPOpenIGTLink::TrackedFrameTransformEntry();
+
         std::wistringstream wiss(value);
         float transform[16];
         for (int i = 0; i < 16; ++i)
@@ -293,13 +307,29 @@ namespace igtl
         DirectX::XMFLOAT4X4 matdx(transform);
         float4x4 mat;
         XMStoreFloat4x4(&mat, XMLoadFloat4x4(&matdx));
-        auto entry = ref new UWPOpenIGTLink::TrackedFrameTransformEntry();
+        mat = mat * make_float4x4_scale(1.f / 1000.f); // scale incoming transforms to be in units meter
         entry->Transform = mat;
+
         entry->Name = ref new UWPOpenIGTLink::TransformName(ref new Platform::String(name.c_str()));
+
         auto statusStr = name;
         statusStr.append(L"Status");
         entry->Valid = m_customFrameFields[statusStr] == L"OK";
+
         m_frameTransforms.push_back(entry);
+        iter = m_customFrameFields.erase(iter);
+      }
+      else
+      {
+        ++iter;
+      }
+    }
+
+    // Remove all status fields
+    for (auto iter = m_customFrameFields.begin(); iter != m_customFrameFields.end();)
+    {
+      if (UWPOpenIGTLink::TrackedFrame::IsTransformStatus(iter->first))
+      {
         iter = m_customFrameFields.erase(iter);
       }
       else

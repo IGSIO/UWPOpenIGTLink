@@ -189,15 +189,13 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   float4x4 TrackedFrame::EmbeddedImageTransform::get()
   {
-    float4x4 result;
-    XMStoreFloat4x4(&result, XMLoadFloat4x4(&m_embeddedImageTransform));
-    return result;
+    return m_embeddedImageTransform;
   }
 
   //----------------------------------------------------------------------------
   void TrackedFrame::EmbeddedImageTransform::set(float4x4 arg)
   {
-    XMStoreFloat4x4(&m_embeddedImageTransform, DirectX::XMLoadFloat4x4(&arg));
+    m_embeddedImageTransform = arg;
   }
 
   //----------------------------------------------------------------------------
@@ -614,13 +612,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::SetEmbeddedImageTransform(const DirectX::XMFLOAT4X4& matrix)
+  void TrackedFrame::SetEmbeddedImageTransform(const float4x4& matrix)
   {
     m_embeddedImageTransform = matrix;
   }
 
   //----------------------------------------------------------------------------
-  const DirectX::XMFLOAT4X4& TrackedFrame::GetEmbeddedImageTransform()
+  const float4x4& TrackedFrame::GetEmbeddedImageTransform()
   {
     return m_embeddedImageTransform;
   }

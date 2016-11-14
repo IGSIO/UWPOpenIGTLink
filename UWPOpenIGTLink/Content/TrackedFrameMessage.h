@@ -78,9 +78,9 @@ namespace igtl
     double GetTimestamp();
 
     /*! Set the embedded transform of the underlying image */
-    void SetEmbeddedImageTransform(const DirectX::XMFLOAT4X4& matrix);
+    void SetEmbeddedImageTransform(const Windows::Foundation::Numerics::float4x4& matrix);
     /*! Get the embedded transform of the underlying image */
-    DirectX::XMFLOAT4X4 GetEmbeddedImageTransform();
+    Windows::Foundation::Numerics::float4x4 GetEmbeddedImageTransform();
 
     const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& GetFrameTransforms();
     void SetFrameTransforms(const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& transforms);
