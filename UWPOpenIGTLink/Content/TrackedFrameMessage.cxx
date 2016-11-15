@@ -305,10 +305,9 @@ namespace igtl
           wiss >> transform[i];
         }
         DirectX::XMFLOAT4X4 matdx(transform);
-        float4x4 mat;
-        XMStoreFloat4x4(&mat, XMLoadFloat4x4(&matdx));
-        mat = mat * make_float4x4_scale(1.f / 1000.f); // scale incoming transforms to be in units meter
-        entry->Transform = mat;
+        float4x4 result;
+        XMStoreFloat4x4(&result, XMLoadFloat4x4(&matdx));
+        entry->Transform = result;
 
         entry->Name = ref new UWPOpenIGTLink::TransformName(ref new Platform::String(name.c_str()));
 
