@@ -274,7 +274,7 @@ namespace UWPOpenIGTLink
 
       if (!found)
       {
-        // TODO : quiet error reporting
+        OutputDebugStringA("Error string not found even though error was reported. Check IGT server implementation.");
       }
     }
 
