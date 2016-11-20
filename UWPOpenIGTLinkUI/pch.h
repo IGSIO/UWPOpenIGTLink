@@ -7,5 +7,5 @@
 
 #include <collection.h>
 #include <ppltasks.h>
-
+#include <WindowsNumerics.h>
 #include "App.xaml.h"

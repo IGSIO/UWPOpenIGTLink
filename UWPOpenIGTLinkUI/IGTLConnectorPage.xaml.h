@@ -26,38 +26,27 @@ OTHER DEALINGS IN THE SOFTWARE.
 // Local includes
 #include "IGTLConnectorPage.g.h"
 
-using namespace Windows::Storage::Streams;
-using namespace Windows::UI::Xaml::Controls;
-using namespace Windows::UI::Xaml::Media;
-using namespace Windows::UI::Xaml;
-
 namespace UWPOpenIGTLinkUI
 {
-
-  /// <summary>
-  /// An empty page that can be used on its own or navigated to within a Frame.
-  /// </summary>
   public ref class IGTLConnectorPage sealed
   {
   public:
     IGTLConnectorPage();
 
   protected private:
-    void onUITimerTick( Platform::Object^ sender, Platform::Object^ e );
-    void serverPortTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
-    void serverHostnameTextBox_TextChanged( Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e );
-    void connectButton_Click( Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e );
-    void processConnectionResult( bool result );
+    void OnUITimerTick(Platform::Object^ sender, Platform::Object^ e);
+    void ServerPortTextBox_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
+    void ServerHostnameTextBox_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
+    void ConnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+    void ProcessConnectionResult(bool result);
 
-    /// Convert a c-style byte array to a managed image object
-    bool FromNativePointer( IBuffer^ data, uint32 width, uint32 height, uint16 numberOfcomponents, Imaging::WriteableBitmap^ wbm );
+    /// Copy the contents of an incoming data buffer to our stored writeable bitmap
+    bool IBufferToWriteableBitmap(Windows::Storage::Streams::IBuffer^ data, uint32 width, uint32 height, uint16 numberOfcomponents);
 
   protected private:
-    UWPOpenIGTLink::IGTLinkClient^ IGTClient;
-
-    Windows::UI::Xaml::Media::Imaging::WriteableBitmap^ WriteableBmp;
-
-    DispatcherTimer^ UITimer;
+    UWPOpenIGTLink::IGTLinkClient^                          m_IGTClient = ref new UWPOpenIGTLink::IGTLinkClient();
+    Windows::UI::Xaml::Media::Imaging::WriteableBitmap^     m_WriteableBmp;
+    Windows::UI::Xaml::DispatcherTimer^                     m_UITimer = ref new Windows::UI::Xaml::DispatcherTimer();
   };
 
 }

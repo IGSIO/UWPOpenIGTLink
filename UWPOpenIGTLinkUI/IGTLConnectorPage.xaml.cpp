@@ -25,45 +25,56 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "pch.h"
 #include "IGTLConnectorPage.xaml.h"
 
-// Windows includes
+// WinRT includes
 #include <collection.h>
+#include <ppl.h>
 #include <robuffer.h>
 
-// STD includes
+// STL includes
+#include <iomanip>
+#include <sstream>
 #include <string>
 
+using namespace Concurrency;
 using namespace UWPOpenIGTLink;
-using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
-using namespace Windows::UI::Xaml;
-using namespace Windows::UI::Xaml::Controls;
-using namespace Windows::UI::Xaml::Media;
+using namespace Windows::Foundation::Numerics;
+using namespace Windows::Foundation;
 using namespace Windows::Storage::Streams;
+using namespace Windows::UI::Xaml::Controls;
+using namespace Windows::UI::Xaml::Media::Imaging;
+using namespace Windows::UI::Xaml;
 
 namespace
 {
-  inline void ThrowIfFailed( HRESULT hr )
+  inline void ThrowIfFailed(HRESULT hr)
   {
-    if ( FAILED( hr ) )
+    if (FAILED(hr))
     {
-      throw Platform::Exception::CreateException( hr );
+      throw Platform::Exception::CreateException(hr);
     }
   }
 
-  byte* GetPointerToPixelData( IBuffer^ buffer )
+  byte* GetPointerToPixelData(IBuffer^ buffer)
   {
     // Cast to Object^, then to its underlying IInspectable interface.
     Platform::Object^ obj = buffer;
-    Microsoft::WRL::ComPtr<IInspectable> insp( reinterpret_cast<IInspectable*>( obj ) );
+    Microsoft::WRL::ComPtr<IInspectable> insp(reinterpret_cast<IInspectable*>(obj));
 
     // Query the IBufferByteAccess interface.
     Microsoft::WRL::ComPtr<IBufferByteAccess> bufferByteAccess;
-    ThrowIfFailed( insp.As( &bufferByteAccess ) );
+    ThrowIfFailed(insp.As(&bufferByteAccess));
 
     // Retrieve the buffer data.
     byte* pixels = nullptr;
-    ThrowIfFailed( bufferByteAccess->Buffer( &pixels ) );
+    ThrowIfFailed(bufferByteAccess->Buffer(&pixels));
     return pixels;
+  }
+
+  //----------------------------------------------------------------------------
+  std::shared_ptr<byte> GetSharedImagePtr(TrackedFrame^ frame)
+  {
+    return *(std::shared_ptr<byte>*)frame->ImageDataSharedPtr;
   }
 }
 
@@ -71,132 +82,179 @@ namespace UWPOpenIGTLinkUI
 {
   //----------------------------------------------------------------------------
   IGTLConnectorPage::IGTLConnectorPage()
-    : IGTClient( ref new UWPOpenIGTLink::IGTLinkClient() )
-    , UITimer( ref new DispatcherTimer() )
   {
     InitializeComponent();
 
+    m_IGTClient->ServerHost = L"192.168.0.101";
+    ServerHostnameTextBox->Text = L"192.168.0.101";
+
     // Attempt to connect to default parameters (quietly)
-    auto task = IGTClient->ConnectAsync( 2.0 );
-    this->connectButton->IsEnabled = false;
-    this->connectButton->Content = L"Connecting...";
-    concurrency::create_task( task ).then( [this]( bool result )
+    auto task = m_IGTClient->ConnectAsync(2.0);
+    ConnectButton->IsEnabled = false;
+    ConnectButton->Content = L"Connecting...";
+    concurrency::create_task(task).then([this](bool result)
     {
-      processConnectionResult( result );
-    }, concurrency::task_continuation_context::use_current() );
+      ProcessConnectionResult(result);
+    }, concurrency::task_continuation_context::use_current());
   }
 
   //----------------------------------------------------------------------------
-  void IGTLConnectorPage::onUITimerTick( Platform::Object^ sender, Platform::Object^ e )
+  void IGTLConnectorPage::OnUITimerTick(Platform::Object^ sender, Platform::Object^ e)
   {
-    if ( IGTClient->Connected )
+    if (m_IGTClient->Connected)
     {
-      Platform::String^ text = ref new Platform::String();
-      UWPOpenIGTLink::TrackedFrame^ frame = ref new UWPOpenIGTLink::TrackedFrame();
-      double timestamp;
-      auto found = IGTClient->GetOldestTrackedFrame( frame, &timestamp );
-      if ( !found )
+      double timestamp(0.0);
+      TrackedFrame^ frame = m_IGTClient->GetTrackedFrame(timestamp);
+      if (frame == nullptr)
       {
         return;
       }
 
-      if ( WriteableBmp == nullptr )
+      if (m_WriteableBmp == nullptr)
       {
-        WriteableBmp = ref new Windows::UI::Xaml::Media::Imaging::WriteableBitmap( frame->FrameSize->GetAt( 0 ), frame->FrameSize->GetAt( 1 ) );
-      }
-      FromNativePointer( frame->ImageData, frame->FrameSize->GetAt( 0 ), frame->FrameSize->GetAt( 1 ), frame->NumberOfComponents, WriteableBmp);
-
-      if ( this->imageDisplay->Source != WriteableBmp)
-      {
-        this->imageDisplay->Source = WriteableBmp;
-      }
-      for ( auto transform : frame->GetValidTransforms() )
-      {
-        text = text + transform->Key + L": " + transform->Value + L"\n";
+        m_WriteableBmp = ref new WriteableBitmap(frame->FrameSize->GetAt(0), frame->FrameSize->GetAt(1));
       }
 
-      this->transformTextBlock->Text = text;
+      if (!IBufferToWriteableBitmap(frame->ImageData, frame->FrameSize->GetAt(0), frame->FrameSize->GetAt(1), frame->NumberOfComponents))
+      {
+        return;
+      }
+
+      if (ImageDisplay->Source != m_WriteableBmp)
+      {
+        ImageDisplay->Source = m_WriteableBmp;
+      }
+      Platform::String^ text = L"Received " + frame->GetFrameTransforms()->Size + L" transforms:\n";
+      for (auto transformEntry : frame->GetFrameTransforms())
+      {
+        float3 origin = transform(float3(0.f, 0.f, 0.f), transpose(transformEntry->Transform));
+        std::wstringstream ss;
+        ss << L"  " << transformEntry->Name->GetTransformName()->Data() << L" (" << std::fixed << std::setprecision(2) << origin.x << "L, " << origin.y << L", " << origin.z << L")" << std::endl;
+        text += ref new Platform::String(ss.str().c_str());
+      }
+
+      TransformTextBlock->Text = text;
     }
   }
 
   //----------------------------------------------------------------------------
-  void IGTLConnectorPage::serverPortTextBox_TextChanged( Platform::Object^ sender, TextChangedEventArgs^ e )
+  void IGTLConnectorPage::ServerPortTextBox_TextChanged(Platform::Object^ sender, TextChangedEventArgs^ e)
   {
-    TextBox^ textBox = dynamic_cast<TextBox^>( sender );
-    if ( _wtoi( textBox->Text->Data() ) != this->IGTClient->ServerPort )
+    TextBox^ textBox = dynamic_cast<TextBox^>(sender);
+    if (_wtoi(textBox->Text->Data()) != m_IGTClient->ServerPort)
     {
-      this->IGTClient->ServerPort = _wtoi( textBox->Text->Data() );
+      m_IGTClient->ServerPort = _wtoi(textBox->Text->Data());
     }
   }
 
   //----------------------------------------------------------------------------
-  void IGTLConnectorPage::serverHostnameTextBox_TextChanged( Platform::Object^ sender, TextChangedEventArgs^ e )
+  void IGTLConnectorPage::ServerHostnameTextBox_TextChanged(Platform::Object^ sender, TextChangedEventArgs^ e)
   {
-    TextBox^ textBox = dynamic_cast<TextBox^>( sender );
-    if ( textBox->Text != this->IGTClient->ServerHost )
+    TextBox^ textBox = dynamic_cast<TextBox^>(sender);
+    if (textBox->Text != m_IGTClient->ServerHost)
     {
-      this->IGTClient->ServerHost = textBox->Text;
+      m_IGTClient->ServerHost = textBox->Text;
     }
   }
 
   //----------------------------------------------------------------------------
-  void IGTLConnectorPage::connectButton_Click( Platform::Object^ sender, RoutedEventArgs^ e )
+  void IGTLConnectorPage::ConnectButton_Click(Platform::Object^ sender, RoutedEventArgs^ e)
   {
-    this->connectButton->IsEnabled = false;
+    ConnectButton->IsEnabled = false;
 
-    this->statusIcon->Source = ref new Imaging::BitmapImage( ref new Uri( "ms-appx:///Assets/glossy-yellow-button-2400px.png" ) );
-    if ( IGTClient->Connected )
+    StatusIcon->Source = ref new BitmapImage(ref new Uri("ms-appx:///Assets/glossy-yellow-button-2400px.png"));
+    if (m_IGTClient->Connected)
     {
-      this->connectButton->Content = L"Disconnecting...";
-      IGTClient->Disconnect();
+      ConnectButton->Content = L"Disconnecting...";
+      m_IGTClient->Disconnect();
 
-      this->statusBarTextBlock->Text = ref new Platform::String( L"Disconnect successful!" );
-      this->statusIcon->Source = ref new Imaging::BitmapImage( ref new Uri( "ms-appx:///Assets/glossy-green-button-2400px.png" ) );
-      this->connectButton->Content = L"Connect";
-      this->connectButton->IsEnabled = true;
+      StatusBarTextBlock->Text = L"Disconnect successful!";
+      StatusIcon->Source = ref new BitmapImage(ref new Uri("ms-appx:///Assets/glossy-green-button-2400px.png"));
+      ConnectButton->Content = L"Connect";
+      ConnectButton->IsEnabled = true;
     }
     else
     {
-      this->connectButton->Content = L"Connecting...";
-      auto task = IGTClient->ConnectAsync( 5.0 );
-      concurrency::create_task( task ).then( [this]( bool result )
+      ConnectButton->Content = L"Connecting...";
+      create_task(m_IGTClient->ConnectAsync(5.0)).then([this](bool result)
       {
-        processConnectionResult( result );
-      }, concurrency::task_continuation_context::use_current() );
+        ProcessConnectionResult(result);
+      });
     }
   }
 
   //----------------------------------------------------------------------------
-  void IGTLConnectorPage::processConnectionResult( bool result )
+  void IGTLConnectorPage::ProcessConnectionResult(bool result)
   {
-    this->connectButton->IsEnabled = true;
-    if ( result )
+    ConnectButton->IsEnabled = true;
+    if (result)
     {
-      this->statusBarTextBlock->Text = ref new Platform::String( L"Success! Connected to " ) + IGTClient->ServerHost + ref new Platform::String( L":" ) + ref new Platform::String( std::to_wstring( IGTClient->ServerPort ).c_str() );
-      this->statusIcon->Source = ref new Imaging::BitmapImage( ref new Uri( "ms-appx:///Assets/glossy-green-button-2400px.png" ) );
-      this->connectButton->Content = L"Disconnect";
+      StatusBarTextBlock->Text = L"Success! Connected to " + m_IGTClient->ServerHost + L":" + m_IGTClient->ServerPort.ToString();
+      StatusIcon->Source = ref new BitmapImage(ref new Uri("ms-appx:///Assets/glossy-green-button-2400px.png"));
+      ConnectButton->Content = L"Disconnect";
 
-      this->UITimer->Tick += ref new EventHandler<Object^>( this, &IGTLConnectorPage::onUITimerTick );
+      m_UITimer->Tick += ref new EventHandler<Object^>(this, &IGTLConnectorPage::OnUITimerTick);
       TimeSpan t;
-      t.Duration = 33;
-      this->UITimer->Interval = t;
-      this->UITimer->Start();
+      t.Duration = 33; // milliseconds, ~30fps
+      m_UITimer->Interval = t;
+      m_UITimer->Start();
     }
     else
     {
-      this->UITimer->Stop();
+      m_UITimer->Stop();
 
-      this->connectButton->Content = L"Connect";
-      this->statusBarTextBlock->Text = ref new Platform::String( L"Unable to connect." );
-      this->statusIcon->Source = ref new Imaging::BitmapImage( ref new Uri( "ms-appx:///Assets/glossy-red-button-2400px.png" ) );
+      ConnectButton->Content = L"Connect";
+      StatusBarTextBlock->Text = L"Unable to connect.";
+      StatusIcon->Source = ref new BitmapImage(ref new Uri("ms-appx:///Assets/glossy-red-button-2400px.png"));
     }
   }
 
   //----------------------------------------------------------------------------
-  bool IGTLConnectorPage::FromNativePointer( IBuffer^ data, uint32 width, uint32 height, uint16 numberOfcomponents, Imaging::WriteableBitmap^ wbm )
+  bool IGTLConnectorPage::IBufferToWriteableBitmap(IBuffer^ data, uint32 width, uint32 height, uint16 numberOfcomponents)
   {
-    // TODO : copy buffer form data to wbm.pixelbuffer
+    auto divisor = numberOfcomponents / 4.0; // WriteableBitmap has 4 8-bit components BGRA
+    if (data->Length * 1.0 != m_WriteableBmp->PixelBuffer->Length * divisor)
+    {
+      OutputDebugStringA("Buffers do not contain the same number of pixels.");
+      return false;
+    }
+
+    try
+    {
+      byte* sourceImageData = GetPointerToPixelData(data);
+      byte* targetImageData = GetPointerToPixelData(m_WriteableBmp->PixelBuffer);
+
+      for (unsigned int j = 0; j < height; j++)
+      {
+        for (unsigned int i = 0; i < width; i++)
+        {
+          if (numberOfcomponents == 3)
+          {
+            targetImageData[0] = sourceImageData[0];
+            targetImageData[1] = sourceImageData[1];
+            targetImageData[2] = sourceImageData[2];
+          }
+          else if (numberOfcomponents == 1)
+          {
+            targetImageData[0] = *sourceImageData;
+            targetImageData[1] = *sourceImageData;
+            targetImageData[2] = *sourceImageData;
+          }
+          targetImageData[3] = 255U; // set to full alpha
+
+          sourceImageData += numberOfcomponents;
+          targetImageData += 4;
+        }
+      }
+    }
+    catch (Platform::Exception^ e)
+    {
+      OutputDebugStringA("Unable to copy network image to UI back buffer.\n");
+      OutputDebugStringW(e->Message->Data());
+      return false;
+    }
+    m_WriteableBmp->Invalidate();
+
     return true;
   }
-
 }
