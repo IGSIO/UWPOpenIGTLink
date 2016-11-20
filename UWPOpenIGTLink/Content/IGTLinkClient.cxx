@@ -91,7 +91,7 @@ namespace UWPOpenIGTLink
 
     m_receiverPumpTokenSource = cancellation_token_source();
 
-    return create_async([ = ]() -> bool
+    return create_async([this, timeoutSec]() -> bool
     {
       const int retryDelaySec = 1.0;
       int errorCode = 1;
@@ -137,10 +137,8 @@ namespace UWPOpenIGTLink
   {
     m_receiverPumpTokenSource.cancel();
 
-    {
-      std::lock_guard<std::mutex> guard(m_socketMutex);
-      m_clientSocket->CloseSocket();
-    }
+    std::lock_guard<std::mutex> guard(m_socketMutex);
+    m_clientSocket->CloseSocket();
   }
 
   //----------------------------------------------------------------------------
