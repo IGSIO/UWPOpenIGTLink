@@ -47,6 +47,7 @@ using namespace Windows::UI::Xaml;
 
 namespace
 {
+  //----------------------------------------------------------------------------
   inline void ThrowIfFailed(HRESULT hr)
   {
     if (FAILED(hr))
@@ -55,6 +56,7 @@ namespace
     }
   }
 
+  //----------------------------------------------------------------------------
   byte* GetPointerToPixelData(IBuffer^ buffer)
   {
     // Cast to Object^, then to its underlying IInspectable interface.
@@ -85,17 +87,8 @@ namespace UWPOpenIGTLinkUI
   {
     InitializeComponent();
 
-    m_IGTClient->ServerHost = L"192.168.0.101";
-    ServerHostnameTextBox->Text = L"192.168.0.101";
-
-    // Attempt to connect to default parameters (quietly)
-    auto task = m_IGTClient->ConnectAsync(2.0);
-    ConnectButton->IsEnabled = false;
-    ConnectButton->Content = L"Connecting...";
-    concurrency::create_task(task).then([this](bool result)
-    {
-      ProcessConnectionResult(result);
-    }, concurrency::task_continuation_context::use_current());
+    m_IGTClient->ServerHost = L"192.168.0.103";
+    ServerHostnameTextBox->Text = L"192.168.0.103";
   }
 
   //----------------------------------------------------------------------------
@@ -110,9 +103,9 @@ namespace UWPOpenIGTLinkUI
         return;
       }
 
-      if (m_WriteableBmp == nullptr)
+      if (m_WriteableBitmap == nullptr)
       {
-        m_WriteableBmp = ref new WriteableBitmap(frame->FrameSize->GetAt(0), frame->FrameSize->GetAt(1));
+        m_WriteableBitmap = ref new WriteableBitmap(frame->FrameSize->GetAt(0), frame->FrameSize->GetAt(1));
       }
 
       if (!IBufferToWriteableBitmap(frame->ImageData, frame->FrameSize->GetAt(0), frame->FrameSize->GetAt(1), frame->NumberOfComponents))
@@ -120,9 +113,9 @@ namespace UWPOpenIGTLinkUI
         return;
       }
 
-      if (ImageDisplay->Source != m_WriteableBmp)
+      if (ImageDisplay->Source != m_WriteableBitmap)
       {
-        ImageDisplay->Source = m_WriteableBmp;
+        ImageDisplay->Source = m_WriteableBitmap;
       }
       Platform::String^ text = L"Received " + frame->GetFrameTransforms()->Size + L" transforms:\n";
       for (auto transformEntry : frame->GetFrameTransforms())
@@ -176,7 +169,7 @@ namespace UWPOpenIGTLinkUI
     else
     {
       ConnectButton->Content = L"Connecting...";
-      create_task(m_IGTClient->ConnectAsync(5.0)).then([this](bool result)
+      create_task(m_IGTClient->ConnectAsync(2.0)).then([this](bool result)
       {
         ProcessConnectionResult(result);
       });
@@ -213,7 +206,7 @@ namespace UWPOpenIGTLinkUI
   bool IGTLConnectorPage::IBufferToWriteableBitmap(IBuffer^ data, uint32 width, uint32 height, uint16 numberOfcomponents)
   {
     auto divisor = numberOfcomponents / 4.0; // WriteableBitmap has 4 8-bit components BGRA
-    if (data->Length * 1.0 != m_WriteableBmp->PixelBuffer->Length * divisor)
+    if (data->Length * 1.0 != m_WriteableBitmap->PixelBuffer->Length * divisor)
     {
       OutputDebugStringA("Buffers do not contain the same number of pixels.");
       return false;
@@ -222,7 +215,7 @@ namespace UWPOpenIGTLinkUI
     try
     {
       byte* sourceImageData = GetPointerToPixelData(data);
-      byte* targetImageData = GetPointerToPixelData(m_WriteableBmp->PixelBuffer);
+      byte* targetImageData = GetPointerToPixelData(m_WriteableBitmap->PixelBuffer);
 
       for (unsigned int j = 0; j < height; j++)
       {
@@ -253,7 +246,7 @@ namespace UWPOpenIGTLinkUI
       OutputDebugStringW(e->Message->Data());
       return false;
     }
-    m_WriteableBmp->Invalidate();
+    m_WriteableBitmap->Invalidate();
 
     return true;
   }

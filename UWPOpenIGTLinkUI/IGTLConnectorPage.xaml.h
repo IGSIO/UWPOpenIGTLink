@@ -45,7 +45,7 @@ namespace UWPOpenIGTLinkUI
 
   protected private:
     UWPOpenIGTLink::IGTLinkClient^                          m_IGTClient = ref new UWPOpenIGTLink::IGTLinkClient();
-    Windows::UI::Xaml::Media::Imaging::WriteableBitmap^     m_WriteableBmp;
+    Windows::UI::Xaml::Media::Imaging::WriteableBitmap^     m_WriteableBitmap = nullptr;
     Windows::UI::Xaml::DispatcherTimer^                     m_UITimer = ref new Windows::UI::Xaml::DispatcherTimer();
   };
 
