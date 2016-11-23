@@ -97,6 +97,17 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
+  void TrackedFrameMessage::ApplyTransformUnitScaling(double scalingFactor)
+  {
+    for (auto& transform : m_frameTransforms)
+    {
+      transform->Transform.m41 *= scalingFactor;
+      transform->Transform.m42 *= scalingFactor;
+      transform->Transform.m43 *= scalingFactor;
+    }
+  }
+
+  //----------------------------------------------------------------------------
   US_IMAGE_TYPE TrackedFrameMessage::GetImageType()
   {
     return (US_IMAGE_TYPE)m_messageHeader.m_ImageType;

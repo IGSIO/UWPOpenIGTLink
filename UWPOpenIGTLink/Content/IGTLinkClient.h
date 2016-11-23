@@ -63,6 +63,7 @@ namespace UWPOpenIGTLink
     property Platform::String^ ServerHost { Platform::String ^ get(); void set(Platform::String^); }
     property int ServerIGTLVersion { int get(); void set(int); }
     property bool Connected { bool get(); }
+    property double TrackerUnitScale { double get(); void set(double); }
 
     /// If timeoutSec > 0 then connection will be attempted multiple times until successfully connected or the timeout elapse
     IAsyncOperation<bool>^ ConnectAsync(double timeoutSec);
@@ -122,6 +123,7 @@ namespace UWPOpenIGTLink
     std::vector<uint32>                                   m_frameSize;
 
     /// Server information
+    double                                    m_trackerUnitScale = 0.001; // Scales translation component of incoming transformations by the given factor
     Platform::String^                         m_serverHost;
     int                                       m_serverPort;
     int                                       m_serverIGTLVersion;

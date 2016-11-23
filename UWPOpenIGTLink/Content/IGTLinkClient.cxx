@@ -366,7 +366,7 @@ namespace UWPOpenIGTLink
       }
 
       // Accept all messages but status messages, they are used as a keep alive mechanism
-      if (typeid(*bodyMsg) != typeid(igtl::StatusMessage))
+      if (typeid(*bodyMsg) == typeid(igtl::TrackedFrameMessage))
       {
         {
           std::lock_guard<std::mutex> guard(self->m_socketMutex);
@@ -385,11 +385,37 @@ namespace UWPOpenIGTLink
           continue;
         }
 
+        igtl::TrackedFrameMessage* trackedFrameMessage = (igtl::TrackedFrameMessage*)bodyMsg.GetPointer();
+
+        // Post process tracked frame to adjust for unit scale
+        trackedFrameMessage->ApplyTransformUnitScaling(self->m_trackerUnitScale);
+
+        // Save reply
+        std::lock_guard<std::mutex> guard(self->m_messageListMutex);
+        self->m_receivedMessages.push_back(bodyMsg);
+      }
+      else if (typeid(*bodyMsg) != typeid(igtl::StatusMessage))
+      {
         {
-          // save reply
-          std::lock_guard<std::mutex> guard(self->m_messageListMutex);
-          self->m_receivedMessages.push_back(bodyMsg);
+          std::lock_guard<std::mutex> guard(self->m_socketMutex);
+          if (!self->m_clientSocket->GetConnected())
+          {
+            // We've become disconnected while waiting for the socket, we're done here!
+            return;
+          }
+          self->m_clientSocket->Receive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
         }
+
+        int c = bodyMsg->Unpack(1);
+        if (!(c & igtl::MessageHeader::UNPACK_BODY))
+        {
+          LOG_TRACE("Failed to receive reply (invalid body)");
+          continue;
+        }
+
+        // save reply
+        std::lock_guard<std::mutex> guard(self->m_messageListMutex);
+        self->m_receivedMessages.push_back(bodyMsg);
       }
       else
       {
@@ -507,5 +533,17 @@ namespace UWPOpenIGTLink
   bool IGTLinkClient::Connected::get()
   {
     return m_clientSocket->GetConnected();
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTLinkClient::TrackerUnitScale::get()
+  {
+    return m_trackerUnitScale;
+  }
+
+  //----------------------------------------------------------------------------
+  void IGTLinkClient::TrackerUnitScale::set(double arg)
+  {
+    m_trackerUnitScale = arg;
   }
 }

@@ -109,7 +109,7 @@ namespace UWPOpenIGTLink
   {
   public:
     property TransformName^ Name { TransformName ^ get(); void set(TransformName ^ arg); }
-    property Windows::Foundation::Numerics::float4x4 Transform { Windows::Foundation::Numerics::float4x4 get(); void set(Windows::Foundation::Numerics::float4x4 arg); }
+    property Windows::Foundation::Numerics::float4x4& Transform { Windows::Foundation::Numerics::float4x4 & get(); void set(Windows::Foundation::Numerics::float4x4 & arg); }
     property bool Valid { bool get(); void set(bool arg); }
 
   private:
