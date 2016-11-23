@@ -84,7 +84,7 @@ namespace igtl
 
     const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& GetFrameTransforms();
     void SetFrameTransforms(const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& transforms);
-    void ApplyTransformUnitScaling(double scalingFactor);
+    void ApplyTransformUnitScaling(float scalingFactor);
 
   protected:
     class TrackedFrameHeader

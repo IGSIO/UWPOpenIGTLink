@@ -536,13 +536,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  double IGTLinkClient::TrackerUnitScale::get()
+  float IGTLinkClient::TrackerUnitScale::get()
   {
     return m_trackerUnitScale;
   }
 
   //----------------------------------------------------------------------------
-  void IGTLinkClient::TrackerUnitScale::set(double arg)
+  void IGTLinkClient::TrackerUnitScale::set(float arg)
   {
     m_trackerUnitScale = arg;
   }

@@ -726,13 +726,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  float4x4& TrackedFrameTransformEntry::Transform::get()
+  float4x4 TrackedFrameTransformEntry::Transform::get()
   {
     return m_transform;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrameTransformEntry::Transform::set(float4x4& arg)
+  void TrackedFrameTransformEntry::Transform::set(float4x4 arg)
   {
     m_transform = arg;
   }
@@ -754,4 +754,13 @@ namespace UWPOpenIGTLink
   {
     return GetFrameTransforms();
   }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrameTransformEntry::ScaleTranslationComponent(float scalingFactor)
+  {
+    m_transform.m14 *= scalingFactor;
+    m_transform.m24 *= scalingFactor;
+    m_transform.m34 *= scalingFactor;
+  }
+
 }

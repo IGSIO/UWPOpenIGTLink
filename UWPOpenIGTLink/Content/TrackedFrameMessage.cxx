@@ -97,13 +97,11 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrameMessage::ApplyTransformUnitScaling(double scalingFactor)
+  void TrackedFrameMessage::ApplyTransformUnitScaling(float scalingFactor)
   {
     for (auto& transform : m_frameTransforms)
     {
-      transform->Transform.m41 *= scalingFactor;
-      transform->Transform.m42 *= scalingFactor;
-      transform->Transform.m43 *= scalingFactor;
+      transform->ScaleTranslationComponent(scalingFactor);
     }
   }
 
