@@ -74,7 +74,7 @@ namespace UWPOpenIGTLink
       set transform is allowed. The transform is computed even if one or more of the used transforms
       have non valid status.
     */
-    void SetTransform( TransformName^ aTransformName, float4x4* matrix, bool isValid );
+    void SetTransform(TransformName^ aTransformName, float4x4 matrix, bool isValid);
 
     /*!
       Set all transform matrices between two coordinate frames stored in TrackedFrame. The method fails if any of the transforms
@@ -82,31 +82,31 @@ namespace UWPOpenIGTLink
       set transform is allowed. The transform is computed even if one or more of the used transforms
       have non valid statuses.
     */
-    void SetTransforms( TrackedFrame^ trackedFrame );
+    void SetTransforms(TrackedFrame^ trackedFrame);
 
     /*!
       Set the valid status of a transform matrix between two coordinate frames. A transform is normally valid,
       but temporarily it can be set to non valid (e.g., when a tracked tool gets out of view).
     */
-    void SetTransformValid( TransformName^ aTransformName, bool isValid );
+    void SetTransformValid(TransformName^ aTransformName, bool isValid);
 
     /*!
       Set the persistent status of a transform matrix between two coordinate frames. A transform is non persistent by default.
       Transforms with status persistent will be written into config file on WriteConfiguration call.
     */
-    void SetTransformPersistent( TransformName^ aTransformName, bool isPersistent );
+    void SetTransformPersistent(TransformName^ aTransformName, bool isPersistent);
 
     /*! Set the computation error of the transform matrix between two coordinate frames. */
-    void SetTransformError( TransformName^ aTransformName, double aError );
+    void SetTransformError(TransformName^ aTransformName, double aError);
 
     /*! Get the computation error of the transform matrix between two coordinate frames. */
-    double GetTransformError( TransformName^ aTransformName );
+    double GetTransformError(TransformName^ aTransformName);
 
     /*! Set the computation date of the transform matrix between two coordinate frames. */
-    void SetTransformDate( TransformName^ aTransformName, Platform::String^ aDate );
+    void SetTransformDate(TransformName^ aTransformName, Platform::String^ aDate);
 
     /*! Get the computation date of the transform matrix between two coordinate frames. */
-    Platform::String^ GetTransformDate( TransformName^ aTransformName );
+    Platform::String^ GetTransformDate(TransformName^ aTransformName);
 
     /*!
       Read all transformations from XML data CoordinateDefinitions element and add them to the transforms with
@@ -114,7 +114,7 @@ namespace UWPOpenIGTLink
       can be already constructed by concatenating/inverting already stored transforms. Changing an already
       set transform is allowed.
     */
-    void ReadConfiguration( Windows::Data::Xml::Dom::XmlDocument^ doc);
+    void ReadConfiguration(Windows::Data::Xml::Dom::XmlDocument^ doc);
 
     /*!
       Delete all transforms from XML data CoordinateDefinitions element then write all transform matrices with persistent status
@@ -127,7 +127,7 @@ namespace UWPOpenIGTLink
       is true, only persistent if the boolean is false into the xml data CoordinateDefinitions element. The function will give a warning message
       in case of any non valid persistent transform.
     */
-    void WriteConfigurationGeneric(Windows::Data::Xml::Dom::XmlDocument^ doc, bool copyAllTransforms );
+    void WriteConfigurationGeneric(Windows::Data::Xml::Dom::XmlDocument^ doc, bool copyAllTransforms);
 
     /*!
       Get a transform matrix between two coordinate frames. The method fails if the transform
@@ -135,28 +135,28 @@ namespace UWPOpenIGTLink
       \param aTransformName name of the transform to retrieve from the repository
       \param isValid whether or not the computed or original transform is valid
     */
-    float4x4 GetTransform( TransformName^ aTransformName, bool* isValid );
+    float4x4 GetTransform(TransformName^ aTransformName, bool* isValid);
 
     /*!
       Get the valid status of a transform matrix between two coordinate frames.
       The status is typically invalid when a tracked tool is out of view.
     */
-    bool GetTransformValid( TransformName^ aTransformName );
+    bool GetTransformValid(TransformName^ aTransformName);
 
     /// Get the persistent status of a transform matrix between two coordinate frames.
-    bool GetTransformPersistent( TransformName^ aTransformName );
+    bool GetTransformPersistent(TransformName^ aTransformName);
 
     /// Removes a transform from the repository
-    void DeleteTransform( TransformName^ aTransformName );
+    void DeleteTransform(TransformName^ aTransformName);
 
     /// Removes all the transforms from the repository
     void Clear();
 
     /// Checks if a transform exist
-    bool IsExistingTransform( TransformName^ aTransformName, bool aSilent );
+    bool IsExistingTransform(TransformName^ aTransformName, bool aSilent);
 
     /// Copies the persistent and non-persistent contents if boolean is true, only persistent contents if false
-    void DeepCopy( TransformRepository^ sourceRepositoryName, bool copyAllTransforms );
+    void DeepCopy(TransformRepository^ sourceRepositoryName, bool copyAllTransforms);
 
   protected private:
     /// TransformInfo - Stores a transformation matrix and some additional information (valid or not, computed or not)
@@ -165,8 +165,8 @@ namespace UWPOpenIGTLink
     public:
       TransformInfo();
       virtual ~TransformInfo();
-      TransformInfo( const TransformInfo& obj );
-      TransformInfo& operator=( const TransformInfo& obj );
+      TransformInfo(const TransformInfo& obj);
+      TransformInfo& operator=(const TransformInfo& obj);
 
       /// TransformInfo storing the transformation matrix between two coordinate frames
       float4x4 m_Transform;
@@ -203,7 +203,7 @@ namespace UWPOpenIGTLink
     typedef std::list<TransformInfo*> TransformInfoListType;
 
     /*! Get a user-defined original input transform (or its inverse). Does not combine user-defined input transforms. */
-    TransformInfo* GetOriginalTransform( TransformName^ aTransformName );
+    TransformInfo* GetOriginalTransform(TransformName^ aTransformName);
 
     /*!
       Find a transform path between the specified coordinate frames.
@@ -213,7 +213,7 @@ namespace UWPOpenIGTLink
       \param silent Don't log an error if path cannot be found (it's normal while searching in branches of the graph)
       \return returns PLUS_SUCCESS if a path can be found, PLUS_FAIL otherwise
     */
-    bool FindPath( TransformName^ aTransformName, TransformInfoListType& transformInfoList, const wchar_t* skipCoordFrameName = NULL, bool silent = false );
+    bool FindPath(TransformName^ aTransformName, TransformInfoListType& transformInfoList, const wchar_t* skipCoordFrameName = NULL, bool silent = false);
 
     CoordFrameToCoordFrameToTransformMapType m_CoordinateFrames;
 

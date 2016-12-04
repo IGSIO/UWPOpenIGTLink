@@ -94,12 +94,12 @@ namespace UWPOpenIGTLink
     auto transforms = trackedFrame->GetFrameTransformsInternal();
     for (auto& entry : transforms)
     {
-      SetTransform(std::get<0>(entry), &std::get<1>(entry), std::get<2>(entry));
+      SetTransform(std::get<0>(entry), std::get<1>(entry), std::get<2>(entry));
     }
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransform(TransformName^ aTransformName, float4x4* matrix, bool isValid)
+  void TransformRepository::SetTransform(TransformName^ aTransformName, float4x4 matrix, bool isValid)
   {
     if (!aTransformName->IsValid())
     {
@@ -127,10 +127,7 @@ namespace UWPOpenIGTLink
       }
 
       // Update the matrix
-      if (matrix != NULL)
-      {
-        fromToTransformInfo->m_Transform = *matrix;
-      }
+      fromToTransformInfo->m_Transform = matrix;
 
       // Set the status of the original transform
       fromToTransformInfo->m_IsValid = isValid;
@@ -162,31 +159,38 @@ namespace UWPOpenIGTLink
     std::wstring toStr(aTransformName->To()->Data());
     CoordFrameToTransformMapType& fromCoordFrame = this->m_CoordinateFrames[fromStr];
     fromCoordFrame[toStr].m_IsComputed = false;
-    if (matrix != NULL)
-    {
-      fromCoordFrame[toStr].m_Transform = *matrix;
-    }
+    fromCoordFrame[toStr].m_Transform = matrix;
     fromCoordFrame[toStr].m_IsValid = isValid;
 
     // Create the to->from inverse transform
     CoordFrameToTransformMapType& toCoordFrame = this->m_CoordinateFrames[toStr];
     toCoordFrame[fromStr].m_IsComputed = true;
-    if (matrix != NULL)
-    {
-      invert(*matrix, matrix);
-      toCoordFrame[fromStr].m_Transform = *matrix;
-    }
+    invert(matrix, &matrix);
+    toCoordFrame[fromStr].m_Transform = matrix;
     toCoordFrame[fromStr].m_IsValid = isValid;
   }
 
   //----------------------------------------------------------------------------
   void TransformRepository::SetTransformValid(TransformName^ aTransformName, bool isValid)
   {
+    if (!aTransformName->IsValid())
+    {
+      throw ref new Platform::Exception(E_INVALIDARG, L"Invalid transform name sent: " + aTransformName->GetTransformName());
+    }
+
     if (aTransformName->From() == aTransformName->To())
     {
       throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
     }
-    return SetTransform(aTransformName, NULL, isValid);
+
+    std::lock_guard<std::mutex> guard(m_CriticalSection);
+
+    // Check if the transform already exist
+    TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
+    if (fromToTransformInfo != NULL)
+    {
+      fromToTransformInfo->m_IsValid = isValid;
+    }
   }
 
   //----------------------------------------------------------------------------
@@ -586,7 +590,7 @@ namespace UWPOpenIGTLink
 
       try
       {
-        SetTransform(transformName, &matrix, true);
+        SetTransform(transformName, matrix, true);
       }
       catch (Platform::Exception^ e)
       {
