@@ -114,6 +114,90 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  uint32 TrackedFrame::GetPixelFormat(bool normalized)
+  {
+    switch (m_numberOfComponents)
+    {
+    case 1:
+      switch (m_scalarType)
+      {
+      case IGTL_SCALARTYPE_INT8:
+        return normalized ? DXGI_FORMAT_R8_SNORM : DXGI_FORMAT_R8_SINT;
+      case IGTL_SCALARTYPE_UINT8:
+        return normalized ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_R8_UINT;
+      case IGTL_SCALARTYPE_INT16:
+        return normalized ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R16_SINT;
+      case IGTL_SCALARTYPE_UINT16:
+        return normalized ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R16_UINT;
+      case IGTL_SCALARTYPE_INT32:
+        return DXGI_FORMAT_R32_SINT;
+      case IGTL_SCALARTYPE_UINT32:
+        return DXGI_FORMAT_R32_UINT;
+      case IGTL_SCALARTYPE_FLOAT32:
+        return DXGI_FORMAT_R32_FLOAT;
+      }
+      break;
+    case 2:
+      switch (m_scalarType)
+      {
+      case IGTL_SCALARTYPE_INT8:
+        return normalized ? DXGI_FORMAT_R8G8_SNORM : DXGI_FORMAT_R8G8_SINT;
+      case IGTL_SCALARTYPE_UINT8:
+        return normalized ? DXGI_FORMAT_R8G8_UNORM : DXGI_FORMAT_R8G8_UINT;
+      case IGTL_SCALARTYPE_INT16:
+        return normalized ? DXGI_FORMAT_R16G16_SNORM : DXGI_FORMAT_R16G16_SINT;
+      case IGTL_SCALARTYPE_UINT16:
+        return normalized ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R16G16_UINT;
+      case IGTL_SCALARTYPE_INT32:
+        return DXGI_FORMAT_R32G32_SINT;
+      case IGTL_SCALARTYPE_UINT32:
+        return DXGI_FORMAT_R32G32_UINT;
+      case IGTL_SCALARTYPE_FLOAT32:
+        return DXGI_FORMAT_R32G32_FLOAT;
+      }
+      break;
+    case 3:
+      switch (m_scalarType)
+      {
+      case IGTL_SCALARTYPE_INT8:
+        return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+      case IGTL_SCALARTYPE_UINT8:
+        return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UINT;
+      case IGTL_SCALARTYPE_INT16:
+        return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+      case IGTL_SCALARTYPE_UINT16:
+        return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_UINT;
+      case IGTL_SCALARTYPE_INT32:
+        return DXGI_FORMAT_R32G32B32_SINT;
+      case IGTL_SCALARTYPE_UINT32:
+        return DXGI_FORMAT_R32G32B32_UINT;
+      case IGTL_SCALARTYPE_FLOAT32:
+        return DXGI_FORMAT_R32G32B32_FLOAT;
+      }
+    case 4:
+      switch (m_scalarType)
+      {
+      case IGTL_SCALARTYPE_INT8:
+        return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+      case IGTL_SCALARTYPE_UINT8:
+        return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+      case IGTL_SCALARTYPE_INT16:
+        return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+      case IGTL_SCALARTYPE_UINT16:
+        return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+      case IGTL_SCALARTYPE_INT32:
+        return DXGI_FORMAT_R32G32B32A32_SINT;
+      case IGTL_SCALARTYPE_UINT32:
+        return DXGI_FORMAT_R32G32B32A32_UINT;
+      case IGTL_SCALARTYPE_FLOAT32:
+        return DXGI_FORMAT_R32G32B32A32_FLOAT;
+      }
+      break;
+    }
+    return DXGI_FORMAT_UNKNOWN;
+  }
+
+  //----------------------------------------------------------------------------
   void TrackedFrame::SetParameter(Platform::String^ key, Platform::String^ value)
   {
     m_frameFields[std::wstring(key->Data())] = std::wstring(value->Data());
@@ -196,211 +280,6 @@ namespace UWPOpenIGTLink
   void TrackedFrame::EmbeddedImageTransform::set(float4x4 arg)
   {
     m_embeddedImageTransform = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  uint32 TrackedFrame::PixelFormat::get()
-  {
-    switch (m_numberOfComponents)
-    {
-    case 1:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return DXGI_FORMAT_R8_SNORM;
-      case IGTL_SCALARTYPE_UINT8:
-        return DXGI_FORMAT_R8_UNORM;
-      case IGTL_SCALARTYPE_INT16:
-        return DXGI_FORMAT_R16_SNORM;
-      case IGTL_SCALARTYPE_UINT16:
-        return DXGI_FORMAT_R16_UNORM;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32_FLOAT;
-      }
-      break;
-    case 2:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return DXGI_FORMAT_R8G8_SNORM;
-      case IGTL_SCALARTYPE_UINT8:
-        return DXGI_FORMAT_R8G8_UNORM;
-      case IGTL_SCALARTYPE_INT16:
-        return DXGI_FORMAT_R16G16_SNORM;
-      case IGTL_SCALARTYPE_UINT16:
-        return DXGI_FORMAT_R16G16_UNORM;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32G32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32G32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32G32_FLOAT;
-      }
-      break;
-    case 3:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return DXGI_FORMAT_R8G8B8A8_SNORM;
-      case IGTL_SCALARTYPE_UINT8:
-        return DXGI_FORMAT_R8G8B8A8_UNORM;
-      case IGTL_SCALARTYPE_INT16:
-        return DXGI_FORMAT_R16G16B16A16_SNORM;
-      case IGTL_SCALARTYPE_UINT16:
-        return DXGI_FORMAT_R16G16B16A16_UNORM;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32G32B32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32G32B32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32G32B32_FLOAT;
-      }
-    case 4:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return DXGI_FORMAT_R8G8B8A8_SNORM;
-      case IGTL_SCALARTYPE_UINT8:
-        return DXGI_FORMAT_R8G8B8A8_UNORM;
-      case IGTL_SCALARTYPE_INT16:
-        return DXGI_FORMAT_R16G16B16A16_SNORM;
-      case IGTL_SCALARTYPE_UINT16:
-        return DXGI_FORMAT_R16G16B16A16_UNORM;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32G32B32A32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32G32B32A32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32G32B32A32_FLOAT;
-      }
-      break;
-    }
-    return DXGI_FORMAT_UNKNOWN;
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::PixelFormat::set(uint32 arg)
-  {
-    DXGI_FORMAT pixelFormat = (DXGI_FORMAT)arg;
-    switch (arg)
-    {
-    case DXGI_FORMAT_R32G32B32A32_FLOAT:
-      m_numberOfComponents = 4;
-      m_scalarType = IGTL_SCALARTYPE_FLOAT32;
-      break;
-    case DXGI_FORMAT_R32G32B32A32_UINT:
-      m_numberOfComponents = 4;
-      m_scalarType = IGTL_SCALARTYPE_UINT32;
-      break;
-    case DXGI_FORMAT_R32G32B32A32_SINT:
-      m_numberOfComponents = 4;
-      m_scalarType = IGTL_SCALARTYPE_INT32;
-      break;
-    case DXGI_FORMAT_R32G32B32_FLOAT:
-      m_numberOfComponents = 3;
-      m_scalarType = IGTL_SCALARTYPE_FLOAT32;
-      break;
-    case DXGI_FORMAT_R32G32B32_UINT:
-      m_numberOfComponents = 3;
-      m_scalarType = IGTL_SCALARTYPE_UINT32;
-      break;
-    case DXGI_FORMAT_R32G32B32_SINT:
-      m_numberOfComponents = 3;
-      m_scalarType = IGTL_SCALARTYPE_INT32;
-      break;
-    case DXGI_FORMAT_R16G16B16A16_UNORM:
-    case DXGI_FORMAT_R16G16B16A16_UINT:
-      m_numberOfComponents = 4;
-      m_scalarType = IGTL_SCALARTYPE_UINT16;
-      break;
-    case DXGI_FORMAT_R16G16B16A16_SNORM:
-    case DXGI_FORMAT_R16G16B16A16_SINT:
-      m_numberOfComponents = 4;
-      m_scalarType = IGTL_SCALARTYPE_INT16;
-      break;
-    case DXGI_FORMAT_R32G32_FLOAT:
-      m_numberOfComponents = 2;
-      m_scalarType = IGTL_SCALARTYPE_FLOAT32;
-      break;
-    case DXGI_FORMAT_R32G32_UINT:
-      m_numberOfComponents = 2;
-      m_scalarType = IGTL_SCALARTYPE_UINT32;
-      break;
-    case DXGI_FORMAT_R32G32_SINT:
-      m_numberOfComponents = 2;
-      m_scalarType = IGTL_SCALARTYPE_INT32;
-      break;
-    case DXGI_FORMAT_R8G8B8A8_UNORM:
-    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
-    case DXGI_FORMAT_R8G8B8A8_UINT:
-      m_numberOfComponents = 4;
-      m_scalarType = IGTL_SCALARTYPE_UINT8;
-      break;
-    case DXGI_FORMAT_R8G8B8A8_SNORM:
-    case DXGI_FORMAT_R8G8B8A8_SINT:
-      m_numberOfComponents = 4;
-      m_scalarType = IGTL_SCALARTYPE_INT8;
-      break;
-    case DXGI_FORMAT_R16G16_UNORM:
-    case DXGI_FORMAT_R16G16_UINT:
-      m_numberOfComponents = 2;
-      m_scalarType = IGTL_SCALARTYPE_UINT16;
-      break;
-    case DXGI_FORMAT_R16G16_SNORM:
-    case DXGI_FORMAT_R16G16_SINT:
-      m_numberOfComponents = 2;
-      m_scalarType = IGTL_SCALARTYPE_INT16;
-      break;
-    case DXGI_FORMAT_R32_FLOAT:
-      m_numberOfComponents = 1;
-      m_scalarType = IGTL_SCALARTYPE_FLOAT32;
-      break;
-    case DXGI_FORMAT_R32_UINT:
-      m_numberOfComponents = 1;
-      m_scalarType = IGTL_SCALARTYPE_UINT32;
-      break;
-    case DXGI_FORMAT_R32_SINT:
-      m_numberOfComponents = 1;
-      m_scalarType = IGTL_SCALARTYPE_INT32;
-      break;
-    case DXGI_FORMAT_R8G8_UNORM:
-    case DXGI_FORMAT_R8G8_UINT:
-      m_numberOfComponents = 2;
-      m_scalarType = IGTL_SCALARTYPE_UINT8;
-      break;
-    case DXGI_FORMAT_R8G8_SNORM:
-    case DXGI_FORMAT_R8G8_SINT:
-      m_numberOfComponents = 2;
-      m_scalarType = IGTL_SCALARTYPE_INT8;
-      break;
-    case DXGI_FORMAT_R16_UNORM:
-    case DXGI_FORMAT_R16_UINT:
-      m_numberOfComponents = 1;
-      m_scalarType = IGTL_SCALARTYPE_UINT16;
-      break;
-    case DXGI_FORMAT_R16_SNORM:
-    case DXGI_FORMAT_R16_SINT:
-      m_numberOfComponents = 1;
-      m_scalarType = IGTL_SCALARTYPE_INT16;
-      break;
-    case DXGI_FORMAT_R8_UNORM:
-    case DXGI_FORMAT_R8_UINT:
-      m_numberOfComponents = 1;
-      m_scalarType = IGTL_SCALARTYPE_UINT8;
-      break;
-    case DXGI_FORMAT_R8_SNORM:
-    case DXGI_FORMAT_R8_SINT:
-      m_numberOfComponents = 1;
-      m_scalarType = IGTL_SCALARTYPE_INT8;
-      break;
-    default:
-      // Remaining formats are not supported by IGT
-      break;
-    }
   }
 
   //----------------------------------------------------------------------------

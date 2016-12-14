@@ -136,7 +136,6 @@ namespace UWPOpenIGTLink
     property int32 ScalarType { int32 get(); void set(int32 arg); }
     property Windows::Foundation::Collections::IVectorView<TrackedFrameTransformEntry^>^ FrameTransforms { Windows::Foundation::Collections::IVectorView<TrackedFrameTransformEntry^>^ get(); }
     property float4x4 EmbeddedImageTransform { float4x4 get(); void set(float4x4 arg); }
-    property uint32 PixelFormat { uint32 get(); void set(uint32 arg); }
     property uint16 ImageType { uint16 get(); void set(uint16 arg); }
     property uint16 ImageOrientation { uint16 get(); void set(uint16 arg); }
     property double Timestamp { double get(); void set(double arg); }
@@ -153,6 +152,7 @@ namespace UWPOpenIGTLink
     Platform::String^ GetCustomFrameField(Platform::String^ fieldName);
     int GetCustomFrameTransformStatus(TransformName^ transformName);
     bool HasImage();
+    uint32 GetPixelFormat(bool normalized);
 
   internal:
     void SetImageData(std::shared_ptr<byte> imageData);
