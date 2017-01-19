@@ -85,7 +85,7 @@ namespace UWPOpenIGTLink
     bool SendMessage(igtl::MessageBase::Pointer packedMessage);
 
     /// Threaded function to receive data from the connected server
-    static void DataReceiverPump(IGTLinkClient^ self, concurrency::cancellation_token token);
+    void DataReceiverPump(concurrency::cancellation_token token);
 
   protected private:
     /// Thread-safe method that allows child classes to read data from the socket

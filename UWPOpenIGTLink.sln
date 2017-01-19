@@ -7,9 +7,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UWPOpenIGTLink", "UWPOpenIG
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UWPOpenIGTLinkUI", "UWPOpenIGTLinkUI\UWPOpenIGTLinkUI.vcxproj", "{2A288B83-D03C-4E41-8179-C26070140D10}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenIGTLink", "OpenIGTLink-bin\Source\OpenIGTLink.vcxproj", "{AA6C9F4A-6043-3371-A4B2-A2F555291111}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenIGTLink", "OpenIGTLink-bin\Source\OpenIGTLink.vcxproj", "{123E9253-212A-3D0D-82DE-BFEA8BCE6F91}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "igtlutil", "OpenIGTLink-bin\Source\igtlutil\igtlutil.vcxproj", "{D5403A06-1733-3FEC-9A7F-A4FE008FEE9D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "igtlutil", "OpenIGTLink-bin\Source\igtlutil\igtlutil.vcxproj", "{E40B8A55-E32D-319E-895B-AD3B3938E92D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,22 +39,22 @@ Global
 		{2A288B83-D03C-4E41-8179-C26070140D10}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
 		{2A288B83-D03C-4E41-8179-C26070140D10}.RelWithDebInfo|x86.Build.0 = Release|Win32
 		{2A288B83-D03C-4E41-8179-C26070140D10}.RelWithDebInfo|x86.Deploy.0 = Release|Win32
-		{AA6C9F4A-6043-3371-A4B2-A2F555291111}.Debug|x86.ActiveCfg = Debug|Win32
-		{AA6C9F4A-6043-3371-A4B2-A2F555291111}.Debug|x86.Build.0 = Debug|Win32
-		{AA6C9F4A-6043-3371-A4B2-A2F555291111}.MinSizeRel|x86.ActiveCfg = MinSizeRel|Win32
-		{AA6C9F4A-6043-3371-A4B2-A2F555291111}.MinSizeRel|x86.Build.0 = MinSizeRel|Win32
-		{AA6C9F4A-6043-3371-A4B2-A2F555291111}.Release|x86.ActiveCfg = Release|Win32
-		{AA6C9F4A-6043-3371-A4B2-A2F555291111}.Release|x86.Build.0 = Release|Win32
-		{AA6C9F4A-6043-3371-A4B2-A2F555291111}.RelWithDebInfo|x86.ActiveCfg = RelWithDebInfo|Win32
-		{AA6C9F4A-6043-3371-A4B2-A2F555291111}.RelWithDebInfo|x86.Build.0 = RelWithDebInfo|Win32
-		{D5403A06-1733-3FEC-9A7F-A4FE008FEE9D}.Debug|x86.ActiveCfg = Debug|Win32
-		{D5403A06-1733-3FEC-9A7F-A4FE008FEE9D}.Debug|x86.Build.0 = Debug|Win32
-		{D5403A06-1733-3FEC-9A7F-A4FE008FEE9D}.MinSizeRel|x86.ActiveCfg = MinSizeRel|Win32
-		{D5403A06-1733-3FEC-9A7F-A4FE008FEE9D}.MinSizeRel|x86.Build.0 = MinSizeRel|Win32
-		{D5403A06-1733-3FEC-9A7F-A4FE008FEE9D}.Release|x86.ActiveCfg = Release|Win32
-		{D5403A06-1733-3FEC-9A7F-A4FE008FEE9D}.Release|x86.Build.0 = Release|Win32
-		{D5403A06-1733-3FEC-9A7F-A4FE008FEE9D}.RelWithDebInfo|x86.ActiveCfg = RelWithDebInfo|Win32
-		{D5403A06-1733-3FEC-9A7F-A4FE008FEE9D}.RelWithDebInfo|x86.Build.0 = RelWithDebInfo|Win32
+		{123E9253-212A-3D0D-82DE-BFEA8BCE6F91}.Debug|x86.ActiveCfg = Debug|Win32
+		{123E9253-212A-3D0D-82DE-BFEA8BCE6F91}.Debug|x86.Build.0 = Debug|Win32
+		{123E9253-212A-3D0D-82DE-BFEA8BCE6F91}.MinSizeRel|x86.ActiveCfg = MinSizeRel|Win32
+		{123E9253-212A-3D0D-82DE-BFEA8BCE6F91}.MinSizeRel|x86.Build.0 = MinSizeRel|Win32
+		{123E9253-212A-3D0D-82DE-BFEA8BCE6F91}.Release|x86.ActiveCfg = Release|Win32
+		{123E9253-212A-3D0D-82DE-BFEA8BCE6F91}.Release|x86.Build.0 = Release|Win32
+		{123E9253-212A-3D0D-82DE-BFEA8BCE6F91}.RelWithDebInfo|x86.ActiveCfg = RelWithDebInfo|Win32
+		{123E9253-212A-3D0D-82DE-BFEA8BCE6F91}.RelWithDebInfo|x86.Build.0 = RelWithDebInfo|Win32
+		{E40B8A55-E32D-319E-895B-AD3B3938E92D}.Debug|x86.ActiveCfg = Debug|Win32
+		{E40B8A55-E32D-319E-895B-AD3B3938E92D}.Debug|x86.Build.0 = Debug|Win32
+		{E40B8A55-E32D-319E-895B-AD3B3938E92D}.MinSizeRel|x86.ActiveCfg = MinSizeRel|Win32
+		{E40B8A55-E32D-319E-895B-AD3B3938E92D}.MinSizeRel|x86.Build.0 = MinSizeRel|Win32
+		{E40B8A55-E32D-319E-895B-AD3B3938E92D}.Release|x86.ActiveCfg = Release|Win32
+		{E40B8A55-E32D-319E-895B-AD3B3938E92D}.Release|x86.Build.0 = Release|Win32
+		{E40B8A55-E32D-319E-895B-AD3B3938E92D}.RelWithDebInfo|x86.ActiveCfg = RelWithDebInfo|Win32
+		{E40B8A55-E32D-319E-895B-AD3B3938E92D}.RelWithDebInfo|x86.Build.0 = RelWithDebInfo|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

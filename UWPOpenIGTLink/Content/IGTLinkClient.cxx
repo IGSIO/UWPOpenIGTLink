@@ -125,7 +125,7 @@ namespace UWPOpenIGTLink
       // We're connected, start the data receiver thread
       create_task([this]()
       {
-        DataReceiverPump(this, m_receiverPumpTokenSource.get_token());
+        DataReceiverPump(m_receiverPumpTokenSource.get_token());
       });
 
       return true;
@@ -310,24 +310,24 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void IGTLinkClient::DataReceiverPump(IGTLinkClient^ self, concurrency::cancellation_token token)
+  void IGTLinkClient::DataReceiverPump(concurrency::cancellation_token token)
   {
     LOG_TRACE(L"IGTLinkClient::DataReceiverPump");
 
     while (!token.is_canceled())
     {
-      auto headerMsg = self->m_igtlMessageFactory->CreateHeaderMessage(IGTL_HEADER_VERSION_1);
+      auto headerMsg = m_igtlMessageFactory->CreateHeaderMessage(IGTL_HEADER_VERSION_1);
 
       // Receive generic header from the socket
       int numOfBytesReceived = 0;
       {
-        std::lock_guard<std::mutex> guard(self->m_socketMutex);
-        if (!self->m_clientSocket->GetConnected())
+        std::lock_guard<std::mutex> guard(m_socketMutex);
+        if (!m_clientSocket->GetConnected())
         {
           // We've become disconnected while waiting for the socket, we're done here!
           return;
         }
-        numOfBytesReceived = self->m_clientSocket->Receive(headerMsg->GetBufferPointer(), headerMsg->GetBufferSize());
+        numOfBytesReceived = m_clientSocket->Receive(headerMsg->GetBufferPointer(), headerMsg->GetBufferSize());
       }
       if (numOfBytesReceived == 0  // No message received
           || numOfBytesReceived != headerMsg->GetBufferSize() // Received data is not as we expected
@@ -348,7 +348,7 @@ namespace UWPOpenIGTLink
       igtl::MessageBase::Pointer bodyMsg = nullptr;
       try
       {
-        bodyMsg = self->m_igtlMessageFactory->CreateReceiveMessage(headerMsg);
+        bodyMsg = m_igtlMessageFactory->CreateReceiveMessage(headerMsg);
       }
       catch (const std::exception&)
       {
@@ -369,13 +369,13 @@ namespace UWPOpenIGTLink
       if (typeid(*bodyMsg) == typeid(igtl::TrackedFrameMessage))
       {
         {
-          std::lock_guard<std::mutex> guard(self->m_socketMutex);
-          if (!self->m_clientSocket->GetConnected())
+          std::lock_guard<std::mutex> guard(m_socketMutex);
+          if (!m_clientSocket->GetConnected())
           {
             // We've become disconnected while waiting for the socket, we're done here!
             return;
           }
-          self->m_clientSocket->Receive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+          m_clientSocket->Receive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
         }
 
         int c = bodyMsg->Unpack(1);
@@ -388,22 +388,22 @@ namespace UWPOpenIGTLink
         igtl::TrackedFrameMessage* trackedFrameMessage = (igtl::TrackedFrameMessage*)bodyMsg.GetPointer();
 
         // Post process tracked frame to adjust for unit scale
-        trackedFrameMessage->ApplyTransformUnitScaling(self->m_trackerUnitScale);
+        trackedFrameMessage->ApplyTransformUnitScaling(m_trackerUnitScale);
 
         // Save reply
-        std::lock_guard<std::mutex> guard(self->m_messageListMutex);
-        self->m_receivedMessages.push_back(bodyMsg);
+        std::lock_guard<std::mutex> guard(m_messageListMutex);
+        m_receivedMessages.push_back(bodyMsg);
       }
       else if (typeid(*bodyMsg) != typeid(igtl::StatusMessage))
       {
         {
-          std::lock_guard<std::mutex> guard(self->m_socketMutex);
-          if (!self->m_clientSocket->GetConnected())
+          std::lock_guard<std::mutex> guard(m_socketMutex);
+          if (!m_clientSocket->GetConnected())
           {
             // We've become disconnected while waiting for the socket, we're done here!
             return;
           }
-          self->m_clientSocket->Receive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+          m_clientSocket->Receive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
         }
 
         int c = bodyMsg->Unpack(1);
@@ -414,32 +414,32 @@ namespace UWPOpenIGTLink
         }
 
         // save reply
-        std::lock_guard<std::mutex> guard(self->m_messageListMutex);
-        self->m_receivedMessages.push_back(bodyMsg);
+        std::lock_guard<std::mutex> guard(m_messageListMutex);
+        m_receivedMessages.push_back(bodyMsg);
       }
       else
       {
-        std::lock_guard<std::mutex> guard(self->m_socketMutex);
-        self->m_clientSocket->Skip(headerMsg->GetBodySizeToRead(), 0);
+        std::lock_guard<std::mutex> guard(m_socketMutex);
+        m_clientSocket->Skip(headerMsg->GetBodySizeToRead(), 0);
       }
 
-      if (self->m_receivedMessages.size() > MESSAGE_LIST_MAX_SIZE)
+      if (m_receivedMessages.size() > MESSAGE_LIST_MAX_SIZE)
       {
-        std::lock_guard<std::mutex> guard(self->m_messageListMutex);
+        std::lock_guard<std::mutex> guard(m_messageListMutex);
 
         // erase the front N results
-        uint32 toErase = self->m_receivedMessages.size() - MESSAGE_LIST_MAX_SIZE;
-        self->m_receivedMessages.erase(self->m_receivedMessages.begin(), self->m_receivedMessages.begin() + toErase);
+        uint32 toErase = m_receivedMessages.size() - MESSAGE_LIST_MAX_SIZE;
+        m_receivedMessages.erase(m_receivedMessages.begin(), m_receivedMessages.begin() + toErase);
       }
 
-      auto oldestTimestamp = self->GetOldestTrackedFrameTimestamp();
+      auto oldestTimestamp = GetOldestTrackedFrameTimestamp();
       if (oldestTimestamp > 0)
       {
-        for (auto it = self->m_receivedUWPMessages.begin(); it != self->m_receivedUWPMessages.end();)
+        for (auto it = m_receivedUWPMessages.begin(); it != m_receivedUWPMessages.end();)
         {
           if (it->first < oldestTimestamp)
           {
-            it = self->m_receivedUWPMessages.erase(it);
+            it = m_receivedUWPMessages.erase(it);
           }
           else
           {
