@@ -82,8 +82,8 @@ namespace igtl
     /*! Get the embedded transform of the underlying image */
     Windows::Foundation::Numerics::float4x4 GetEmbeddedImageTransform();
 
-    const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& GetFrameTransforms();
-    void SetFrameTransforms(const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& transforms);
+    const std::vector<UWPOpenIGTLink::TransformEntryUWP^>& GetFrameTransforms();
+    void SetFrameTransforms(const std::vector<UWPOpenIGTLink::TransformEntryUWP^>& transforms);
     void ApplyTransformUnitScaling(float scalingFactor);
 
   protected:
@@ -113,7 +113,7 @@ namespace igtl
     TrackedFrameMessage();
     ~TrackedFrameMessage();
 
-    std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>  m_frameTransforms;
+    std::vector<UWPOpenIGTLink::TransformEntryUWP^>           m_frameTransforms;
     std::map<std::wstring, std::wstring>                      m_customFrameFields;
     std::shared_ptr<byte>                                     m_image = nullptr;
     std::string                                               m_trackedFrameXmlData;

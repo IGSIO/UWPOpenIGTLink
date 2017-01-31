@@ -64,6 +64,26 @@ namespace UWPOpenIGTLink
   [Windows::Foundation::Metadata::WebHostHiddenAttribute]
   public ref class TransformRepository sealed
   {
+  protected private:
+    class TransformInfo
+    {
+    public:
+      TransformInfo();
+      virtual ~TransformInfo();
+      TransformInfo(const TransformInfo& obj);
+      TransformInfo& operator=(const TransformInfo& obj);
+
+      Windows::Foundation::Numerics::float4x4   m_Transform;
+      bool                                      m_IsValid;
+      bool                                      m_IsComputed;
+      bool                                      m_IsPersistent;
+      std::wstring                              m_Date;
+      double                                    m_Error;
+    };
+    typedef std::map<std::wstring, TransformInfo>                 CoordFrameToTransformMapType;
+    typedef std::map<std::wstring, CoordFrameToTransformMapType>  CoordFrameToCoordFrameToTransformMapType;
+    typedef std::list<TransformInfo*>                             TransformInfoListType;
+
   public:
     TransformRepository();
     virtual ~TransformRepository();
@@ -74,7 +94,7 @@ namespace UWPOpenIGTLink
       set transform is allowed. The transform is computed even if one or more of the used transforms
       have non valid status.
     */
-    void SetTransform(TransformName^ aTransformName, float4x4 matrix, bool isValid);
+    void SetTransform(TransformName^ aTransformName, Windows::Foundation::Numerics::float4x4 matrix, bool isValid);
 
     /*!
       Set all transform matrices between two coordinate frames stored in TrackedFrame. The method fails if any of the transforms
@@ -135,7 +155,7 @@ namespace UWPOpenIGTLink
       \param aTransformName name of the transform to retrieve from the repository
       \param isValid whether or not the computed or original transform is valid
     */
-    float4x4 GetTransform(TransformName^ aTransformName, bool* isValid);
+    Windows::Foundation::Numerics::float4x4 GetTransform(TransformName^ aTransformName, bool* isValid);
 
     /*!
       Get the valid status of a transform matrix between two coordinate frames.
@@ -159,66 +179,21 @@ namespace UWPOpenIGTLink
     void DeepCopy(TransformRepository^ sourceRepositoryName, bool copyAllTransforms);
 
   protected private:
-    /// TransformInfo - Stores a transformation matrix and some additional information (valid or not, computed or not)
-    class TransformInfo
-    {
-    public:
-      TransformInfo();
-      virtual ~TransformInfo();
-      TransformInfo(const TransformInfo& obj);
-      TransformInfo& operator=(const TransformInfo& obj);
-
-      /// TransformInfo storing the transformation matrix between two coordinate frames
-      float4x4 m_Transform;
-
-      /// If it is true it means that the transform is known (e.g., tracked tool is visible)
-      bool m_IsValid;
-
-      /*!
-        If the value is true then it means that the transform is computed from
-        another transform (by inverting that). If the value is false it means
-        that it is an original transform (set by the user by a SetTransform() method call)
-      */
-      bool m_IsComputed;
-
-      /*!
-        If the value is true then it means that the transform is persistent
-        and won't change, so we can save it to config file as a coordinate definition;
-      */
-      bool m_IsPersistent;
-
-      /// Persistent transform creation date, saved to configuration file
-      std::wstring m_Date;
-
-      /// Persistent transform calculation error (e.g calibration error)
-      double m_Error;
-    };
-
-    /*! For each "to" coordinate frame name (first) stores a transform (second)*/
-    typedef std::map<std::wstring, TransformInfo> CoordFrameToTransformMapType;
-    /*! For each "from" coordinate frame (first) stores an array of transforms (second) */
-    typedef std::map<std::wstring, CoordFrameToTransformMapType> CoordFrameToCoordFrameToTransformMapType;
-
-    /*! List of transforms */
-    typedef std::list<TransformInfo*> TransformInfoListType;
-
     /*! Get a user-defined original input transform (or its inverse). Does not combine user-defined input transforms. */
     TransformInfo* GetOriginalTransform(TransformName^ aTransformName);
 
     /*!
-      Find a transform path between the specified coordinate frames.
-      \param aTransformName name of the transform to find
-      \param transformInfoList Stores the list of transforms to get from the fromCoordFrameName to toCoordFrameName
-      \param skipCoordFrameName This is the name of a coordinate system that should be ignored (e.g., because it was checked previously already)
-      \param silent Don't log an error if path cannot be found (it's normal while searching in branches of the graph)
-      \return returns PLUS_SUCCESS if a path can be found, PLUS_FAIL otherwise
+    Find a transform path between the specified coordinate frames.
+    \param aTransformName name of the transform to find
+    \param transformInfoList Stores the list of transforms to get from the fromCoordFrameName to toCoordFrameName
+    \param skipCoordFrameName This is the name of a coordinate system that should be ignored (e.g., because it was checked previously already)
+    \param silent Don't log an error if path cannot be found (it's normal while searching in branches of the graph)
+    \return returns PLUS_SUCCESS if a path can be found, PLUS_FAIL otherwise
     */
     bool FindPath(TransformName^ aTransformName, TransformInfoListType& transformInfoList, const wchar_t* skipCoordFrameName = NULL, bool silent = false);
 
-    CoordFrameToCoordFrameToTransformMapType m_CoordinateFrames;
-
-    std::mutex m_CriticalSection;
-
-    TransformInfo m_TransformToSelf;
+    CoordFrameToCoordFrameToTransformMapType  m_CoordinateFrames;
+    std::mutex                                m_CriticalSection;
+    TransformInfo                             m_TransformToSelf;
   };
 }

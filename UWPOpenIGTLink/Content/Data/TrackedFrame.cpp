@@ -30,12 +30,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <collection.h>
 #include <robuffer.h>
 
-// stl includes
+// STL includes
 #include <sstream>
 
 using namespace Platform::Collections;
-using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
+using namespace Windows::Foundation::Numerics;
+using namespace Windows::Foundation;
 using namespace Windows::Storage::Streams;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Media;
@@ -364,12 +365,12 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  IVectorView<TrackedFrameTransformEntry^>^ TrackedFrame::GetFrameTransforms()
+  TransformEntryUWPList^ TrackedFrame::GetTransforms()
   {
-    Vector<TrackedFrameTransformEntry^>^ vec = ref new Vector<TrackedFrameTransformEntry^>();
+    Vector<TransformEntryUWP^>^ vec = ref new Vector<TransformEntryUWP^>();
     for (auto& entryInternal : m_frameTransforms)
     {
-      auto entry = ref new TrackedFrameTransformEntry();
+      auto entry = ref new TransformEntryUWP();
       entry->Name = std::get<0>(entryInternal);
       entry->Transform = std::get<1>(entryInternal);
       entry->Valid = std::get<2>(entryInternal);
@@ -379,7 +380,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  float4x4 TrackedFrame::GetCustomFrameTransform(TransformName^ transformName)
+  float4x4 TrackedFrame::GetTransform(TransformName^ transformName)
   {
     std::wstring transformNameStr;
     try
@@ -416,7 +417,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  int TrackedFrame::GetCustomFrameTransformStatus(TransformName^ transformName)
+  int TrackedFrame::GetTransformStatus(TransformName^ transformName)
   {
     TrackedFrameFieldStatus status = FIELD_INVALID;
     std::wstring transformStatusName;
@@ -448,6 +449,12 @@ namespace UWPOpenIGTLink
     status = TrackedFrame::ConvertFieldStatusFromString(strStatus);
 
     return status;
+  }
+
+  //----------------------------------------------------------------------------
+  void TrackedFrame::TransposeTransforms()
+  {
+
   }
 
   //----------------------------------------------------------------------------
@@ -515,7 +522,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  IVectorView<TransformName^>^ TrackedFrame::GetCustomFrameTransformNameList()
+  IVectorView<TransformName^>^ TrackedFrame::GetTransformNameList()
   {
     Vector<TransformName^>^ vec = ref new Vector<TransformName^>();
     for (auto pair : m_frameFields)
@@ -571,75 +578,81 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  const std::vector<TrackedFrame::TrackedFrameTransformEntryInternal>& TrackedFrame::GetFrameTransformsInternal()
+  const TransformEntryInternalList& TrackedFrame::GetFrameTransformsInternal()
   {
     return m_frameTransforms;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::SetFrameTransformsInternal(const std::vector<TrackedFrameTransformEntryInternal>& arg)
+  void TrackedFrame::SetFrameTransformsInternal(const TransformEntryInternalList& arg)
   {
     m_frameTransforms = arg;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::SetFrameTransformsInternal(const std::vector<TrackedFrameTransformEntry^>& arg)
+  void TrackedFrame::SetFrameTransformsInternal(const std::vector<TransformEntryUWP^>& arg)
   {
     m_frameTransforms.clear();
     for (auto& entry : arg)
     {
-      m_frameTransforms.push_back(TrackedFrameTransformEntryInternal(entry->Name, entry->Transform, entry->Valid));
+      m_frameTransforms.push_back(TransformEntryInternal(entry->Name, entry->Transform, entry->Valid));
     }
   }
 
   //----------------------------------------------------------------------------
-  TransformName^ TrackedFrameTransformEntry::Name::get()
+  TransformName^ TransformEntryUWP::Name::get()
   {
     return m_transformName;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrameTransformEntry::Name::set(TransformName^ arg)
+  void TransformEntryUWP::Name::set(TransformName^ arg)
   {
     m_transformName = arg;
   }
 
   //----------------------------------------------------------------------------
-  float4x4 TrackedFrameTransformEntry::Transform::get()
+  float4x4 TransformEntryUWP::Transform::get()
   {
     return m_transform;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrameTransformEntry::Transform::set(float4x4 arg)
+  void TransformEntryUWP::Transform::set(float4x4 arg)
   {
     m_transform = arg;
   }
 
   //----------------------------------------------------------------------------
-  bool TrackedFrameTransformEntry::Valid::get()
+  bool TransformEntryUWP::Valid::get()
   {
     return m_isValid;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrameTransformEntry::Valid::set(bool arg)
+  void TransformEntryUWP::Valid::set(bool arg)
   {
     m_isValid = arg;
   }
 
   //----------------------------------------------------------------------------
-  Windows::Foundation::Collections::IVectorView<TrackedFrameTransformEntry^>^ TrackedFrame::FrameTransforms::get()
+  TransformEntryUWPList^ TrackedFrame::FrameTransforms::get()
   {
-    return GetFrameTransforms();
+    return GetTransforms();
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrameTransformEntry::ScaleTranslationComponent(float scalingFactor)
+  void TransformEntryUWP::ScaleTranslationComponent(float scalingFactor)
   {
     m_transform.m14 *= scalingFactor;
     m_transform.m24 *= scalingFactor;
     m_transform.m34 *= scalingFactor;
+  }
+
+  //----------------------------------------------------------------------------
+  void TransformEntryUWP::Transpose()
+  {
+    m_transform = transpose(m_transform);
   }
 
 }

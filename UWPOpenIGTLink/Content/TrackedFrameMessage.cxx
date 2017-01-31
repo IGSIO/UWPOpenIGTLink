@@ -85,13 +85,13 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& TrackedFrameMessage::GetFrameTransforms()
+  const std::vector<UWPOpenIGTLink::TransformEntryUWP^>& TrackedFrameMessage::GetFrameTransforms()
   {
     return m_frameTransforms;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrameMessage::SetFrameTransforms(const std::vector<UWPOpenIGTLink::TrackedFrameTransformEntry^>& transforms)
+  void TrackedFrameMessage::SetFrameTransforms(const std::vector<UWPOpenIGTLink::TransformEntryUWP^>& transforms)
   {
     m_frameTransforms = transforms;
   }
@@ -305,7 +305,7 @@ namespace igtl
       auto value = iter->second;
       if (UWPOpenIGTLink::TrackedFrame::IsTransform(name))
       {
-        auto entry = ref new UWPOpenIGTLink::TrackedFrameTransformEntry();
+        auto entry = ref new UWPOpenIGTLink::TransformEntryUWP();
 
         std::wistringstream wiss(value);
         float transform[16];

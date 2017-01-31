@@ -105,7 +105,7 @@ namespace UWPOpenIGTLink
   };
 
   [Windows::Foundation::Metadata::WebHostHiddenAttribute]
-  public ref class TrackedFrameTransformEntry sealed
+  public ref class TransformEntryUWP sealed
   {
   public:
     property TransformName^ Name { TransformName ^ get(); void set(TransformName ^ arg); }
@@ -113,17 +113,22 @@ namespace UWPOpenIGTLink
     property bool Valid { bool get(); void set(bool arg); }
 
     void ScaleTranslationComponent(float scalingFactor);
+    void Transpose();
+
   private:
     TransformName^ m_transformName;
     Windows::Foundation::Numerics::float4x4 m_transform;
     bool m_isValid;
   };
 
+  typedef Windows::Foundation::Collections::IVectorView<TransformEntryUWP^> TransformEntryUWPList;
+  typedef std::tuple<TransformName^, Windows::Foundation::Numerics::float4x4, bool> TransformEntryInternal;
+  typedef std::vector<TransformEntryInternal> TransformEntryInternalList;
+
   [Windows::Foundation::Metadata::WebHostHiddenAttribute]
   public ref class TrackedFrame sealed
   {
   public:
-    typedef std::tuple<TransformName^, Windows::Foundation::Numerics::float4x4, bool> TrackedFrameTransformEntryInternal;
     typedef std::map<std::wstring, std::wstring> FieldMapType;
 
   public:
@@ -134,8 +139,8 @@ namespace UWPOpenIGTLink
     property Windows::Storage::Streams::IBuffer^ ImageData { Windows::Storage::Streams::IBuffer ^ get(); void set(Windows::Storage::Streams::IBuffer ^ arg); }
     property SharedBytePtr ImageDataSharedPtr { SharedBytePtr get(); void set(SharedBytePtr arg); }
     property int32 ScalarType { int32 get(); void set(int32 arg); }
-    property Windows::Foundation::Collections::IVectorView<TrackedFrameTransformEntry^>^ FrameTransforms { Windows::Foundation::Collections::IVectorView<TrackedFrameTransformEntry^>^ get(); }
-    property float4x4 EmbeddedImageTransform { float4x4 get(); void set(float4x4 arg); }
+    property TransformEntryUWPList^ FrameTransforms { TransformEntryUWPList ^ get(); }
+    property Windows::Foundation::Numerics::float4x4 EmbeddedImageTransform { Windows::Foundation::Numerics::float4x4 get(); void set(Windows::Foundation::Numerics::float4x4 arg); }
     property uint16 ImageType { uint16 get(); void set(uint16 arg); }
     property uint16 ImageOrientation { uint16 get(); void set(uint16 arg); }
     property double Timestamp { double get(); void set(double arg); }
@@ -145,12 +150,17 @@ namespace UWPOpenIGTLink
 
   public:
     void SetParameter(Platform::String^ key, Platform::String^ value);
+
+    int GetTransformStatus(TransformName^ transformName);
     Windows::Foundation::Collections::IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
-    Windows::Foundation::Collections::IVectorView<TrackedFrameTransformEntry^>^ GetFrameTransforms();
-    Windows::Foundation::Collections::IVectorView<TransformName^>^ TrackedFrame::GetCustomFrameTransformNameList();
-    float4x4 GetCustomFrameTransform(TransformName^ transformName);
+    TransformEntryUWPList^ GetTransforms();
+    Windows::Foundation::Numerics::float4x4 GetTransform(TransformName^ transformName);
+    Windows::Foundation::Collections::IVectorView<TransformName^>^ TrackedFrame::GetTransformNameList();
+
+    void TransposeTransforms();
+
     Platform::String^ GetCustomFrameField(Platform::String^ fieldName);
-    int GetCustomFrameTransformStatus(TransformName^ transformName);
+
     bool HasImage();
     uint32 GetPixelFormat(bool normalized);
 
@@ -179,14 +189,14 @@ namespace UWPOpenIGTLink
     static std::wstring ConvertFieldStatusToString(TrackedFrameFieldStatus status);
 
     /*! Get all frame transforms */
-    const std::vector<TrackedFrameTransformEntryInternal>& GetFrameTransformsInternal();
-    void SetFrameTransformsInternal(const std::vector<TrackedFrameTransformEntryInternal>& arg);
-    void SetFrameTransformsInternal(const std::vector<TrackedFrameTransformEntry^>& arg);
+    const TransformEntryInternalList& GetFrameTransformsInternal();
+    void SetFrameTransformsInternal(const TransformEntryInternalList& arg);
+    void SetFrameTransformsInternal(const std::vector<TransformEntryUWP^>& arg);
 
   protected private:
     // Tracking/other related fields
     FieldMapType                                    m_frameFields;
-    std::vector<TrackedFrameTransformEntryInternal> m_frameTransforms;
+    TransformEntryInternalList                      m_frameTransforms;
 
     // Image related fields
     double                                          m_timestamp = 0.0;
