@@ -10,7 +10,7 @@
 #include "TrackedFrame.h"
 #include "TransformRepository.h"
 
-// stl includes
+// STL includes
 #include <sstream>
 #include <iomanip>
 
@@ -19,6 +19,7 @@
 
 using namespace Windows::Data::Xml::Dom;
 using namespace Windows::Foundation::Collections;
+using namespace Windows::Foundation::Numerics;
 
 namespace UWPOpenIGTLink
 {

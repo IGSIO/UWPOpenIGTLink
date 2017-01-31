@@ -30,8 +30,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 // WinRT includes
 #include <collection.h>
 
-using namespace Windows::Foundation::Numerics;
-
 namespace UWPOpenIGTLink
 {
   typedef Platform::Collections::Map<Platform::String^, Platform::String^> StringMap;
@@ -63,7 +61,7 @@ namespace UWPOpenIGTLink
   }
 
   //--------------------------------------------------------
-  inline void LogMessage( const std::string& msg, const char* fileName, int lineNumber )
+  inline void LogMessage(const std::string& msg, const char* fileName, int lineNumber)
   {
     std::ostringstream log;
     log << "|TRACE| ";
@@ -71,16 +69,16 @@ namespace UWPOpenIGTLink
     log << msg;
 
     // Add the message to the log
-    if ( fileName != NULL )
+    if (fileName != NULL)
     {
       log << "| in " << fileName << "(" << lineNumber << ")"; // add filename and line number
     }
 
-    OutputDebugStringA( log.str().c_str() );
+    OutputDebugStringA(log.str().c_str());
   }
 
   //--------------------------------------------------------
-  inline void LogMessage( const std::wstring& msg, const char* fileName, int lineNumber )
+  inline void LogMessage(const std::wstring& msg, const char* fileName, int lineNumber)
   {
     std::wostringstream log;
     log << L"|TRACE| ";
@@ -88,34 +86,34 @@ namespace UWPOpenIGTLink
     log << msg;
 
     // Add the message to the log
-    if ( fileName != NULL )
+    if (fileName != NULL)
     {
       log << L"| in " << fileName << L"(" << lineNumber << L")"; // add filename and line number
     }
 
-    OutputDebugStringW( log.str().c_str() );
+    OutputDebugStringW(log.str().c_str());
   }
 
   //--------------------------------------------------------
-  inline std::wstring PrintMatrix(const float4x4& matrix)
+  inline std::wstring PrintMatrix(const Windows::Foundation::Numerics::float4x4& matrix)
   {
     std::wostringstream woss;
     woss << matrix.m11 << " "
-      << matrix.m12 << " "
-      << matrix.m13 << " "
-      << matrix.m14 << "    "
-      << matrix.m21 << " "
-      << matrix.m22 << " "
-      << matrix.m23 << " "
-      << matrix.m24 << "    "
-      << matrix.m31 << " "
-      << matrix.m32 << " "
-      << matrix.m33 << " "
-      << matrix.m34 << "    "
-      << matrix.m41 << " "
-      << matrix.m42 << " "
-      << matrix.m43 << " "
-      << matrix.m44 << std::endl;
+         << matrix.m12 << " "
+         << matrix.m13 << " "
+         << matrix.m14 << "    "
+         << matrix.m21 << " "
+         << matrix.m22 << " "
+         << matrix.m23 << " "
+         << matrix.m24 << "    "
+         << matrix.m31 << " "
+         << matrix.m32 << " "
+         << matrix.m33 << " "
+         << matrix.m34 << "    "
+         << matrix.m41 << " "
+         << matrix.m42 << " "
+         << matrix.m43 << " "
+         << matrix.m44 << std::endl;
     return woss.str();
   }
 }
