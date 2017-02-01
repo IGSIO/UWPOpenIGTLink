@@ -93,6 +93,7 @@ namespace UWPOpenIGTLink
       can be already constructed by concatenating/inverting already stored transforms. Changing an already
       set transform is allowed. The transform is computed even if one or more of the used transforms
       have non valid status.
+      Throws exception if not valid
     */
     void SetTransform(TransformName^ aTransformName, Windows::Foundation::Numerics::float4x4 matrix, bool isValid);
 
@@ -155,7 +156,7 @@ namespace UWPOpenIGTLink
       \param aTransformName name of the transform to retrieve from the repository
       \param isValid whether or not the computed or original transform is valid
     */
-    Windows::Foundation::Numerics::float4x4 GetTransform(TransformName^ aTransformName, bool* isValid);
+    Windows::Foundation::Numerics::float4x4 GetTransform(TransformName^ aTransformName);
 
     /*!
       Get the valid status of a transform matrix between two coordinate frames.

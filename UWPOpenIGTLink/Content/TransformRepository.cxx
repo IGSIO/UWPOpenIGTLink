@@ -202,7 +202,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  float4x4 TransformRepository::GetTransform(TransformName^ aTransformName, bool* isValid)
+  float4x4 TransformRepository::GetTransform(TransformName^ aTransformName)
   {
     if (!aTransformName->IsValid())
     {
@@ -237,20 +237,22 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if (isValid != NULL)
-    {
-      (*isValid) = combinedTransformValid;
-    }
-
     return combinedTransform;
   }
 
   //----------------------------------------------------------------------------
   bool TransformRepository::GetTransformValid(TransformName^ aTransformName)
   {
-    bool isValid;
-    GetTransform(aTransformName, &isValid);
-    return isValid;
+    try
+    {
+      GetTransform(aTransformName);
+    }
+    catch (const std::exception&)
+    {
+      return false;
+    }
+
+    return true;
   }
 
   //----------------------------------------------------------------------------
