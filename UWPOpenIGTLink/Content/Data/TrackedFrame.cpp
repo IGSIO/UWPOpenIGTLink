@@ -454,7 +454,11 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void TrackedFrame::TransposeTransforms()
   {
-
+    m_embeddedImageTransform = transpose(m_embeddedImageTransform);
+    for (uint32 i = 0; i < m_frameTransforms.size(); ++i)
+    {
+      std::get<1>(m_frameTransforms[i]) = transpose(std::get<1>(m_frameTransforms[i]));
+    }
   }
 
   //----------------------------------------------------------------------------
