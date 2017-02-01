@@ -95,7 +95,14 @@ namespace UWPOpenIGTLink
     auto transforms = trackedFrame->GetFrameTransformsInternal();
     for (auto& entry : transforms)
     {
-      SetTransform(std::get<0>(entry), std::get<1>(entry), std::get<2>(entry));
+      try
+      {
+        SetTransform(std::get<0>(entry), std::get<1>(entry), std::get<2>(entry));
+      }
+      catch (Platform::Exception^ e)
+      {
+        continue;
+      }
     }
   }
 
