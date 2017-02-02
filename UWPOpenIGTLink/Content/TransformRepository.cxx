@@ -90,33 +90,29 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransforms(TrackedFrame^ trackedFrame)
+  bool TransformRepository::SetTransforms(TrackedFrame^ trackedFrame)
   {
     auto transforms = trackedFrame->GetFrameTransformsInternal();
+    bool result(true);
     for (auto& entry : transforms)
     {
-      try
-      {
-        SetTransform(std::get<0>(entry), std::get<1>(entry), std::get<2>(entry));
-      }
-      catch (Platform::Exception^ e)
-      {
-        continue;
-      }
+      result &= SetTransform(std::get<0>(entry), std::get<1>(entry), std::get<2>(entry));
     }
+
+    return result;
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransform(TransformName^ aTransformName, float4x4 matrix, bool isValid)
+  bool TransformRepository::SetTransform(TransformName^ aTransformName, float4x4 matrix, bool isValid)
   {
     if (!aTransformName->IsValid())
     {
-      throw ref new Platform::Exception(E_INVALIDARG, L"Invalid transform name sent: " + aTransformName->GetTransformName());
+      return false;
     }
 
     if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
+      return false;
     }
 
     std::lock_guard<std::mutex> guard(m_CriticalSection);
@@ -129,9 +125,7 @@ namespace UWPOpenIGTLink
       if (fromToTransformInfo->m_IsComputed)
       {
         // The transform already exists and it is computed (not original), so reject the transformation update
-        throw ref new Platform::Exception(E_INVALIDARG, L"The " + aTransformName->From() + L"To" + aTransformName->To() +
-                                          L" transform cannot be set, as the inverse (" + aTransformName->To() + L"To" +
-                                          aTransformName->From() + L") transform already exists");
+        return false;
       }
 
       // Update the matrix
@@ -145,11 +139,10 @@ namespace UWPOpenIGTLink
       TransformInfo* toFromTransformInfo = GetOriginalTransform(toFromTransformName);
       if (toFromTransformInfo == NULL)
       {
-        throw ref new Platform::Exception(E_INVALIDARG, L"The computed " + aTransformName->To() + L"To" + aTransformName->From()
-                                          + L" transform is missing. Cannot set its status");
+        return false;
       }
       toFromTransformInfo->m_IsValid = isValid;
-      return;
+      return true;
     }
     // The transform does not exist yet, add it now
 
@@ -158,8 +151,7 @@ namespace UWPOpenIGTLink
     {
       // a path already exist between the two coordinate frames
       // adding a new transform between these would result in a circle
-      throw ref new Platform::Exception(E_FAIL, L"A transform path already exists between " + aTransformName->From() +
-                                        L" and " + aTransformName->To());
+      return false;
     }
 
     // Create the from->to transform
@@ -176,19 +168,21 @@ namespace UWPOpenIGTLink
     invert(matrix, &matrix);
     toCoordFrame[fromStr].m_Transform = matrix;
     toCoordFrame[fromStr].m_IsValid = isValid;
+
+    return true;
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransformValid(TransformName^ aTransformName, bool isValid)
+  bool TransformRepository::SetTransformValid(TransformName^ aTransformName, bool isValid)
   {
     if (!aTransformName->IsValid())
     {
-      throw ref new Platform::Exception(E_INVALIDARG, L"Invalid transform name sent: " + aTransformName->GetTransformName());
+      return false;
     }
 
     if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
+      return false;
     }
 
     std::lock_guard<std::mutex> guard(m_CriticalSection);
@@ -198,7 +192,10 @@ namespace UWPOpenIGTLink
     if (fromToTransformInfo != NULL)
     {
       fromToTransformInfo->m_IsValid = isValid;
+      return true;
     }
+
+    return false;
   }
 
   //----------------------------------------------------------------------------

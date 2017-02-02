@@ -95,7 +95,7 @@ namespace UWPOpenIGTLink
       have non valid status.
       Throws exception if not valid
     */
-    void SetTransform(TransformName^ aTransformName, Windows::Foundation::Numerics::float4x4 matrix, bool isValid);
+    bool SetTransform(TransformName^ aTransformName, Windows::Foundation::Numerics::float4x4 matrix, bool isValid);
 
     /*!
       Set all transform matrices between two coordinate frames stored in TrackedFrame. The method fails if any of the transforms
@@ -103,13 +103,13 @@ namespace UWPOpenIGTLink
       set transform is allowed. The transform is computed even if one or more of the used transforms
       have non valid statuses.
     */
-    void SetTransforms(TrackedFrame^ trackedFrame);
+    bool SetTransforms(TrackedFrame^ trackedFrame);
 
     /*!
       Set the valid status of a transform matrix between two coordinate frames. A transform is normally valid,
       but temporarily it can be set to non valid (e.g., when a tracked tool gets out of view).
     */
-    void SetTransformValid(TransformName^ aTransformName, bool isValid);
+    bool SetTransformValid(TransformName^ aTransformName, bool isValid);
 
     /*!
       Set the persistent status of a transform matrix between two coordinate frames. A transform is non persistent by default.
