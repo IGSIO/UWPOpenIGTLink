@@ -126,6 +126,16 @@ namespace UWPOpenIGTLink
       create_task([this]()
       {
         DataReceiverPump(m_receiverPumpTokenSource.get_token());
+      }).then([this](task<void> previousTask)
+      {
+        try
+        {
+          previousTask.wait();
+        }
+        catch (const std::exception& e)
+        {
+          OutputDebugStringA((std::string("DataReceiverPump crash: ") + e.what()).c_str());
+        }
       });
 
       return true;
