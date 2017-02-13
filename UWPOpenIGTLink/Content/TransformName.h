@@ -56,7 +56,6 @@ namespace UWPOpenIGTLink
     }
   */
 
-  [Windows::Foundation::Metadata::WebHostHiddenAttribute]
   public ref class TransformName sealed
   {
   public:

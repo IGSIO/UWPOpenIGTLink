@@ -22,6 +22,21 @@
     <ClCompile Include="Content\TrackedFrameMessage.cxx">
       <Filter>Network</Filter>
     </ClCompile>
+    <ClCompile Include="Content\TimestampedCircularBuffer.cxx">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Content\StreamBufferItem.cxx">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Content\VideoFrame.cxx">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Content\Image.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="IGTCommon.cxx">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Content\Data\TrackedFrame.h">
@@ -47,6 +62,18 @@
     </ClInclude>
     <ClInclude Include="Content\IGTLinkClient.h">
       <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\TimestampedCircularBuffer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\StreamBufferItem.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\VideoFrame.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\Image.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

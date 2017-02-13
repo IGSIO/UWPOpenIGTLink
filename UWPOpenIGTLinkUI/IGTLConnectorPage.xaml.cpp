@@ -72,12 +72,6 @@ namespace
     ThrowIfFailed(bufferByteAccess->Buffer(&pixels));
     return pixels;
   }
-
-  //----------------------------------------------------------------------------
-  std::shared_ptr<byte> GetSharedImagePtr(TrackedFrame^ frame)
-  {
-    return *(std::shared_ptr<byte>*)frame->ImageDataSharedPtr;
-  }
 }
 
 namespace UWPOpenIGTLinkUI
@@ -105,10 +99,10 @@ namespace UWPOpenIGTLinkUI
 
       if (m_WriteableBitmap == nullptr)
       {
-        m_WriteableBitmap = ref new WriteableBitmap(frame->FrameSize->GetAt(0), frame->FrameSize->GetAt(1));
+        m_WriteableBitmap = ref new WriteableBitmap(frame->Frame->FrameSize[0], frame->Frame->FrameSize[1]);
       }
 
-      if (!IBufferToWriteableBitmap(frame->ImageData, frame->FrameSize->GetAt(0), frame->FrameSize->GetAt(1), frame->NumberOfComponents))
+      if (!IBufferToWriteableBitmap(frame->Frame->Image->ImageData, frame->Frame->FrameSize[0], frame->Frame->FrameSize[1], frame->Frame->NumberOfScalarComponents))
       {
         return;
       }
@@ -117,8 +111,8 @@ namespace UWPOpenIGTLinkUI
       {
         ImageDisplay->Source = m_WriteableBitmap;
       }
-      Platform::String^ text = L"Received " + frame->GetFrameTransforms()->Size + L" transforms:\n";
-      for (auto transformEntry : frame->GetFrameTransforms())
+      Platform::String^ text = L"Received " + frame->GetTransforms()->Size + L" transforms:\n";
+      for (auto transformEntry : frame->GetTransforms())
       {
         float3 origin = transform(float3(0.f, 0.f, 0.f), transpose(transformEntry->Transform));
         std::wstringstream ss;

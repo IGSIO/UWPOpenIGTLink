@@ -136,9 +136,9 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  IGTLScalarType TrackedFrameMessage::GetScalarType()
+  UWPOpenIGTLink::IGTLScalarType TrackedFrameMessage::GetScalarType()
   {
-    return (IGTLScalarType)this->m_messageHeader.m_ScalarType;
+    return (UWPOpenIGTLink::IGTLScalarType)this->m_messageHeader.m_ScalarType;
   }
 
   //----------------------------------------------------------------------------

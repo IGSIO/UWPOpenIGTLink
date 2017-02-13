@@ -47,57 +47,6 @@ namespace UWPOpenIGTLink
   static std::wstring TRANSFORM_STATUS_POSTFIX = L"TransformStatus";
 
   //----------------------------------------------------------------------------
-  uint32 TrackedFrame::ImageSizeBytes::get()
-  {
-    return m_frameSizeBytes;
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::ImageSizeBytes::set(uint32 arg)
-  {
-    m_frameSizeBytes = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  uint16 TrackedFrame::NumberOfComponents::get()
-  {
-    return m_numberOfComponents;
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::NumberOfComponents::set(uint16 arg)
-  {
-    m_numberOfComponents = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  IVectorView<uint16>^ TrackedFrame::FrameSize::get()
-  {
-    auto vec = ref new Vector<uint16>();
-    vec->Append(m_frameSize[0]);
-    vec->Append(m_frameSize[1]);
-    vec->Append(m_frameSize[2]);
-    return vec->GetView();
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::FrameSize::set(IVectorView<uint16>^ arg)
-  {
-    if (arg->Size > 0)
-    {
-      m_frameSize[0] = arg->GetAt(0);
-    }
-    if (arg->Size > 1)
-    {
-      m_frameSize[1] = arg->GetAt(1);
-    }
-    if (arg->Size > 2)
-    {
-      m_frameSize[2] = arg->GetAt(2);
-    }
-  }
-
-  //----------------------------------------------------------------------------
   IMapView<Platform::String^, Platform::String^>^ TrackedFrame::FrameFields::get()
   {
     auto map = ref new Map<Platform::String^, Platform::String^>();
@@ -111,164 +60,97 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool TrackedFrame::HasImage()
   {
-    return m_imageData != nullptr;
+    return m_frame != nullptr;
   }
 
   //----------------------------------------------------------------------------
   uint32 TrackedFrame::GetPixelFormat(bool normalized)
   {
-    switch (m_numberOfComponents)
+    switch (m_frame->NumberOfScalarComponents)
     {
-    case 1:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return normalized ? DXGI_FORMAT_R8_SNORM : DXGI_FORMAT_R8_SINT;
-      case IGTL_SCALARTYPE_UINT8:
-        return normalized ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_R8_UINT;
-      case IGTL_SCALARTYPE_INT16:
-        return normalized ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R16_SINT;
-      case IGTL_SCALARTYPE_UINT16:
-        return normalized ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R16_UINT;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32_FLOAT;
-      }
-      break;
-    case 2:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return normalized ? DXGI_FORMAT_R8G8_SNORM : DXGI_FORMAT_R8G8_SINT;
-      case IGTL_SCALARTYPE_UINT8:
-        return normalized ? DXGI_FORMAT_R8G8_UNORM : DXGI_FORMAT_R8G8_UINT;
-      case IGTL_SCALARTYPE_INT16:
-        return normalized ? DXGI_FORMAT_R16G16_SNORM : DXGI_FORMAT_R16G16_SINT;
-      case IGTL_SCALARTYPE_UINT16:
-        return normalized ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R16G16_UINT;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32G32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32G32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32G32_FLOAT;
-      }
-      break;
-    case 3:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
-      case IGTL_SCALARTYPE_UINT8:
-        return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UINT;
-      case IGTL_SCALARTYPE_INT16:
-        return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
-      case IGTL_SCALARTYPE_UINT16:
-        return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_UINT;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32G32B32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32G32B32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32G32B32_FLOAT;
-      }
-    case 4:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
-      case IGTL_SCALARTYPE_UINT8:
-        return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_SINT;
-      case IGTL_SCALARTYPE_INT16:
-        return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
-      case IGTL_SCALARTYPE_UINT16:
-        return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_SINT;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32G32B32A32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32G32B32A32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32G32B32A32_FLOAT;
-      }
-      break;
+      case 1:
+        switch ((IGTLScalarType)m_frame->ScalarType)
+        {
+          case IGTL_SCALARTYPE_INT8:
+            return normalized ? DXGI_FORMAT_R8_SNORM : DXGI_FORMAT_R8_SINT;
+          case IGTL_SCALARTYPE_UINT8:
+            return normalized ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_R8_UINT;
+          case IGTL_SCALARTYPE_INT16:
+            return normalized ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R16_SINT;
+          case IGTL_SCALARTYPE_UINT16:
+            return normalized ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R16_UINT;
+          case IGTL_SCALARTYPE_INT32:
+            return DXGI_FORMAT_R32_SINT;
+          case IGTL_SCALARTYPE_UINT32:
+            return DXGI_FORMAT_R32_UINT;
+          case IGTL_SCALARTYPE_FLOAT32:
+            return DXGI_FORMAT_R32_FLOAT;
+        }
+        break;
+      case 2:
+        switch (m_frame->ScalarType)
+        {
+          case IGTL_SCALARTYPE_INT8:
+            return normalized ? DXGI_FORMAT_R8G8_SNORM : DXGI_FORMAT_R8G8_SINT;
+          case IGTL_SCALARTYPE_UINT8:
+            return normalized ? DXGI_FORMAT_R8G8_UNORM : DXGI_FORMAT_R8G8_UINT;
+          case IGTL_SCALARTYPE_INT16:
+            return normalized ? DXGI_FORMAT_R16G16_SNORM : DXGI_FORMAT_R16G16_SINT;
+          case IGTL_SCALARTYPE_UINT16:
+            return normalized ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R16G16_UINT;
+          case IGTL_SCALARTYPE_INT32:
+            return DXGI_FORMAT_R32G32_SINT;
+          case IGTL_SCALARTYPE_UINT32:
+            return DXGI_FORMAT_R32G32_UINT;
+          case IGTL_SCALARTYPE_FLOAT32:
+            return DXGI_FORMAT_R32G32_FLOAT;
+        }
+        break;
+      case 3:
+        switch (m_frame->ScalarType)
+        {
+          case IGTL_SCALARTYPE_INT8:
+            return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+          case IGTL_SCALARTYPE_UINT8:
+            return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UINT;
+          case IGTL_SCALARTYPE_INT16:
+            return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+          case IGTL_SCALARTYPE_UINT16:
+            return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_UINT;
+          case IGTL_SCALARTYPE_INT32:
+            return DXGI_FORMAT_R32G32B32_SINT;
+          case IGTL_SCALARTYPE_UINT32:
+            return DXGI_FORMAT_R32G32B32_UINT;
+          case IGTL_SCALARTYPE_FLOAT32:
+            return DXGI_FORMAT_R32G32B32_FLOAT;
+        }
+      case 4:
+        switch (m_frame->ScalarType)
+        {
+          case IGTL_SCALARTYPE_INT8:
+            return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+          case IGTL_SCALARTYPE_UINT8:
+            return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+          case IGTL_SCALARTYPE_INT16:
+            return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+          case IGTL_SCALARTYPE_UINT16:
+            return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+          case IGTL_SCALARTYPE_INT32:
+            return DXGI_FORMAT_R32G32B32A32_SINT;
+          case IGTL_SCALARTYPE_UINT32:
+            return DXGI_FORMAT_R32G32B32A32_UINT;
+          case IGTL_SCALARTYPE_FLOAT32:
+            return DXGI_FORMAT_R32G32B32A32_FLOAT;
+        }
+        break;
     }
     return DXGI_FORMAT_UNKNOWN;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::SetParameter(Platform::String^ key, Platform::String^ value)
+  void TrackedFrame::SetFrameField(Platform::String^ key, Platform::String^ value)
   {
     m_frameFields[std::wstring(key->Data())] = std::wstring(value->Data());
-  }
-
-  //----------------------------------------------------------------------------
-  IBuffer^ TrackedFrame::ImageData::get()
-  {
-    Platform::ArrayReference<byte> arraywrapper(m_imageData.get(), m_frameSizeBytes);
-    return Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray(arraywrapper);
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::ImageData::set(IBuffer^ imageData)
-  {
-    if (imageData == nullptr)
-    {
-      return;
-    }
-
-    unsigned int bufferLength = imageData->Length;
-
-    if (!(bufferLength > 0))
-    {
-      return;
-    }
-
-    HRESULT hr = S_OK;
-
-    Microsoft::WRL::ComPtr<IUnknown> pUnknown = reinterpret_cast<IUnknown*>(imageData);
-    Microsoft::WRL::ComPtr<IBufferByteAccess> spByteAccess;
-    hr = pUnknown.As(&spByteAccess);
-    if (FAILED(hr))
-    {
-      return;
-    }
-
-    byte* pRawData = nullptr;
-    hr = spByteAccess->Buffer(&pRawData);
-    if (FAILED(hr))
-    {
-      return;
-    }
-
-    m_imageData = std::shared_ptr<byte>(new byte[bufferLength], std::default_delete<byte[]>());
-    memcpy(m_imageData.get(), pRawData, bufferLength * sizeof(byte));
-  }
-
-  //----------------------------------------------------------------------------
-  int32 TrackedFrame::ScalarType::get()
-  {
-    return (int32)m_scalarType;
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::ScalarType::set(int32 arg)
-  {
-    m_scalarType = (IGTLScalarType)arg;
-  }
-
-  //----------------------------------------------------------------------------
-  SharedBytePtr TrackedFrame::ImageDataSharedPtr::get()
-  {
-    return (SharedBytePtr)&m_imageData;
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::ImageDataSharedPtr::set(SharedBytePtr arg)
-  {
-    m_imageData = *(std::shared_ptr<byte>*)arg;
   }
 
   //----------------------------------------------------------------------------
@@ -281,48 +163,6 @@ namespace UWPOpenIGTLink
   void TrackedFrame::EmbeddedImageTransform::set(float4x4 arg)
   {
     m_embeddedImageTransform = arg;
-  }
-
-  //----------------------------------------------------------------------------
-  uint16 TrackedFrame::ImageType::get()
-  {
-    return m_imageType;
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::ImageType::set(uint16 arg)
-  {
-    m_imageType = (US_IMAGE_TYPE)arg;
-  }
-
-  //----------------------------------------------------------------------------
-  uint16 TrackedFrame::ImageOrientation::get()
-  {
-    return m_imageOrientation;
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::ImageOrientation::set(uint16 arg)
-  {
-    m_imageOrientation = (US_IMAGE_ORIENTATION)arg;
-  }
-
-  //----------------------------------------------------------------------------
-  uint16 TrackedFrame::Width::get()
-  {
-    return m_frameSize[0];
-  }
-
-  //----------------------------------------------------------------------------
-  uint16 TrackedFrame::Height::get()
-  {
-    return m_frameSize[1];
-  }
-
-  //----------------------------------------------------------------------------
-  uint16 TrackedFrame::Depth::get()
-  {
-    return m_frameSize[2];
   }
 
   //----------------------------------------------------------------------------
@@ -399,7 +239,7 @@ namespace UWPOpenIGTLink
     }
 
     std::wstring value;
-    if (!GetCustomFrameField(transformNameStr, value))
+    if (!GetFrameField(transformNameStr, value))
     {
       throw ref new Platform::Exception(E_INVALIDARG, L"Frame value not found for field: " + transformName->GetTransformName());
     }
@@ -441,7 +281,7 @@ namespace UWPOpenIGTLink
     }
 
     std::wstring strStatus;
-    if (!GetCustomFrameField(transformStatusName, strStatus))
+    if (!GetFrameField(transformStatusName, strStatus))
     {
       throw ref new Platform::Exception(E_FAIL, L"Unable to locate custom frame field: " + transformName->GetTransformName());
     }
@@ -452,17 +292,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::TransposeTransforms()
-  {
-    m_embeddedImageTransform = transpose(m_embeddedImageTransform);
-    for (uint32 i = 0; i < m_frameTransforms.size(); ++i)
-    {
-      std::get<1>(m_frameTransforms[i]) = transpose(std::get<1>(m_frameTransforms[i]));
-    }
-  }
-
-  //----------------------------------------------------------------------------
-  Platform::String^ TrackedFrame::GetCustomFrameField(Platform::String^ fieldName)
+  Platform::String^ TrackedFrame::GetFrameField(Platform::String^ fieldName)
   {
     std::wstring field(fieldName->Data());
     FieldMapType::iterator fieldIterator;
@@ -475,21 +305,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::SetFrameSize(uint16 frameSize[3])
-  {
-    m_frameSize[0] = frameSize[0];
-    m_frameSize[1] = frameSize[1];
-    m_frameSize[2] = frameSize[2];
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::SetCustomFrameField(const std::wstring& fieldName, const std::wstring& value)
+  void TrackedFrame::SetFrameField(const std::wstring& fieldName, const std::wstring& value)
   {
     m_frameFields[fieldName] = value;
   }
 
   //----------------------------------------------------------------------------
-  bool TrackedFrame::GetCustomFrameField(const std::wstring& fieldName, std::wstring& value)
+  bool TrackedFrame::GetFrameField(const std::wstring& fieldName, std::wstring& value)
   {
     FieldMapType::iterator fieldIterator;
     fieldIterator = m_frameFields.find(fieldName);
@@ -511,18 +333,6 @@ namespace UWPOpenIGTLink
   const float4x4& TrackedFrame::GetEmbeddedImageTransform()
   {
     return m_embeddedImageTransform;
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::SetImageData(std::shared_ptr<byte> imageData)
-  {
-    m_imageData = imageData;
-  }
-
-  //----------------------------------------------------------------------------
-  std::shared_ptr<byte> TrackedFrame::GetImageData()
-  {
-    return m_imageData;
   }
 
   //----------------------------------------------------------------------------
@@ -659,4 +469,9 @@ namespace UWPOpenIGTLink
     m_transform = transpose(m_transform);
   }
 
+  //----------------------------------------------------------------------------
+  VideoFrame^ TrackedFrame::Frame::get()
+  {
+    return m_frame;
+  }
 }

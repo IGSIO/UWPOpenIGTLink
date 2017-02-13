@@ -194,24 +194,21 @@ namespace UWPOpenIGTLink
     {
       std::wstring keyWideStr(pair.first.begin(), pair.first.end());
       std::wstring valueWideStr(pair.second.begin(), pair.second.end());
-      frame->SetCustomFrameField(keyWideStr, valueWideStr);
+      frame->SetFrameField(keyWideStr, valueWideStr);
     }
 
     for (auto& pair : trackedFrameMsg->GetCustomFrameFields())
     {
-      frame->SetCustomFrameField(pair.first, pair.second);
+      frame->SetFrameField(pair.first, pair.second);
     }
 
     // Image related fields
-    frame->SetFrameSize(trackedFrameMsg->GetFrameSize());
+    std::array<uint16, 3> frameSize = { trackedFrameMsg->GetFrameSize()[0], trackedFrameMsg->GetFrameSize()[1], trackedFrameMsg->GetFrameSize()[2] };
+    frame->Frame->SetImageData(trackedFrameMsg->GetImage(), trackedFrameMsg->GetNumberOfComponents(), trackedFrameMsg->GetScalarType(), frameSize);
     frame->Timestamp = ts->GetTimeStamp();
-    frame->ImageSizeBytes = trackedFrameMsg->GetImageSizeInBytes();
-    frame->SetImageData(trackedFrameMsg->GetImage());
-    frame->NumberOfComponents = trackedFrameMsg->GetNumberOfComponents();
-    frame->ScalarType = trackedFrameMsg->GetScalarType();
     frame->SetEmbeddedImageTransform(trackedFrameMsg->GetEmbeddedImageTransform());
-    frame->ImageType = (uint16)trackedFrameMsg->GetImageType();
-    frame->ImageOrientation = (uint16)trackedFrameMsg->GetImageOrientation();
+    frame->Frame->Type = (uint16)trackedFrameMsg->GetImageType();
+    frame->Frame->Orientation = (uint16)trackedFrameMsg->GetImageOrientation();
     frame->SetFrameTransformsInternal(trackedFrameMsg->GetFrameTransforms());
 
     return frame;

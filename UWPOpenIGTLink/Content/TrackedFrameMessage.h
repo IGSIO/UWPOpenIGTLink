@@ -23,21 +23,21 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
-// Windows includes
+// Local includes
+#include "TrackedFrame.h"
+
+// OS includes
 #include <Windows.h>
 
 // STD includes
 #include <string>
 
-// Local includes
-#include "TrackedFrame.h"
-
-// IGT includes
-#include "igtlObject.h"
-#include "igtlutil/igtl_header.h"
-#include "igtlMessageBase.h"
-#include "igtl_types.h"
-#include "igtl_win32header.h"
+// IGTL includes
+#include <igtl_types.h>
+#include <igtl_win32header.h>
+#include <igtlMessageBase.h>
+#include <igtlObject.h>
+#include <igtlutil/igtl_header.h>
 
 // Windows includes
 #include <DirectXMath.h>
@@ -48,7 +48,8 @@ using namespace Windows::Foundation::Numerics;
 namespace igtl
 {
   // This command prevents 4-byte alignment in the struct (which enables m_FrameSize[3])
-#pragma pack(1)     /* For 1-byte boundary in memory */
+#pragma pack(1)
+  /* For 1-byte boundary in memory */
 
   ///  TrackedFrameMessage - IGTL message helper class for tracked frame messages
   class TrackedFrameMessage : public MessageBase
@@ -74,7 +75,7 @@ namespace igtl
     igtl_uint16 GetNumberOfComponents();
     igtl_uint32 GetImageSizeInBytes();
     US_IMAGE_ORIENTATION GetImageOrientation();
-    IGTLScalarType GetScalarType();
+    UWPOpenIGTLink::IGTLScalarType GetScalarType();
     double GetTimestamp();
 
     /*! Set the embedded transform of the underlying image */

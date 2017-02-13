@@ -30,6 +30,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 // WinRT includes
 #include <collection.h>
 
+std::ostream& operator<<(std::ostream& os, const std::vector<double>& vec);
+
 namespace UWPOpenIGTLink
 {
   typedef Platform::Collections::Map<Platform::String^, Platform::String^> StringMap;
@@ -61,61 +63,43 @@ namespace UWPOpenIGTLink
   }
 
   //--------------------------------------------------------
-  inline void LogMessage(const std::string& msg, const char* fileName, int lineNumber)
+  void LogMessage(const std::string& msg, const char* fileName, int lineNumber);
+
+  //--------------------------------------------------------
+  void LogMessage(const std::wstring& msg, const char* fileName, int lineNumber);
+
+  //--------------------------------------------------------
+  std::wstring PrintMatrix(const Windows::Foundation::Numerics::float4x4& matrix);
+
+  //--------------------------------------------------------
+  template<typename T>
+  T VectorMean(const std::vector<T>& vec, T initialValue)
   {
-    std::ostringstream log;
-    log << "|TRACE| ";
-
-    log << msg;
-
-    // Add the message to the log
-    if (fileName != NULL)
+    T output(initialValue);
+    for (auto entry : vec)
     {
-      log << "| in " << fileName << "(" << lineNumber << ")"; // add filename and line number
+      output += entry;
     }
+    output /= vec.size();
 
-    OutputDebugStringA(log.str().c_str());
+    return output;
   }
 
   //--------------------------------------------------------
-  inline void LogMessage(const std::wstring& msg, const char* fileName, int lineNumber)
+  class ItemNotAvailableAnymoreException : public std::exception
   {
-    std::wostringstream log;
-    log << L"|TRACE| ";
-
-    log << msg;
-
-    // Add the message to the log
-    if (fileName != NULL)
-    {
-      log << L"| in " << fileName << L"(" << lineNumber << L")"; // add filename and line number
-    }
-
-    OutputDebugStringW(log.str().c_str());
-  }
+  public:
+    ItemNotAvailableAnymoreException() {};
+    virtual ~ItemNotAvailableAnymoreException() {};
+  };
 
   //--------------------------------------------------------
-  inline std::wstring PrintMatrix(const Windows::Foundation::Numerics::float4x4& matrix)
+  class ItemNotAvailableYetException : public std::exception
   {
-    std::wostringstream woss;
-    woss << matrix.m11 << " "
-         << matrix.m12 << " "
-         << matrix.m13 << " "
-         << matrix.m14 << "    "
-         << matrix.m21 << " "
-         << matrix.m22 << " "
-         << matrix.m23 << " "
-         << matrix.m24 << "    "
-         << matrix.m31 << " "
-         << matrix.m32 << " "
-         << matrix.m33 << " "
-         << matrix.m34 << "    "
-         << matrix.m41 << " "
-         << matrix.m42 << " "
-         << matrix.m43 << " "
-         << matrix.m44 << std::endl;
-    return woss.str();
-  }
+  public:
+    ItemNotAvailableYetException() {};
+    virtual ~ItemNotAvailableYetException() {};
+  };
 }
 
 #if defined(ENABLE_LOG_TRACE)

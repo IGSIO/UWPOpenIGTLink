@@ -26,6 +26,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 // Local includes
 #include "IGTCommon.h"
 #include "TransformName.h"
+#include "VideoFrame.h"
 
 // IGT includes
 #include <igtl_util.h>
@@ -39,21 +40,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <DirectXMath.h>
 #include <collection.h>
 #include <dxgiformat.h>
-
-/// An enum to wrap the c define values specified in igtl_util.h
-enum IGTLScalarType
-{
-  IGTL_SCALARTYPE_UNKNOWN = 0,
-  IGTL_SCALARTYPE_INT8 = IGTL_SCALAR_INT8,
-  IGTL_SCALARTYPE_UINT8 = IGTL_SCALAR_UINT8,
-  IGTL_SCALARTYPE_INT16 = IGTL_SCALAR_INT16,
-  IGTL_SCALARTYPE_UINT16 = IGTL_SCALAR_UINT16,
-  IGTL_SCALARTYPE_INT32 = IGTL_SCALAR_INT32,
-  IGTL_SCALARTYPE_UINT32 = IGTL_SCALAR_UINT32,
-  IGTL_SCALARTYPE_FLOAT32 = IGTL_SCALAR_FLOAT32,
-  IGTL_SCALARTYPE_FLOAT64 = IGTL_SCALAR_FLOAT64,
-  IGTL_SCALARTYPE_COMPLEX = IGTL_SCALAR_COMPLEX
-};
 
 /// US_IMAGE_TYPE - Defines constant values for ultrasound image type
 enum US_IMAGE_TYPE
@@ -104,7 +90,6 @@ namespace UWPOpenIGTLink
     FIELD_INVALID   /// Field is invalid
   };
 
-  [Windows::Foundation::Metadata::WebHostHiddenAttribute]
   public ref class TransformEntryUWP sealed
   {
   public:
@@ -125,31 +110,16 @@ namespace UWPOpenIGTLink
   typedef std::tuple<TransformName^, Windows::Foundation::Numerics::float4x4, bool> TransformEntryInternal;
   typedef std::vector<TransformEntryInternal> TransformEntryInternalList;
 
-  [Windows::Foundation::Metadata::WebHostHiddenAttribute]
   public ref class TrackedFrame sealed
   {
   public:
     typedef std::map<std::wstring, std::wstring> FieldMapType;
 
-  public:
     property Windows::Foundation::Collections::IMapView<Platform::String^, Platform::String^>^ FrameFields {Windows::Foundation::Collections::IMapView<Platform::String^, Platform::String^>^ get(); }
-    property uint32 ImageSizeBytes { uint32 get(); void set(uint32 arg); }
-    property Windows::Foundation::Collections::IVectorView<uint16>^ FrameSize { Windows::Foundation::Collections::IVectorView<uint16>^ get(); void set(Windows::Foundation::Collections::IVectorView<uint16>^ arg); }
-    property uint16 NumberOfComponents { uint16 get(); void set(uint16 arg); }
-    property Windows::Storage::Streams::IBuffer^ ImageData { Windows::Storage::Streams::IBuffer ^ get(); void set(Windows::Storage::Streams::IBuffer ^ arg); }
-    property SharedBytePtr ImageDataSharedPtr { SharedBytePtr get(); void set(SharedBytePtr arg); }
-    property int32 ScalarType { int32 get(); void set(int32 arg); }
+    property VideoFrame^ Frame { VideoFrame ^ get(); }
     property TransformEntryUWPList^ FrameTransforms { TransformEntryUWPList ^ get(); }
     property Windows::Foundation::Numerics::float4x4 EmbeddedImageTransform { Windows::Foundation::Numerics::float4x4 get(); void set(Windows::Foundation::Numerics::float4x4 arg); }
-    property uint16 ImageType { uint16 get(); void set(uint16 arg); }
-    property uint16 ImageOrientation { uint16 get(); void set(uint16 arg); }
     property double Timestamp { double get(); void set(double arg); }
-    property uint16 Width { uint16 get(); }
-    property uint16 Height { uint16 get(); }
-    property uint16 Depth { uint16 get(); }
-
-  public:
-    void SetParameter(Platform::String^ key, Platform::String^ value);
 
     int GetTransformStatus(TransformName^ transformName);
     Windows::Foundation::Collections::IMapView<Platform::String^, Platform::String^>^ GetValidTransforms();
@@ -157,24 +127,18 @@ namespace UWPOpenIGTLink
     Windows::Foundation::Numerics::float4x4 GetTransform(TransformName^ transformName);
     Windows::Foundation::Collections::IVectorView<TransformName^>^ TrackedFrame::GetTransformNameList();
 
-    void TransposeTransforms();
-
-    Platform::String^ GetCustomFrameField(Platform::String^ fieldName);
+    void SetFrameField(Platform::String^ key, Platform::String^ value);
+    Platform::String^ GetFrameField(Platform::String^ fieldName);
 
     bool HasImage();
     uint32 GetPixelFormat(bool normalized);
 
   internal:
-    void SetImageData(std::shared_ptr<byte> imageData);
-    std::shared_ptr<byte> GetImageData();
-
     void SetEmbeddedImageTransform(const Windows::Foundation::Numerics::float4x4& matrix);
     const Windows::Foundation::Numerics::float4x4& GetEmbeddedImageTransform();
 
-    void SetCustomFrameField(const std::wstring& fieldName, const std::wstring& value);
-    bool GetCustomFrameField(const std::wstring& fieldName, std::wstring& value);
-
-    void SetFrameSize(uint16 frameSize[3]);
+    void SetFrameField(const std::wstring& fieldName, const std::wstring& value);
+    bool GetFrameField(const std::wstring& fieldName, std::wstring& value);
 
     /// Returns true if the input string ends with "Transform", else false
     static bool IsTransform(const std::wstring& str);
@@ -199,14 +163,9 @@ namespace UWPOpenIGTLink
     TransformEntryInternalList                      m_frameTransforms;
 
     // Image related fields
+    VideoFrame^                                     m_frame = ref new VideoFrame();
     double                                          m_timestamp = 0.0;
-    std::shared_ptr<byte>                           m_imageData = nullptr;
     std::array<uint16, 3>                           m_frameSize = { 0, 0, 0 };
-    uint16                                          m_numberOfComponents = 0;
-    uint32                                          m_frameSizeBytes = 0;
-    US_IMAGE_TYPE                                   m_imageType = US_IMG_TYPE_XX;
-    US_IMAGE_ORIENTATION                            m_imageOrientation = US_IMG_ORIENT_XX;
-    IGTLScalarType                                  m_scalarType = IGTL_SCALARTYPE_UNKNOWN;
     Windows::Foundation::Numerics::float4x4         m_embeddedImageTransform = Windows::Foundation::Numerics::float4x4::identity();
   };
 }
