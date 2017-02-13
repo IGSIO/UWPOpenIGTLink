@@ -82,6 +82,7 @@ namespace UWPOpenIGTLink
     void SetImageOrientation(int imgOrientation);
     uint32 GetNumberOfScalarComponents();
     int GetImageType();
+    uint32 GetPixelFormat(bool normalized);
     void SetImageType(int imgType);
     uint32 GetNumberOfBytesPerScalar();
     uint32 GetNumberOfBytesPerPixel();

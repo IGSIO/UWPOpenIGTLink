@@ -131,7 +131,6 @@ namespace UWPOpenIGTLink
     Platform::String^ GetFrameField(Platform::String^ fieldName);
 
     bool HasImage();
-    uint32 GetPixelFormat(bool normalized);
 
   internal:
     void SetEmbeddedImageTransform(const Windows::Foundation::Numerics::float4x4& matrix);
