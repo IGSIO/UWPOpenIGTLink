@@ -60,7 +60,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool TrackedFrame::HasImage()
   {
-    return m_frame != nullptr;
+    return m_frame != nullptr && m_frame->IsImageValid();
   }
 
   //----------------------------------------------------------------------------
