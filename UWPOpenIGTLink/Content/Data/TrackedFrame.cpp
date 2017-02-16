@@ -308,7 +308,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  const TransformEntryInternalList& TrackedFrame::GetFrameTransformsInternal()
+  TransformEntryInternalList TrackedFrame::GetFrameTransformsInternal()
   {
     return m_frameTransforms;
   }

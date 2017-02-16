@@ -152,7 +152,7 @@ namespace UWPOpenIGTLink
     static std::wstring ConvertFieldStatusToString(TrackedFrameFieldStatus status);
 
     /*! Get all frame transforms */
-    const TransformEntryInternalList& GetFrameTransformsInternal();
+    TransformEntryInternalList GetFrameTransformsInternal();
     void SetFrameTransformsInternal(const TransformEntryInternalList& arg);
     void SetFrameTransformsInternal(const std::vector<TransformEntryUWP^>& arg);
 
