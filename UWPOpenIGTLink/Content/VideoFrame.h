@@ -82,7 +82,6 @@ namespace UWPOpenIGTLink
     void SetImageOrientation(int imgOrientation);
     uint32 GetNumberOfScalarComponents();
     int GetImageType();
-    uint32 GetPixelFormat(bool normalized);
     void SetImageType(int imgType);
     uint32 GetNumberOfBytesPerScalar();
     uint32 GetNumberOfBytesPerPixel();
@@ -106,9 +105,9 @@ namespace UWPOpenIGTLink
     bool AllocateFrame(const std::array<uint16, 3>& imageSize, int scalarType, uint16 numberOfScalarComponents);
     void SetImageData(std::shared_ptr<byte> imageData, uint16 numberOfScalarComponents, IGTLScalarType scalarType, std::array<uint16, 3>& imageSize);
     std::shared_ptr<byte> GetImageData();
-
-  protected private:
-    void SetImage(UWPOpenIGTLink::Image^ imageData);
+    bool IsImageValidInternal() const;
+    std::array<uint16, 3> GetFrameSize() const;
+    void SetImage(UWPOpenIGTLink::Image^ imageData, US_IMAGE_ORIENTATION orientation, US_IMAGE_TYPE imageType);
 
     UWPOpenIGTLink::Image^  m_image;
     US_IMAGE_TYPE           m_imageType;

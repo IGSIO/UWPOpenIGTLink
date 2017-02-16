@@ -37,6 +37,9 @@
     <ClCompile Include="IGTCommon.cxx">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Content\Buffer.cxx">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Content\Data\TrackedFrame.h">
@@ -73,6 +76,9 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Content\Image.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\Buffer.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

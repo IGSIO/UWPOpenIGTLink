@@ -24,49 +24,40 @@ OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
 // Local includes
+#include "IGTCommon.h"
 #include "VideoFrame.h"
 
+// STL includes
 #include <map>
 #include <vector>
 
 namespace UWPOpenIGTLink
 {
-  typedef uint64 BufferItemUidType;
-
-  enum ToolStatus
-  {
-    TOOL_OK,            /*!< Tool OK */
-    TOOL_MISSING,       /*!< Tool or tool port is not available */
-    TOOL_OUT_OF_VIEW,   /*!< Cannot obtain transform for tool */
-    TOOL_OUT_OF_VOLUME, /*!< Tool is not within the sweet spot of system */
-    TOOL_SWITCH1_IS_ON, /*!< Various buttons/switches on tool */
-    TOOL_SWITCH2_IS_ON, /*!< Various buttons/switches on tool */
-    TOOL_SWITCH3_IS_ON, /*!< Various buttons/switches on tool */
-    TOOL_REQ_TIMEOUT,   /*!< Request timeout status */
-    TOOL_INVALID        /*!< Invalid tool status */
-  };
-
   public ref class StreamBufferItem sealed
   {
+  public:
+    typedef Windows::Foundation::Collections::IMap<Platform::String^, Platform::String^> FieldMapArgumentType;
+    typedef Platform::Collections::Map<Platform::String^, Platform::String^> FieldMapType;
+
   internal:
-    typedef std::map<std::wstring, std::wstring> FieldMapType;
+    typedef std::map<std::wstring, std::wstring> FieldMapTypeInternal;
 
   public:
     StreamBufferItem();
     virtual ~StreamBufferItem();
 
     /*! Get timestamp for the current buffer item in global time (global = local + offset) */
-    double GetTimestamp(double localTimeOffsetSec);
+    float GetTimestamp(float localTimeOffsetSec);
 
     /*! Get filtered timestamp in global time (global = local + offset) */
-    double GetFilteredTimestamp(double localTimeOffsetSec);
+    float GetFilteredTimestamp(float localTimeOffsetSec);
     /*! Set filtered timestamp */
-    void SetFilteredTimestamp(double filteredTimestamp);
+    void SetFilteredTimestamp(float filteredTimestamp);
 
     /*! Get unfiltered timestamp in global time (global = local + offset) */
-    double GetUnfilteredTimestamp(double localTimeOffsetSec);
+    float GetUnfilteredTimestamp(float localTimeOffsetSec);
     /*! Set unfiltered timestamp */
-    void SetUnfilteredTimestamp(double unfilteredTimestamp);
+    void SetUnfilteredTimestamp(float unfilteredTimestamp);
 
     /*!
       Set/get index assigned by the data acquisition system (usually a counter)
@@ -103,19 +94,20 @@ namespace UWPOpenIGTLink
     bool HasValidFieldData();
     bool HasValidVideoData();
 
-  protected:
     void SetValidTransformData(bool aValid);
 
   internal:
     /*! Get custom frame field map */
-    FieldMapType& GetCustomFrameFieldMap();
+    FieldMapTypeInternal& GetCustomFrameFieldMap();
+    /*! Set custom frame field */
+    void SetCustomFrameFieldInternal(const std::wstring& fieldName, const std::wstring& fieldValue);
 
   protected private:
-    double                                    m_filteredTimeStamp;
-    double                                    m_unfilteredTimeStamp;
+    float                                    m_filteredTimeStamp;
+    float                                    m_unfilteredTimeStamp;
     uint32                                    m_index;
     BufferItemUidType                         m_uid;
-    FieldMapType                              m_customFrameFields;
+    FieldMapTypeInternal                      m_customFrameFields;
     bool                                      m_validTransformData;
     VideoFrame^                               m_frame = ref new VideoFrame();
     Windows::Foundation::Numerics::float4x4   m_matrix;

@@ -60,7 +60,7 @@ namespace UWPOpenIGTLink
       Given a timestamp, compute the nearest frame UID
       This assumes that the times moronically increase
     */
-    BufferItemUidType GetItemUidFromTime(double time);
+    BufferItemUidType GetItemUidFromTime(float time);
 
     /*! Get the most recent frame UID that is already in the buffer */
     BufferItemUidType GetLatestItemUidInBuffer();
@@ -68,12 +68,12 @@ namespace UWPOpenIGTLink
     /*! Get the oldest frame UID in the buffer  */
     BufferItemUidType GetOldestItemUidInBuffer();
 
-    double GetLatestTimeStamp();
-    double GetOldestTimeStamp();
+    float GetLatestTimeStamp();
+    float GetOldestTimeStamp();
 
-    double GetTimeStamp(BufferItemUidType uid);
-    double GetFilteredTimeStamp(BufferItemUidType uid);
-    double GetUnfilteredTimeStamp(BufferItemUidType uid);
+    float GetTimeStamp(BufferItemUidType uid);
+    float GetFilteredTimeStamp(BufferItemUidType uid);
+    float GetUnfilteredTimeStamp(BufferItemUidType uid);
 
     bool GetLatestItemHasValidVideoData();
     bool GetLatestItemHasValidTransformData();
@@ -86,7 +86,7 @@ namespace UWPOpenIGTLink
       Given a timestamp, compute the nearest buffer index
       This assumes that the times moronically increase
     */
-    uint32 GetBufferIndexFromTime(double time);
+    uint32 GetBufferIndexFromTime(float time);
 
     /*!
       Make this buffer into a copy of another buffer.  You should
@@ -95,9 +95,9 @@ namespace UWPOpenIGTLink
     void DeepCopy(TimestampedCircularBuffer^ buffer);
 
     /*!  Set the local time offset in seconds (global = local + offset) */
-    void SetLocalTimeOffsetSec(double offset);
+    void SetLocalTimeOffsetSec(float offset);
     /*!  Get the local time offset in seconds (global = local + offset) */
-    double GetLocalTimeOffsetSec();
+    float GetLocalTimeOffsetSec();
 
     /*!
       Get the frame rate from the buffer based on the number of frames in the buffer
@@ -108,7 +108,7 @@ namespace UWPOpenIGTLink
       If framePeriodStdevSecPtr is not null, then the standard deviation of the frame period is computed as well (in seconds) and
       stored at the specified address.
     */
-    double GetFrameRate(bool ideal, double* framePeriodStdevSecPtr);
+    float GetFrameRate(bool ideal, float* framePeriodStdevSecPtr);
 
     /*! Clear buffer (set the buffer pointer to the first element) */
     void Clear();
@@ -125,7 +125,7 @@ namespace UWPOpenIGTLink
     */
     StreamBufferItem^ GetBufferItemFromUid(BufferItemUidType uid);
 
-    bool PrepareForNewItem(double timestamp, BufferItemUidType* newFrameUid, int* bufferIndex);
+    bool PrepareForNewItem(float timestamp, BufferItemUidType* outNewFrameUid, int* bufferIndex);
 
     /*!
       Create filtered and unfiltered timestamp for accurate timing of the buffer item.
@@ -137,7 +137,7 @@ namespace UWPOpenIGTLink
       filteredTimestampProbablyValid will be false and it is recommended not to use that item,
       because its timestamp is probably incorrect.
     */
-    bool CreateFilteredTimeStampForItem(uint32 itemIndex, double inUnfilteredTimestamp, double* outFilteredTimestamp, bool* filteredTimestampProbablyValid);
+    bool CreateFilteredTimeStampForItem(uint32 itemIndex, float inUnfilteredTimestamp, float* outFilteredTimestamp, bool* filteredTimestampProbablyValid);
 
     /*! Set number of items used for timestamp filtering (with LSQR minimizer) */
     void SetAveragedItemsForFiltering(uint32 items);
@@ -145,25 +145,25 @@ namespace UWPOpenIGTLink
     uint32 GetAveragedItemsForFiltering();
 
     /*! Set recording start time */
-    void SetStartTime(double startTime);
+    void SetStartTime(float startTime);
     /*! Get recording start time */
-    double GetStartTime();
+    float GetStartTime();
 
   protected private:
     std::recursive_mutex          m_mutex;
     uint32                        m_numberOfItems;
     uint32                        m_writePointer;
-    double                        m_currentTimeStamp;
-    double                        m_localTimeOffsetSec;
+    float                         m_currentTimeStamp;
+    float                         m_localTimeOffsetSec;
     BufferItemUidType             m_latestItemUid;
     std::deque<StreamBufferItem^> m_bufferItemContainer;
-    std::vector<double>           m_filterContainerIndexVector;
-    std::vector<double>           m_filterContainerTimestampVector;
+    std::vector<uint32>           m_filterContainerIndexVector;
+    std::vector<float>            m_filterContainerTimestampVector;
     uint32                        m_filterContainersOldestIndex;
     uint32                        m_filterContainersNumberOfValidElements;
     uint32                        m_averagedItemsForFiltering;
-    double                        m_maxAllowedFilteringTimeDifference;
-    double                        m_startTime;
-    double                        m_negligibleTimeDifferenceSec;
+    float                         m_maxAllowedFilteringTimeDifference;
+    float                         m_startTime;
+    float                         m_negligibleTimeDifferenceSec;
   };
 }

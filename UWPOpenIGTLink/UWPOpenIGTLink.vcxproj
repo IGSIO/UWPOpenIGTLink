@@ -58,7 +58,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Content;$(ProjectDir)Content\Data;$(ProjectDir)..\OpenIGTLink-bin;$(ProjectDir)..\OpenIGTLink\Source\igtlutil;$(ProjectDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Content;$(ProjectDir)Content\Data;$(ProjectDir)..\OpenIGTLink-bin;$(ProjectDir)..\OpenIGTLink\Source\igtlutil;$(ProjectDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINRT_DLL;UWPOpenIGTLink_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -70,7 +70,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Content;$(ProjectDir)Content\Data;$(ProjectDir)..\OpenIGTLink-bin;$(ProjectDir)..\OpenIGTLink\Source\igtlutil;$(ProjectDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Content;$(ProjectDir)Content\Data;$(ProjectDir)..\OpenIGTLink-bin;$(ProjectDir)..\OpenIGTLink\Source\igtlutil;$(ProjectDir)..\OpenIGTLink\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINRT_DLL;UWPOpenIGTLink_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -81,6 +81,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Content\Buffer.h" />
     <ClInclude Include="Content\Data\Command.h" />
     <ClInclude Include="Content\Data\TrackedFrame.h" />
     <ClInclude Include="Content\IGTLinkClient.h" />
@@ -95,6 +96,7 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Content\Buffer.cxx" />
     <ClCompile Include="Content\Data\Command.cpp" />
     <ClCompile Include="Content\Data\TrackedFrame.cpp" />
     <ClCompile Include="Content\IGTLinkClient.cxx" />

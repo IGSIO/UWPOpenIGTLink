@@ -66,8 +66,6 @@ namespace UWPOpenIGTLink
     ServerHost = L"127.0.0.1";
     ServerPort = 18944;
     ServerIGTLVersion = IGTL_HEADER_VERSION_2;
-
-    m_frameSize.assign(3, 0);
   }
 
   //----------------------------------------------------------------------------
@@ -394,9 +392,6 @@ namespace UWPOpenIGTLink
 
         igtl::TrackedFrameMessage* trackedFrameMessage = (igtl::TrackedFrameMessage*)bodyMsg.GetPointer();
 
-        // Post process tracked frame to adjust for unit scale
-        trackedFrameMessage->ApplyTransformUnitScaling(m_trackerUnitScale);
-
         // Save reply
         std::lock_guard<std::mutex> guard(m_messageListMutex);
         m_receivedMessages.push_back(bodyMsg);
@@ -540,17 +535,5 @@ namespace UWPOpenIGTLink
   bool IGTLinkClient::Connected::get()
   {
     return m_clientSocket->GetConnected();
-  }
-
-  //----------------------------------------------------------------------------
-  float IGTLinkClient::TrackerUnitScale::get()
-  {
-    return m_trackerUnitScale;
-  }
-
-  //----------------------------------------------------------------------------
-  void IGTLinkClient::TrackerUnitScale::set(float arg)
-  {
-    m_trackerUnitScale = arg;
   }
 }

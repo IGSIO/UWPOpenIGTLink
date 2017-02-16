@@ -24,9 +24,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "pch.h"
 #include "VideoFrame.h"
 
-// DirectX includes
-#include <dxgiformat.h>
-
 using namespace Windows::Storage::Streams;
 
 namespace UWPOpenIGTLink
@@ -43,90 +40,6 @@ namespace UWPOpenIGTLink
   VideoFrame::~VideoFrame()
   {
 
-  }
-
-  //----------------------------------------------------------------------------
-default::uint32 VideoFrame::GetPixelFormat(bool normalized)
-  {
-    switch (NumberOfScalarComponents)
-    {
-      case 1:
-        switch ((IGTLScalarType)ScalarType)
-        {
-          case IGTL_SCALARTYPE_INT8:
-            return normalized ? DXGI_FORMAT_R8_SNORM : DXGI_FORMAT_R8_SINT;
-          case IGTL_SCALARTYPE_UINT8:
-            return normalized ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_R8_UINT;
-          case IGTL_SCALARTYPE_INT16:
-            return normalized ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R16_SINT;
-          case IGTL_SCALARTYPE_UINT16:
-            return normalized ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R16_UINT;
-          case IGTL_SCALARTYPE_INT32:
-            return DXGI_FORMAT_R32_SINT;
-          case IGTL_SCALARTYPE_UINT32:
-            return DXGI_FORMAT_R32_UINT;
-          case IGTL_SCALARTYPE_FLOAT32:
-            return DXGI_FORMAT_R32_FLOAT;
-        }
-        break;
-      case 2:
-        switch ((IGTLScalarType)ScalarType)
-        {
-          case IGTL_SCALARTYPE_INT8:
-            return normalized ? DXGI_FORMAT_R8G8_SNORM : DXGI_FORMAT_R8G8_SINT;
-          case IGTL_SCALARTYPE_UINT8:
-            return normalized ? DXGI_FORMAT_R8G8_UNORM : DXGI_FORMAT_R8G8_UINT;
-          case IGTL_SCALARTYPE_INT16:
-            return normalized ? DXGI_FORMAT_R16G16_SNORM : DXGI_FORMAT_R16G16_SINT;
-          case IGTL_SCALARTYPE_UINT16:
-            return normalized ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R16G16_UINT;
-          case IGTL_SCALARTYPE_INT32:
-            return DXGI_FORMAT_R32G32_SINT;
-          case IGTL_SCALARTYPE_UINT32:
-            return DXGI_FORMAT_R32G32_UINT;
-          case IGTL_SCALARTYPE_FLOAT32:
-            return DXGI_FORMAT_R32G32_FLOAT;
-        }
-        break;
-      case 3:
-        switch ((IGTLScalarType)ScalarType)
-        {
-          case IGTL_SCALARTYPE_INT8:
-            return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
-          case IGTL_SCALARTYPE_UINT8:
-            return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UINT;
-          case IGTL_SCALARTYPE_INT16:
-            return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
-          case IGTL_SCALARTYPE_UINT16:
-            return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_UINT;
-          case IGTL_SCALARTYPE_INT32:
-            return DXGI_FORMAT_R32G32B32_SINT;
-          case IGTL_SCALARTYPE_UINT32:
-            return DXGI_FORMAT_R32G32B32_UINT;
-          case IGTL_SCALARTYPE_FLOAT32:
-            return DXGI_FORMAT_R32G32B32_FLOAT;
-        }
-      case 4:
-        switch ((IGTLScalarType)ScalarType)
-        {
-          case IGTL_SCALARTYPE_INT8:
-            return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
-          case IGTL_SCALARTYPE_UINT8:
-            return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_SINT;
-          case IGTL_SCALARTYPE_INT16:
-            return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
-          case IGTL_SCALARTYPE_UINT16:
-            return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_SINT;
-          case IGTL_SCALARTYPE_INT32:
-            return DXGI_FORMAT_R32G32B32A32_SINT;
-          case IGTL_SCALARTYPE_UINT32:
-            return DXGI_FORMAT_R32G32B32A32_UINT;
-          case IGTL_SCALARTYPE_FLOAT32:
-            return DXGI_FORMAT_R32G32B32A32_FLOAT;
-        }
-        break;
-    }
-    return DXGI_FORMAT_UNKNOWN;
   }
 
   //----------------------------------------------------------------------------
@@ -317,6 +230,16 @@ default::uint32 VideoFrame::GetPixelFormat(bool normalized)
   }
 
   //----------------------------------------------------------------------------
+  std::array<uint16, 3> VideoFrame::GetFrameSize() const
+  {
+    if (!IsImageValidInternal())
+    {
+      return std::array<uint16, 3>({ 0, 0, 0 });
+    }
+    return m_image->GetFrameSize();
+  }
+
+  //----------------------------------------------------------------------------
   int VideoFrame::GetScalarPixelType()
   {
     if (!IsImageValid())
@@ -413,34 +336,34 @@ default::uint32 VideoFrame::GetPixelFormat(bool normalized)
   {
     switch ((US_IMAGE_ORIENTATION)imgOrientation)
     {
-      case US_IMG_ORIENT_FM:
-        return L"FM";
-      case US_IMG_ORIENT_NM:
-        return L"NM";
-      case US_IMG_ORIENT_FU:
-        return L"FU";
-      case US_IMG_ORIENT_NU:
-        return L"NU";
-      case US_IMG_ORIENT_UFA:
-        return L"UFA";
-      case US_IMG_ORIENT_UNA:
-        return L"UNA";
-      case US_IMG_ORIENT_MFA:
-        return L"MFA";
-      case US_IMG_ORIENT_MNA:
-        return L"MNA";
-      case US_IMG_ORIENT_AMF:
-        return L"AMF";
-      case US_IMG_ORIENT_UFD:
-        return L"UFD";
-      case US_IMG_ORIENT_UND:
-        return L"UND";
-      case US_IMG_ORIENT_MFD:
-        return L"MFD";
-      case US_IMG_ORIENT_MND:
-        return L"MND";
-      default:
-        return L"XX";
+    case US_IMG_ORIENT_FM:
+      return L"FM";
+    case US_IMG_ORIENT_NM:
+      return L"NM";
+    case US_IMG_ORIENT_FU:
+      return L"FU";
+    case US_IMG_ORIENT_NU:
+      return L"NU";
+    case US_IMG_ORIENT_UFA:
+      return L"UFA";
+    case US_IMG_ORIENT_UNA:
+      return L"UNA";
+    case US_IMG_ORIENT_MFA:
+      return L"MFA";
+    case US_IMG_ORIENT_MNA:
+      return L"MNA";
+    case US_IMG_ORIENT_AMF:
+      return L"AMF";
+    case US_IMG_ORIENT_UFD:
+      return L"UFD";
+    case US_IMG_ORIENT_UND:
+      return L"UND";
+    case US_IMG_ORIENT_MFD:
+      return L"MFD";
+    case US_IMG_ORIENT_MND:
+      return L"MND";
+    default:
+      return L"XX";
     }
   }
 
@@ -479,18 +402,18 @@ default::uint32 VideoFrame::GetPixelFormat(bool normalized)
   {
     switch ((US_IMAGE_TYPE)imgType)
     {
-      case US_IMG_BRIGHTNESS:
-        return L"BRIGHTNESS";
-      case US_IMG_RF_REAL:
-        return L"RF_REAL";
-      case US_IMG_RF_IQ_LINE:
-        return L"RF_IQ_LINE";
-      case US_IMG_RF_I_LINE_Q_LINE:
-        return L"RF_I_LINE_Q_LINE";
-      case US_IMG_RGB_COLOR:
-        return L"RGB_COLOR";
-      default:
-        return L"XX";
+    case US_IMG_BRIGHTNESS:
+      return L"BRIGHTNESS";
+    case US_IMG_RF_REAL:
+      return L"RF_REAL";
+    case US_IMG_RF_IQ_LINE:
+      return L"RF_IQ_LINE";
+    case US_IMG_RF_I_LINE_Q_LINE:
+      return L"RF_I_LINE_Q_LINE";
+    case US_IMG_RGB_COLOR:
+      return L"RGB_COLOR";
+    default:
+      return L"XX";
     }
   }
 
@@ -516,6 +439,12 @@ default::uint32 VideoFrame::GetPixelFormat(bool normalized)
   }
 
   //----------------------------------------------------------------------------
+  bool VideoFrame::IsImageValidInternal() const
+  {
+    return m_image != nullptr;
+  }
+
+  //----------------------------------------------------------------------------
   uint32 VideoFrame::GetNumberOfBytesPerScalar(int pixelType)
   {
     return UWPOpenIGTLink::Image::GetNumberOfBytesPerScalar(pixelType);
@@ -528,9 +457,11 @@ default::uint32 VideoFrame::GetPixelFormat(bool normalized)
   }
 
   //----------------------------------------------------------------------------
-  void VideoFrame::SetImage(UWPOpenIGTLink::Image^ imageData)
+  void VideoFrame::SetImage(UWPOpenIGTLink::Image^ imageData, US_IMAGE_ORIENTATION orientation, US_IMAGE_TYPE imageType)
   {
     m_image = imageData;
+    m_imageOrientation = orientation;
+    m_imageType = imageType;
   }
 
   //----------------------------------------------------------------------------
@@ -539,18 +470,18 @@ default::uint32 VideoFrame::GetPixelFormat(bool normalized)
   {
     switch ((IGTLScalarType)pixelType)
     {
-        PIXEL_TO_STRING(IGTL_SCALARTYPE_UNKNOWN);
-        PIXEL_TO_STRING(IGTL_SCALARTYPE_INT8);
-        PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT8);
-        PIXEL_TO_STRING(IGTL_SCALARTYPE_INT16);
-        PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT16);
-        PIXEL_TO_STRING(IGTL_SCALARTYPE_INT32);
-        PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT32);
-        PIXEL_TO_STRING(IGTL_SCALARTYPE_FLOAT32);
-        PIXEL_TO_STRING(IGTL_SCALARTYPE_FLOAT64);
-        PIXEL_TO_STRING(IGTL_SCALARTYPE_COMPLEX);
-      default:
-        return L"IGTL_SCALARTYPE_UNKNOWN";
+      PIXEL_TO_STRING(IGTL_SCALARTYPE_UNKNOWN);
+      PIXEL_TO_STRING(IGTL_SCALARTYPE_INT8);
+      PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT8);
+      PIXEL_TO_STRING(IGTL_SCALARTYPE_INT16);
+      PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT16);
+      PIXEL_TO_STRING(IGTL_SCALARTYPE_INT32);
+      PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT32);
+      PIXEL_TO_STRING(IGTL_SCALARTYPE_FLOAT32);
+      PIXEL_TO_STRING(IGTL_SCALARTYPE_FLOAT64);
+      PIXEL_TO_STRING(IGTL_SCALARTYPE_COMPLEX);
+    default:
+      return L"IGTL_SCALARTYPE_UNKNOWN";
     }
   }
 #undef PIXEL_TO_STRING

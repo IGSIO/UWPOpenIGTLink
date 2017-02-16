@@ -107,31 +107,31 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  double StreamBufferItem::GetTimestamp(double localTimeOffsetSec)
+  float StreamBufferItem::GetTimestamp(float localTimeOffsetSec)
   {
     return GetFilteredTimestamp(localTimeOffsetSec);
   }
 
   //----------------------------------------------------------------------------
-  double StreamBufferItem::GetFilteredTimestamp(double localTimeOffsetSec)
+  float StreamBufferItem::GetFilteredTimestamp(float localTimeOffsetSec)
   {
     return m_filteredTimeStamp + localTimeOffsetSec;
   }
 
   //----------------------------------------------------------------------------
-  void StreamBufferItem::SetFilteredTimestamp(double filteredTimestamp)
+  void StreamBufferItem::SetFilteredTimestamp(float filteredTimestamp)
   {
     m_filteredTimeStamp = filteredTimestamp;
   }
 
   //----------------------------------------------------------------------------
-  double StreamBufferItem::GetUnfilteredTimestamp(double localTimeOffsetSec)
+  float StreamBufferItem::GetUnfilteredTimestamp(float localTimeOffsetSec)
   {
     return m_unfilteredTimeStamp + localTimeOffsetSec;
   }
 
   //----------------------------------------------------------------------------
-  void StreamBufferItem::SetUnfilteredTimestamp(double unfilteredTimestamp)
+  void StreamBufferItem::SetUnfilteredTimestamp(float unfilteredTimestamp)
   {
     m_unfilteredTimeStamp = unfilteredTimestamp;
   }
@@ -168,7 +168,7 @@ namespace UWPOpenIGTLink
       return nullptr;
     }
 
-    FieldMapType::iterator fieldIterator;
+    FieldMapTypeInternal::iterator fieldIterator;
     fieldIterator = m_customFrameFields.find(std::wstring(fieldName->Data()));
     if (fieldIterator != m_customFrameFields.end())
     {
@@ -185,7 +185,7 @@ namespace UWPOpenIGTLink
       return false;
     }
 
-    FieldMapType::iterator field = m_customFrameFields.find(std::wstring(fieldName->Data()));
+    FieldMapTypeInternal::iterator field = m_customFrameFields.find(std::wstring(fieldName->Data()));
     if (field != m_customFrameFields.end())
     {
       m_customFrameFields.erase(field);
@@ -207,9 +207,15 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  StreamBufferItem::FieldMapType& StreamBufferItem::GetCustomFrameFieldMap()
+  StreamBufferItem::FieldMapTypeInternal& StreamBufferItem::GetCustomFrameFieldMap()
   {
     return m_customFrameFields;
+  }
+
+  //----------------------------------------------------------------------------
+  void StreamBufferItem::SetCustomFrameFieldInternal(const std::wstring& fieldName, const std::wstring& fieldValue)
+  {
+    m_customFrameFields[fieldName] = fieldValue;
   }
 
   //----------------------------------------------------------------------------

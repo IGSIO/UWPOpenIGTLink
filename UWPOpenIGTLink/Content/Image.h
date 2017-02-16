@@ -31,21 +31,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 namespace UWPOpenIGTLink
 {
-  /// An enum to wrap the c define values specified in igtl_util.h
-  enum IGTLScalarType
-  {
-    IGTL_SCALARTYPE_UNKNOWN = 0,
-    IGTL_SCALARTYPE_INT8 = IGTL_SCALAR_INT8,
-    IGTL_SCALARTYPE_UINT8 = IGTL_SCALAR_UINT8,
-    IGTL_SCALARTYPE_INT16 = IGTL_SCALAR_INT16,
-    IGTL_SCALARTYPE_UINT16 = IGTL_SCALAR_UINT16,
-    IGTL_SCALARTYPE_INT32 = IGTL_SCALAR_INT32,
-    IGTL_SCALARTYPE_UINT32 = IGTL_SCALAR_UINT32,
-    IGTL_SCALARTYPE_FLOAT32 = IGTL_SCALAR_FLOAT32,
-    IGTL_SCALARTYPE_FLOAT64 = IGTL_SCALAR_FLOAT64,
-    IGTL_SCALARTYPE_COMPLEX = IGTL_SCALAR_COMPLEX
-  };
-
   public ref class Image sealed
   {
   public:
@@ -60,7 +45,7 @@ namespace UWPOpenIGTLink
     bool DeepCopy(Image^ otherImage);
     bool FillBlank();
     void AllocateScalars(const Platform::Array<uint16>^ imageSize, uint16 numberOfScalarComponents, int scalarType);
-    uint64 GetImageSizeBytes();
+    uint32 GetImageSizeBytes();
 
     static uint32 GetNumberOfBytesPerScalar(int scalarType);
 
@@ -68,6 +53,8 @@ namespace UWPOpenIGTLink
     void SetImageData(std::shared_ptr<byte> imageData, uint16 numberOfScalarComponents, IGTLScalarType scalarType, std::array<uint16, 3>& imageSize);
     std::shared_ptr<byte> GetImageData();
     void AllocateScalars(const std::array<uint16, 3>& imageSize, uint16 numberOfScalarComponents, IGTLScalarType pixelType);
+
+    std::array<uint16, 3> GetFrameSize() const;
 
   protected private:
     std::array<uint16, 3>   m_imageSize;

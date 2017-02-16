@@ -24,9 +24,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "pch.h"
 #include "IGTCommon.h"
 
+// STL includes
+#include <limits>
+
+using namespace Windows::Foundation::Numerics;
+
 namespace UWPOpenIGTLink
 {
-
   //----------------------------------------------------------------------------
   void LogMessage(const std::string& msg, const char* fileName, int lineNumber)
   {
@@ -83,18 +87,13 @@ namespace UWPOpenIGTLink
          << matrix.m44 << std::endl;
     return woss.str();
   }
-}
 
-//----------------------------------------------------------------------------
-std::ostream& operator<<(std::ostream& os, const std::vector<double>& vec)
-{
-  for (uint32 i = 0; i < vec.size(); ++i)
+  //----------------------------------------------------------------------------
+  float GetOrientationDifference(const float4x4& aMatrix, const float4x4& bMatrix)
   {
-    os << vec[i];
-    if (i != vec.size() - 1)
-    {
-      os << " ";
-    }
+    quaternion aQuat = make_quaternion_from_rotation_matrix(aMatrix);
+    quaternion bQuat = make_quaternion_from_rotation_matrix(bMatrix);
+
+    return dot(aQuat, bQuat);
   }
-  return os;
 }

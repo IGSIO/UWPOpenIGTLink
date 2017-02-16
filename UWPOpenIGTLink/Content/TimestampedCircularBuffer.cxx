@@ -32,13 +32,13 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   TimestampedCircularBuffer::TimestampedCircularBuffer()
     : m_writePointer(0)
-    , m_currentTimeStamp(0.0)
-    , m_localTimeOffsetSec(0.0)
+    , m_currentTimeStamp(0.f)
+    , m_localTimeOffsetSec(0.f)
     , m_latestItemUid(0)
     , m_averagedItemsForFiltering(20)
-    , m_maxAllowedFilteringTimeDifference(0.5)
-    , m_startTime(0)
-    , m_negligibleTimeDifferenceSec(1e-5)
+    , m_maxAllowedFilteringTimeDifference(0.5f)
+    , m_startTime(0.f)
+    , m_negligibleTimeDifferenceSec(0.00001f)
   {
     m_bufferItemContainer.resize(0);
     m_filterContainerIndexVector.resize(0);
@@ -53,7 +53,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool TimestampedCircularBuffer::PrepareForNewItem(double timestamp, BufferItemUidType* newFrameUid, int* bufferIndex)
+  bool TimestampedCircularBuffer::PrepareForNewItem(float timestamp, BufferItemUidType* newFrameUid, int* bufferIndex)
   {
     if (newFrameUid == nullptr || bufferIndex == nullptr)
     {
@@ -185,7 +185,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  double TimestampedCircularBuffer::GetFilteredTimeStamp(BufferItemUidType uid)
+  float TimestampedCircularBuffer::GetFilteredTimeStamp(BufferItemUidType uid)
   {
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
     StreamBufferItem^ itemPtr = GetBufferItemFromUid(uid);
@@ -193,7 +193,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  double TimestampedCircularBuffer::GetUnfilteredTimeStamp(BufferItemUidType uid)
+  float TimestampedCircularBuffer::GetUnfilteredTimeStamp(BufferItemUidType uid)
   {
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
     StreamBufferItem^ itemPtr = GetBufferItemFromUid(uid);
@@ -249,7 +249,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  uint32 TimestampedCircularBuffer::GetBufferIndexFromTime(double time)
+  uint32 TimestampedCircularBuffer::GetBufferIndexFromTime(float time)
   {
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
 
@@ -266,7 +266,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   // do a simple divide-and-conquer search for the transform
   // that best matches the given timestamp
-  BufferItemUidType TimestampedCircularBuffer::GetItemUidFromTime(double time)
+  BufferItemUidType TimestampedCircularBuffer::GetItemUidFromTime(float time)
   {
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
 
@@ -286,7 +286,7 @@ namespace UWPOpenIGTLink
     {
       loBufferIndex += m_bufferItemContainer.size();
     }
-    double tlo = m_bufferItemContainer[loBufferIndex]->GetFilteredTimestamp(m_localTimeOffsetSec);
+    float tlo = m_bufferItemContainer[loBufferIndex]->GetFilteredTimestamp(m_localTimeOffsetSec);
 
     // This method is called often, therefore instead of calling GetTimeStamp(hi, thi) we perform low-level operations to get the timestamp
     int hiBufferIndex = (m_writePointer - 1) - (m_latestItemUid - hi);
@@ -294,7 +294,7 @@ namespace UWPOpenIGTLink
     {
       hiBufferIndex += m_bufferItemContainer.size();
     }
-    double thi = m_bufferItemContainer[hiBufferIndex]->GetFilteredTimestamp(m_localTimeOffsetSec);
+    float thi = m_bufferItemContainer[hiBufferIndex]->GetFilteredTimestamp(m_localTimeOffsetSec);
 
     // If the timestamp is slightly out of range then still accept it
     // (due to errors in conversions there could be slight differences)
@@ -329,7 +329,7 @@ namespace UWPOpenIGTLink
       {
         midBufferIndex += m_bufferItemContainer.size();
       }
-      double tmid = m_bufferItemContainer[midBufferIndex]->GetFilteredTimestamp(m_localTimeOffsetSec);
+      float tmid = m_bufferItemContainer[midBufferIndex]->GetFilteredTimestamp(m_localTimeOffsetSec);
 
       if (time < tmid)
       {
@@ -361,13 +361,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  double TimestampedCircularBuffer::GetLatestTimeStamp()
+  float TimestampedCircularBuffer::GetLatestTimeStamp()
   {
     return GetTimeStamp(GetLatestItemUidInBuffer());
   }
 
   //----------------------------------------------------------------------------
-  double TimestampedCircularBuffer::GetOldestTimeStamp()
+  float TimestampedCircularBuffer::GetOldestTimeStamp()
   {
     // The oldest item may be removed from the buffer at any moment
     // therefore we need to retrieve its UID and timestamp within a single lock
@@ -397,13 +397,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TimestampedCircularBuffer::SetLocalTimeOffsetSec(double offset)
+  void TimestampedCircularBuffer::SetLocalTimeOffsetSec(float offset)
   {
     m_localTimeOffsetSec = offset;
   }
 
   //----------------------------------------------------------------------------
-  double TimestampedCircularBuffer::GetLocalTimeOffsetSec()
+  float TimestampedCircularBuffer::GetLocalTimeOffsetSec()
   {
     return m_localTimeOffsetSec;
   }
@@ -419,15 +419,15 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  double TimestampedCircularBuffer::GetFrameRate(bool ideal, double* framePeriodStdevSec)
+  float TimestampedCircularBuffer::GetFrameRate(bool ideal, float* framePeriodStdevSec)
   {
     // TODO: Start the frame rate computation from the latest frame UID with using a few seconds of items in the buffer
     bool cannotComputeIdealFrameRateDueToInvalidFrameNumbers = false;
 
-    std::vector<double> framePeriods;
+    std::vector<float> framePeriods;
     for (BufferItemUidType frame = GetLatestItemUidInBuffer(); frame > GetOldestItemUidInBuffer(); --frame)
     {
-      double time(0);
+      float time(0);
       try
       {
         time = GetTimeStamp(frame);
@@ -447,7 +447,7 @@ namespace UWPOpenIGTLink
         continue;
       }
 
-      double prevtime(0);
+      float prevtime(0);
       try
       {
         prevtime = GetTimeStamp(frame - 1);
@@ -467,14 +467,14 @@ namespace UWPOpenIGTLink
         continue;
       }
 
-      double frameperiod = (time - prevtime);
+      float frameperiod = (time - prevtime);
       int frameDiff = framenum - prevframenum;
 
       if (ideal)
       {
         if (frameDiff > 0)
         {
-          frameperiod /= (1.0 * frameDiff);
+          frameperiod /= (1.f * frameDiff);
         }
         else
         {
@@ -501,29 +501,29 @@ namespace UWPOpenIGTLink
       return 0;
     }
 
-    double samplingPeriod(0);
+    float samplingPeriod(0);
     for (int i = 0; i < numberOfFramePeriods; i++)
     {
       samplingPeriod += framePeriods[i];
     }
-    samplingPeriod /= 1.0 * numberOfFramePeriods;
+    samplingPeriod /= 1.f * numberOfFramePeriods;
 
-    double frameRate(0);
+    float frameRate(0);
     if (samplingPeriod != 0)
     {
-      frameRate = 1.0 / samplingPeriod;
+      frameRate = 1.f / samplingPeriod;
     }
 
     if (framePeriodStdevSec != nullptr)
     {
       // Standard deviation of sampling period
       // stdev = sqrt ( 1/N * sum[ (xi-mean)^2 ] ) = sqrt ( 1/N * sumOfXiMeanDiffSquare )
-      double sumOfXiMeanDiffSquare = 0;
+      float sumOfXiMeanDiffSquare = 0;
       for (int i = 0; i < numberOfFramePeriods; i++)
       {
         sumOfXiMeanDiffSquare += (framePeriods[i] - samplingPeriod) * (framePeriods[i] - samplingPeriod);
       }
-      double framePeriodStdev = sqrt(sumOfXiMeanDiffSquare / numberOfFramePeriods);
+      float framePeriodStdev = sqrt(sumOfXiMeanDiffSquare / numberOfFramePeriods);
       *framePeriodStdevSec = framePeriodStdev;
     }
 
@@ -533,7 +533,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   // for accurate timing of the frame: an exponential moving average
   // is computed to smooth out the jitter in the times that are returned by the system clock:
-  bool TimestampedCircularBuffer::CreateFilteredTimeStampForItem(uint32 itemIndex, double inUnfilteredTimestamp, double* outFilteredTimestamp, bool* filteredTimestampProbablyValid)
+  bool TimestampedCircularBuffer::CreateFilteredTimeStampForItem(uint32 itemIndex, float inUnfilteredTimestamp, float* outFilteredTimestamp, bool* filteredTimestampProbablyValid)
   {
     if (outFilteredTimestamp == nullptr || filteredTimestampProbablyValid == nullptr)
     {
@@ -600,18 +600,18 @@ namespace UWPOpenIGTLink
     //   b = yMean - a*xMean
     //
 
-    double xMean = VectorMean<double>(m_filterContainerIndexVector, 0.0);
-    double yMean = VectorMean<double>(m_filterContainerTimestampVector, 0.0);
-    double covarianceXY = 0;
-    double varianceX = 0;
+    float xMean = 1.f * VectorMean<uint32>(m_filterContainerIndexVector, 0);
+    float yMean = VectorMean<float>(m_filterContainerTimestampVector, 0.f);
+    float covarianceXY = 0;
+    float varianceX = 0;
     for (int i = m_filterContainerTimestampVector.size() - 1; i >= 0; i--)
     {
-      double xiMinusXmean = m_filterContainerIndexVector[i] - xMean;
+      float xiMinusXmean = m_filterContainerIndexVector[i] - xMean;
       covarianceXY += xiMinusXmean * (m_filterContainerTimestampVector[i] - yMean);
       varianceX += xiMinusXmean * xiMinusXmean;
     }
-    double a = covarianceXY / varianceX;
-    double b = yMean - a * xMean;
+    float a = covarianceXY / varianceX;
+    float b = yMean - a * xMean;
 
     *outFilteredTimestamp = a * itemIndex + b;
 
@@ -643,7 +643,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  double TimestampedCircularBuffer::GetTimeStamp(BufferItemUidType uid)
+  float TimestampedCircularBuffer::GetTimeStamp(BufferItemUidType uid)
   {
     return GetFilteredTimeStamp(uid);
   }
@@ -661,13 +661,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TimestampedCircularBuffer::SetStartTime(double startTime)
+  void TimestampedCircularBuffer::SetStartTime(float startTime)
   {
     m_startTime = startTime;
   }
 
   //----------------------------------------------------------------------------
-  double TimestampedCircularBuffer::GetStartTime()
+  float TimestampedCircularBuffer::GetStartTime()
   {
     return m_startTime;
   }

@@ -78,26 +78,26 @@ namespace UWPOpenIGTLink
   {
     switch ((IGTLScalarType)pixelType)
     {
-      case IGTL_SCALARTYPE_UNKNOWN:
-        return 0;
-      case IGTL_SCALARTYPE_INT8:
-        return sizeof(int8);
-      case IGTL_SCALARTYPE_UINT8:
-        return sizeof(uint8);
-      case IGTL_SCALARTYPE_INT16:
-        return sizeof(int16);
-      case IGTL_SCALARTYPE_UINT16:
-        return sizeof(uint16);
-      case IGTL_SCALARTYPE_INT32:
-        return sizeof(int32);
-      case IGTL_SCALARTYPE_UINT32:
-        return sizeof(uint32);
-      case IGTL_SCALARTYPE_FLOAT32:
-        return sizeof(float);
-      case IGTL_SCALARTYPE_FLOAT64:
-        return sizeof(double);
-      default:
-        return 0;
+    case IGTL_SCALARTYPE_UNKNOWN:
+      return 0;
+    case IGTL_SCALARTYPE_INT8:
+      return sizeof(int8);
+    case IGTL_SCALARTYPE_UINT8:
+      return sizeof(uint8);
+    case IGTL_SCALARTYPE_INT16:
+      return sizeof(int16);
+    case IGTL_SCALARTYPE_UINT16:
+      return sizeof(uint16);
+    case IGTL_SCALARTYPE_INT32:
+      return sizeof(int32);
+    case IGTL_SCALARTYPE_UINT32:
+      return sizeof(uint32);
+    case IGTL_SCALARTYPE_FLOAT32:
+      return sizeof(float);
+    case IGTL_SCALARTYPE_FLOAT64:
+      return sizeof(double);
+    default:
+      return 0;
     }
   }
 
@@ -145,7 +145,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  uint64 Image::GetImageSizeBytes()
+  std::array<uint16, 3> Image::GetFrameSize() const
+  {
+    return m_imageSize;
+  }
+
+  //----------------------------------------------------------------------------
+  uint32 Image::GetImageSizeBytes()
   {
     return GetNumberOfBytesPerScalar((int)m_scalarType) * m_numberOfScalarComponents * m_imageSize[0] * m_imageSize[1] * m_imageSize[2];
   }

@@ -23,17 +23,79 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
-// std includes
+// STL includes
 #include <string>
 #include <sstream>
 
 // WinRT includes
 #include <collection.h>
 
-std::ostream& operator<<(std::ostream& os, const std::vector<double>& vec);
+// IGTL includes
+#include <igtl_util.h>
+
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec)
+{
+  for (uint32 i = 0; i < vec.size(); ++i)
+  {
+    os << vec[i];
+    if (i != vec.size() - 1)
+    {
+      os << " ";
+    }
+  }
+  return os;
+}
 
 namespace UWPOpenIGTLink
 {
+  typedef uint32 BufferItemUidType;
+
+  enum ToolStatus
+  {
+    TOOL_OK,            /*!< Tool OK */
+    TOOL_MISSING,       /*!< Tool or tool port is not available */
+    TOOL_OUT_OF_VIEW,   /*!< Cannot obtain transform for tool */
+    TOOL_OUT_OF_VOLUME, /*!< Tool is not within the sweet spot of system */
+    TOOL_SWITCH1_IS_ON, /*!< Various buttons/switches on tool */
+    TOOL_SWITCH2_IS_ON, /*!< Various buttons/switches on tool */
+    TOOL_SWITCH3_IS_ON, /*!< Various buttons/switches on tool */
+    TOOL_REQ_TIMEOUT,   /*!< Request timeout status */
+    TOOL_INVALID        /*!< Invalid tool status */
+  };
+
+  /// An enum to wrap the c define values specified in igtl_util.h
+  enum IGTLScalarType
+  {
+    IGTL_SCALARTYPE_UNKNOWN = 0,
+    IGTL_SCALARTYPE_INT8 = IGTL_SCALAR_INT8,
+    IGTL_SCALARTYPE_UINT8 = IGTL_SCALAR_UINT8,
+    IGTL_SCALARTYPE_INT16 = IGTL_SCALAR_INT16,
+    IGTL_SCALARTYPE_UINT16 = IGTL_SCALAR_UINT16,
+    IGTL_SCALARTYPE_INT32 = IGTL_SCALAR_INT32,
+    IGTL_SCALARTYPE_UINT32 = IGTL_SCALAR_UINT32,
+    IGTL_SCALARTYPE_FLOAT32 = IGTL_SCALAR_FLOAT32,
+    IGTL_SCALARTYPE_FLOAT64 = IGTL_SCALAR_FLOAT64,
+    IGTL_SCALARTYPE_COMPLEX = IGTL_SCALAR_COMPLEX
+  };
+
+  enum TIMESTAMP_FILTERING_OPTION
+  {
+    READ_FILTERED_AND_UNFILTERED_TIMESTAMPS = 0,
+    READ_UNFILTERED_COMPUTE_FILTERED_TIMESTAMPS,
+    READ_FILTERED_IGNORE_UNFILTERED_TIMESTAMPS
+  };
+
+  /*! Tracker item temporal interpolation type */
+  enum DATA_ITEM_TEMPORAL_INTERPOLATION
+  {
+    EXACT_TIME, /*!< only returns the item if the requested timestamp exactly matches the timestamp of an existing element */
+    INTERPOLATED, /*!< returns interpolated transform (requires valid transform at the requested timestamp) */
+    CLOSEST_TIME /*!< returns the closest item  */
+  };
+
+  static const double UNDEFINED_TIMESTAMP = (std::numeric_limits<double>::max)();
+
   typedef Platform::Collections::Map<Platform::String^, Platform::String^> StringMap;
 
 #ifdef _WIN64
@@ -70,6 +132,9 @@ namespace UWPOpenIGTLink
 
   //--------------------------------------------------------
   std::wstring PrintMatrix(const Windows::Foundation::Numerics::float4x4& matrix);
+
+  //----------------------------------------------------------------------------
+  float GetOrientationDifference(const Windows::Foundation::Numerics::float4x4& aMatrix, const Windows::Foundation::Numerics::float4x4& bMatrix);
 
   //--------------------------------------------------------
   template<typename T>

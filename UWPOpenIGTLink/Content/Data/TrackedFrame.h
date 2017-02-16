@@ -25,6 +25,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 // Local includes
 #include "IGTCommon.h"
+#include "StreamBufferItem.h"
 #include "TransformName.h"
 #include "VideoFrame.h"
 
@@ -113,8 +114,6 @@ namespace UWPOpenIGTLink
   public ref class TrackedFrame sealed
   {
   public:
-    typedef std::map<std::wstring, std::wstring> FieldMapType;
-
     property Windows::Foundation::Collections::IMapView<Platform::String^, Platform::String^>^ FrameFields {Windows::Foundation::Collections::IMapView<Platform::String^, Platform::String^>^ get(); }
     property VideoFrame^ Frame { VideoFrame ^ get(); }
     property TransformEntryUWPList^ FrameTransforms { TransformEntryUWPList ^ get(); }
@@ -131,6 +130,7 @@ namespace UWPOpenIGTLink
     Platform::String^ GetFrameField(Platform::String^ fieldName);
 
     bool HasImage();
+    uint32 GetPixelFormat(bool normalized);
 
   internal:
     void SetEmbeddedImageTransform(const Windows::Foundation::Numerics::float4x4& matrix);
@@ -152,13 +152,13 @@ namespace UWPOpenIGTLink
     static std::wstring ConvertFieldStatusToString(TrackedFrameFieldStatus status);
 
     /*! Get all frame transforms */
-    TransformEntryInternalList GetFrameTransformsInternal();
+    const TransformEntryInternalList& GetFrameTransformsInternal();
     void SetFrameTransformsInternal(const TransformEntryInternalList& arg);
     void SetFrameTransformsInternal(const std::vector<TransformEntryUWP^>& arg);
 
   protected private:
     // Tracking/other related fields
-    FieldMapType                                    m_frameFields;
+    StreamBufferItem::FieldMapTypeInternal          m_frameFields;
     TransformEntryInternalList                      m_frameTransforms;
 
     // Image related fields
