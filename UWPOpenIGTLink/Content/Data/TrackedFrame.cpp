@@ -119,81 +119,81 @@ namespace UWPOpenIGTLink
   {
     switch (m_numberOfComponents)
     {
-    case 1:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return normalized ? DXGI_FORMAT_R8_SNORM : DXGI_FORMAT_R8_SINT;
-      case IGTL_SCALARTYPE_UINT8:
-        return normalized ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_R8_UINT;
-      case IGTL_SCALARTYPE_INT16:
-        return normalized ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R16_SINT;
-      case IGTL_SCALARTYPE_UINT16:
-        return normalized ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R16_UINT;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32_FLOAT;
-      }
-      break;
-    case 2:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return normalized ? DXGI_FORMAT_R8G8_SNORM : DXGI_FORMAT_R8G8_SINT;
-      case IGTL_SCALARTYPE_UINT8:
-        return normalized ? DXGI_FORMAT_R8G8_UNORM : DXGI_FORMAT_R8G8_UINT;
-      case IGTL_SCALARTYPE_INT16:
-        return normalized ? DXGI_FORMAT_R16G16_SNORM : DXGI_FORMAT_R16G16_SINT;
-      case IGTL_SCALARTYPE_UINT16:
-        return normalized ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R16G16_UINT;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32G32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32G32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32G32_FLOAT;
-      }
-      break;
-    case 3:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
-      case IGTL_SCALARTYPE_UINT8:
-        return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UINT;
-      case IGTL_SCALARTYPE_INT16:
-        return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
-      case IGTL_SCALARTYPE_UINT16:
-        return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_UINT;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32G32B32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32G32B32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32G32B32_FLOAT;
-      }
-    case 4:
-      switch (m_scalarType)
-      {
-      case IGTL_SCALARTYPE_INT8:
-        return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
-      case IGTL_SCALARTYPE_UINT8:
-        return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_SINT;
-      case IGTL_SCALARTYPE_INT16:
-        return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
-      case IGTL_SCALARTYPE_UINT16:
-        return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_SINT;
-      case IGTL_SCALARTYPE_INT32:
-        return DXGI_FORMAT_R32G32B32A32_SINT;
-      case IGTL_SCALARTYPE_UINT32:
-        return DXGI_FORMAT_R32G32B32A32_UINT;
-      case IGTL_SCALARTYPE_FLOAT32:
-        return DXGI_FORMAT_R32G32B32A32_FLOAT;
-      }
-      break;
+      case 1:
+        switch (m_scalarType)
+        {
+          case IGTL_SCALARTYPE_INT8:
+            return normalized ? DXGI_FORMAT_R8_SNORM : DXGI_FORMAT_R8_SINT;
+          case IGTL_SCALARTYPE_UINT8:
+            return normalized ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_R8_UINT;
+          case IGTL_SCALARTYPE_INT16:
+            return normalized ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R16_SINT;
+          case IGTL_SCALARTYPE_UINT16:
+            return normalized ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R16_UINT;
+          case IGTL_SCALARTYPE_INT32:
+            return DXGI_FORMAT_R32_SINT;
+          case IGTL_SCALARTYPE_UINT32:
+            return DXGI_FORMAT_R32_UINT;
+          case IGTL_SCALARTYPE_FLOAT32:
+            return DXGI_FORMAT_R32_FLOAT;
+        }
+        break;
+      case 2:
+        switch (m_scalarType)
+        {
+          case IGTL_SCALARTYPE_INT8:
+            return normalized ? DXGI_FORMAT_R8G8_SNORM : DXGI_FORMAT_R8G8_SINT;
+          case IGTL_SCALARTYPE_UINT8:
+            return normalized ? DXGI_FORMAT_R8G8_UNORM : DXGI_FORMAT_R8G8_UINT;
+          case IGTL_SCALARTYPE_INT16:
+            return normalized ? DXGI_FORMAT_R16G16_SNORM : DXGI_FORMAT_R16G16_SINT;
+          case IGTL_SCALARTYPE_UINT16:
+            return normalized ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R16G16_UINT;
+          case IGTL_SCALARTYPE_INT32:
+            return DXGI_FORMAT_R32G32_SINT;
+          case IGTL_SCALARTYPE_UINT32:
+            return DXGI_FORMAT_R32G32_UINT;
+          case IGTL_SCALARTYPE_FLOAT32:
+            return DXGI_FORMAT_R32G32_FLOAT;
+        }
+        break;
+      case 3:
+        switch (m_scalarType)
+        {
+          case IGTL_SCALARTYPE_INT8:
+            return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+          case IGTL_SCALARTYPE_UINT8:
+            return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UINT;
+          case IGTL_SCALARTYPE_INT16:
+            return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+          case IGTL_SCALARTYPE_UINT16:
+            return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_UINT;
+          case IGTL_SCALARTYPE_INT32:
+            return DXGI_FORMAT_R32G32B32_SINT;
+          case IGTL_SCALARTYPE_UINT32:
+            return DXGI_FORMAT_R32G32B32_UINT;
+          case IGTL_SCALARTYPE_FLOAT32:
+            return DXGI_FORMAT_R32G32B32_FLOAT;
+        }
+      case 4:
+        switch (m_scalarType)
+        {
+          case IGTL_SCALARTYPE_INT8:
+            return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+          case IGTL_SCALARTYPE_UINT8:
+            return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+          case IGTL_SCALARTYPE_INT16:
+            return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+          case IGTL_SCALARTYPE_UINT16:
+            return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+          case IGTL_SCALARTYPE_INT32:
+            return DXGI_FORMAT_R32G32B32A32_SINT;
+          case IGTL_SCALARTYPE_UINT32:
+            return DXGI_FORMAT_R32G32B32A32_UINT;
+          case IGTL_SCALARTYPE_FLOAT32:
+            return DXGI_FORMAT_R32G32B32A32_FLOAT;
+        }
+        break;
     }
     return DXGI_FORMAT_UNKNOWN;
   }
@@ -582,7 +582,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  const TransformEntryInternalList& TrackedFrame::GetFrameTransformsInternal()
+  TransformEntryInternalList TrackedFrame::GetFrameTransformsInternal()
   {
     return m_frameTransforms;
   }
