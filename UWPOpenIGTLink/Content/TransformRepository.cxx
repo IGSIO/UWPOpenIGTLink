@@ -6,8 +6,8 @@
 
 // Local includes
 #include "pch.h"
-#include "IGTCommon.h"
 #include "TrackedFrame.h"
+#include "Transform.h"
 #include "TransformRepository.h"
 
 // STL includes
@@ -96,7 +96,7 @@ namespace UWPOpenIGTLink
     bool result(true);
     for (auto& entry : transforms)
     {
-      result &= SetTransform(std::get<0>(entry), std::get<1>(entry), std::get<2>(entry));
+      result &= SetTransform(entry->Name, entry->Matrix, entry->Valid);
     }
 
     return result;

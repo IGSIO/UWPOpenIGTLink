@@ -89,6 +89,7 @@
     <ClInclude Include="Content\StreamBufferItem.h" />
     <ClInclude Include="Content\TimestampedCircularBuffer.h" />
     <ClInclude Include="Content\TrackedFrameMessage.h" />
+    <ClInclude Include="Content\Transform.h" />
     <ClInclude Include="Content\TransformName.h" />
     <ClInclude Include="Content\TransformRepository.h" />
     <ClInclude Include="Content\VideoFrame.h" />
@@ -100,10 +101,11 @@
     <ClCompile Include="Content\Data\Command.cpp" />
     <ClCompile Include="Content\Data\TrackedFrame.cpp" />
     <ClCompile Include="Content\IGTLinkClient.cxx" />
-    <ClCompile Include="Content\Image.cpp" />
+    <ClCompile Include="Content\Image.cxx" />
     <ClCompile Include="Content\StreamBufferItem.cxx" />
     <ClCompile Include="Content\TimestampedCircularBuffer.cxx" />
     <ClCompile Include="Content\TrackedFrameMessage.cxx" />
+    <ClCompile Include="Content\Transform.cxx" />
     <ClCompile Include="Content\TransformName.cxx" />
     <ClCompile Include="Content\TransformRepository.cxx" />
     <ClCompile Include="Content\VideoFrame.cxx" />

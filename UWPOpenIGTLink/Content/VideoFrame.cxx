@@ -21,9 +21,14 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 ====================================================================*/
 
+// Local includes
 #include "pch.h"
 #include "VideoFrame.h"
 
+// DirectX includes
+#include <dxgiformat.h>
+
+using namespace Windows::Foundation::Numerics;
 using namespace Windows::Storage::Streams;
 
 namespace UWPOpenIGTLink
@@ -64,7 +69,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool VideoFrame::FillBlank()
   {
-    if (!IsImageValid())
+    if (!HasImage())
     {
       OutputDebugStringA("Unable to fill image to blank, image data is NULL.");
       return false;
@@ -76,52 +81,58 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool VideoFrame::AllocateFrame(const Platform::Array<uint16>^ imageSize, int pixType, uint16 numberOfScalarComponents)
+  uint32 VideoFrame::GetPixelFormat(bool normalized)
   {
-    if (!IsImageValid())
+    if (HasImage())
+    {
+      return m_image->GetPixelFormat(normalized);
+    }
+    else
+    {
+      return (uint32)DXGI_FORMAT_UNKNOWN;
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  bool VideoFrame::AllocateFrame(const FrameSizeABI^ imageSize, int scalarType, uint16 numberOfScalarComponents)
+  {
+    return AllocateFrame(FrameSize{ imageSize[0], imageSize[1], imageSize[2] }, scalarType, numberOfScalarComponents);
+  }
+
+  //----------------------------------------------------------------------------
+  bool VideoFrame::AllocateFrame(const FrameSize& frameSize, int scalarType, uint16 numberOfScalarComponents)
+  {
+    if (!HasImage())
     {
       m_image = ref new UWPOpenIGTLink::Image();
     }
 
-    auto frameSize = ref new Platform::Array<uint16>(3);
-    frameSize[0] = imageSize[0];
-    frameSize[1] = imageSize[1];
-    frameSize[2] = imageSize[2];
-    if (frameSize[0] > 0 && frameSize[1] > 0 && frameSize[2] == 0)
+    auto nonConstFrameSize = frameSize;
+    if (nonConstFrameSize[0] > 0 && nonConstFrameSize[1] > 0 && nonConstFrameSize[2] == 0)
     {
       OutputDebugStringA("Single slice images should have a dimension of z=1");
-      frameSize[2] = 1;
+      nonConstFrameSize[2] = 1;
     }
 
-    if (m_image->FrameSize[0] == frameSize[0] &&
-        m_image->FrameSize[1] == frameSize[1] &&
-        m_image->FrameSize[2] == frameSize[2] &&
-        m_image->ScalarType == pixType &&
+    if (m_image->Dimensions[0] == nonConstFrameSize[0] &&
+        m_image->Dimensions[1] == nonConstFrameSize[1] &&
+        m_image->Dimensions[2] == nonConstFrameSize[2] &&
+        m_image->ScalarType == scalarType &&
         m_image->NumberOfScalarComponents == numberOfScalarComponents)
     {
       // already allocated, no change
       return true;
     }
 
-    m_image->AllocateScalars(frameSize, numberOfScalarComponents, pixType);
+    m_image->AllocateScalars(nonConstFrameSize, numberOfScalarComponents, (IGTL_SCALAR_TYPE)scalarType);
 
     return true;
   }
 
   //----------------------------------------------------------------------------
-  bool VideoFrame::AllocateFrame(const std::array<uint16, 3>& imageSize, int scalarType, uint16 numberOfScalarComponents)
-  {
-    Platform::Array<uint16>^ frameSize = ref new Platform::Array<uint16>(3);
-    frameSize[0] = imageSize[0];
-    frameSize[1] = imageSize[1];
-    frameSize[2] = imageSize[2];
-    return AllocateFrame(frameSize, scalarType, numberOfScalarComponents);
-  }
-
-  //----------------------------------------------------------------------------
   uint64 VideoFrame::GetFrameSizeBytes()
   {
-    if (!IsImageValid())
+    if (!HasImage())
     {
       return 0;
     }
@@ -130,42 +141,38 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool VideoFrame::DeepCopyFrom(UWPOpenIGTLink::Image^ frame)
+  bool VideoFrame::DeepCopy(UWPOpenIGTLink::Image^ image, int usImageOrientation, int usImageType)
   {
-    if (frame == nullptr)
+    if (image == nullptr)
     {
       OutputDebugStringA("Failed to deep copy from image data - input frame is NULL!");
       return false;
     }
 
-    auto frameSize = frame->FrameSize;
-
-    if (!AllocateFrame(frameSize, frame->ScalarType, frame->NumberOfScalarComponents))
-    {
-      OutputDebugStringA("Failed to allocate memory for plus video frame!");
-      return false;
-    }
-
-    // TODO : how to copy image data...
+    m_imageOrientation = (US_IMAGE_ORIENTATION)usImageOrientation;
+    m_imageType = (US_IMAGE_TYPE)usImageType;
+    m_image->DeepCopy(image);
 
     return true;
   }
 
   //----------------------------------------------------------------------------
-  bool VideoFrame::ShallowCopyFrom(UWPOpenIGTLink::Image^ frame)
+  bool VideoFrame::ShallowCopy(UWPOpenIGTLink::Image^ image, int usImageOrientation, int usImageType)
   {
-    if (frame == nullptr)
+    if (image == nullptr)
     {
       OutputDebugStringA("Failed to shallow copy from image data - input frame is NULL!");
       return false;
     }
 
-    m_image = frame;
+    m_imageOrientation = (US_IMAGE_ORIENTATION)usImageOrientation;
+    m_imageType = (US_IMAGE_TYPE)usImageType;
+    m_image = image;
     return true;
   }
 
   //----------------------------------------------------------------------------
-  bool VideoFrame::IsImageValid()
+  bool VideoFrame::HasImage()
   {
     return m_image != nullptr;
   }
@@ -197,7 +204,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   uint32 VideoFrame::GetNumberOfScalarComponents()
   {
-    if (IsImageValid())
+    if (HasImage())
     {
       return m_image->NumberOfScalarComponents;
     }
@@ -218,23 +225,17 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  Platform::Array<uint16>^ VideoFrame::GetFrameSize()
+  FrameSizeABI^ VideoFrame::GetDimensions()
   {
-    if (!IsImageValid())
-    {
-      OutputDebugStringA("Cannot get buffer pointer, the buffer hasn't been created yet");
-      return nullptr;
-    }
-
-    return m_image->FrameSize;
+    return Dimensions;
   }
 
   //----------------------------------------------------------------------------
-  std::array<uint16, 3> VideoFrame::GetFrameSize() const
+  FrameSize VideoFrame::GetDimensions() const
   {
     if (!IsImageValidInternal())
     {
-      return std::array<uint16, 3>({ 0, 0, 0 });
+      return FrameSize({ 0, 0, 0 });
     }
     return m_image->GetFrameSize();
   }
@@ -242,7 +243,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   int VideoFrame::GetScalarPixelType()
   {
-    if (!IsImageValid())
+    if (!HasImage())
     {
       OutputDebugStringA("Cannot get buffer pointer, the buffer hasn't been created yet");
       return IGTL_SCALARTYPE_UNKNOWN;
@@ -418,9 +419,9 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void VideoFrame::SetImageData(std::shared_ptr<byte> imageData, uint16 numberOfScalarComponents, IGTLScalarType scalarType, std::array<uint16, 3>& imageSize)
+  void VideoFrame::SetImageData(std::shared_ptr<byte> imageData, uint16 numberOfScalarComponents, IGTL_SCALAR_TYPE scalarType, const FrameSize& imageSize)
   {
-    if (!IsImageValid())
+    if (!HasImage())
     {
       m_image = ref new UWPOpenIGTLink::Image();
     }
@@ -431,7 +432,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   std::shared_ptr<byte> VideoFrame::GetImageData()
   {
-    if (!IsImageValid())
+    if (!HasImage())
     {
       return nullptr;
     }
@@ -457,18 +458,10 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void VideoFrame::SetImage(UWPOpenIGTLink::Image^ imageData, US_IMAGE_ORIENTATION orientation, US_IMAGE_TYPE imageType)
-  {
-    m_image = imageData;
-    m_imageOrientation = orientation;
-    m_imageType = imageType;
-  }
-
-  //----------------------------------------------------------------------------
 #define PIXEL_TO_STRING(pixType) case pixType: return L"##pixType"
   Platform::String^ VideoFrame::GetStringFromScalarPixelType(int pixelType)
   {
-    switch ((IGTLScalarType)pixelType)
+    switch ((IGTL_SCALAR_TYPE)pixelType)
     {
       PIXEL_TO_STRING(IGTL_SCALARTYPE_UNKNOWN);
       PIXEL_TO_STRING(IGTL_SCALARTYPE_INT8);
@@ -487,19 +480,19 @@ namespace UWPOpenIGTLink
 #undef PIXEL_TO_STRING
 
   //----------------------------------------------------------------------------
-  Platform::Array<uint16>^ VideoFrame::FrameSize::get()
+  FrameSizeABI^ VideoFrame::Dimensions::get()
   {
-    if (!IsImageValid())
+    if (!HasImage())
     {
-      return nullptr;
+      return ref new FrameSizeABI(3) { 0, 0, 0 };
     }
-    return m_image->FrameSize;
+    return m_image->Dimensions;
   }
 
   //----------------------------------------------------------------------------
   uint16 VideoFrame::NumberOfScalarComponents::get()
   {
-    if (!IsImageValid())
+    if (!HasImage())
     {
       return 0;
     }
@@ -509,7 +502,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   int VideoFrame::ScalarType::get()
   {
-    if (!IsImageValid())
+    if (!HasImage())
     {
       return (int)IGTL_SCALARTYPE_UNKNOWN;
     }
@@ -549,10 +542,29 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   IBuffer^ VideoFrame::ImageData::get()
   {
-    if (!IsImageValid())
+    if (!HasImage())
     {
       return nullptr;
     }
     return m_image->ImageData;
+  }
+
+  //----------------------------------------------------------------------------
+  float4x4 VideoFrame::EmbeddedImageTransform::get()
+  {
+    if (!HasImage())
+    {
+      return float4x4::identity();
+    }
+    return m_image->EmbeddedImageTransform;
+  }
+
+  //----------------------------------------------------------------------------
+  void VideoFrame::EmbeddedImageTransform::set(float4x4 arg)
+  {
+    if (HasImage())
+    {
+      m_image->EmbeddedImageTransform = arg;
+    }
   }
 }

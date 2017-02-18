@@ -29,8 +29,30 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 using namespace Windows::Foundation::Numerics;
 
+namespace
+{
+  //----------------------------------------------------------------------------
+  bool icompare_pred(unsigned char a, unsigned char b)
+  {
+    return ::tolower(a) == ::tolower(b);
+  }
+}
+
 namespace UWPOpenIGTLink
 {
+  //----------------------------------------------------------------------------
+  bool IsEqualInsensitive(std::string const& a, std::string const& b)
+  {
+    if (a.length() == b.length())
+    {
+      return std::equal(b.begin(), b.end(), a.begin(), icompare_pred);
+    }
+    else
+    {
+      return false;
+    }
+  }
+
   //----------------------------------------------------------------------------
   void LogMessage(const std::string& msg, const char* fileName, int lineNumber)
   {

@@ -28,9 +28,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 // OS includes
 #include <robuffer.h>
 
-// STL includes
-#include <memory>
+// DirectX includes
+#include <dxgiformat.h>
 
+using namespace Windows::Foundation::Numerics;
 using namespace Windows::Storage::Streams;
 
 namespace UWPOpenIGTLink
@@ -51,10 +52,11 @@ namespace UWPOpenIGTLink
   bool Image::DeepCopy(Image^ otherImage)
   {
     m_numberOfScalarComponents = otherImage->m_numberOfScalarComponents;
+    m_embeddedImageTransform = otherImage->m_embeddedImageTransform;
     m_scalarType = otherImage->m_scalarType;
-    m_imageSize = otherImage->m_imageSize;
+    m_frameSize = otherImage->m_frameSize;
 
-    AllocateScalars(m_imageSize, m_numberOfScalarComponents, m_scalarType);
+    AllocateScalars(m_frameSize, m_numberOfScalarComponents, m_scalarType);
     memcpy(m_imageData.get(), otherImage->m_imageData.get(), GetImageSizeBytes());
 
     return true;
@@ -76,7 +78,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   uint32 Image::GetNumberOfBytesPerScalar(int pixelType)
   {
-    switch ((IGTLScalarType)pixelType)
+    switch ((IGTL_SCALAR_TYPE)pixelType)
     {
     case IGTL_SCALARTYPE_UNKNOWN:
       return 0;
@@ -102,11 +104,11 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void Image::SetImageData(std::shared_ptr<byte> imageData, uint16 numberOfScalarComponents, IGTLScalarType scalarType, std::array<uint16, 3>& imageSize)
+  void Image::SetImageData(std::shared_ptr<byte> imageData, uint16 numberOfScalarComponents, IGTL_SCALAR_TYPE scalarType, const FrameSize& frameSize)
   {
     m_numberOfScalarComponents = numberOfScalarComponents;
     m_scalarType = scalarType;
-    m_imageSize = imageSize;
+    m_frameSize = frameSize;
     m_imageData = imageData;
   }
 
@@ -117,26 +119,29 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void Image::AllocateScalars(const Platform::Array<uint16>^ imageSize, uint16 numberOfScalarComponents, int scalarType)
+  void Image::AllocateScalars(const FrameSizeABI^ imageSize, uint16 numberOfScalarComponents, int scalarType)
   {
     std::array<uint16, 3> imgSize = { imageSize[0], imageSize[1], imageSize[2] };
-    AllocateScalars(imgSize, numberOfScalarComponents, (IGTLScalarType)scalarType);
+    AllocateScalars(imgSize, numberOfScalarComponents, (IGTL_SCALAR_TYPE)scalarType);
   }
 
   //----------------------------------------------------------------------------
-  void Image::AllocateScalars(const std::array<uint16, 3>& imageSize, uint16 numberOfScalarComponents, IGTLScalarType scalarType)
+  void Image::AllocateScalars(const FrameSize& imageSize, uint16 numberOfScalarComponents, IGTL_SCALAR_TYPE scalarType)
   {
-    if (numberOfScalarComponents == m_numberOfScalarComponents && (IGTLScalarType)scalarType == m_scalarType
-        && imageSize[0] == m_imageSize[0] && imageSize[1] == m_imageSize[1] && imageSize[2] == m_imageSize[2])
+    if (numberOfScalarComponents == m_numberOfScalarComponents &&
+        (IGTL_SCALAR_TYPE)scalarType == m_scalarType &&
+        imageSize[0] == m_frameSize[0] &&
+        imageSize[1] == m_frameSize[1] &&
+        imageSize[2] == m_frameSize[2])
     {
       return;
     }
 
     m_numberOfScalarComponents = numberOfScalarComponents;
-    m_scalarType = (IGTLScalarType)scalarType;
-    m_imageSize[0] = imageSize[0];
-    m_imageSize[1] = imageSize[1];
-    m_imageSize[2] = imageSize[2];
+    m_scalarType = (IGTL_SCALAR_TYPE)scalarType;
+    m_frameSize[0] = imageSize[0];
+    m_frameSize[1] = imageSize[1];
+    m_frameSize[2] = imageSize[2];
 
     m_imageData = std::shared_ptr<byte>(new byte[GetImageSizeBytes()], [](byte * p)
     {
@@ -145,15 +150,99 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  std::array<uint16, 3> Image::GetFrameSize() const
+  FrameSize Image::GetFrameSize() const
   {
-    return m_imageSize;
+    return m_frameSize;
   }
 
   //----------------------------------------------------------------------------
   uint32 Image::GetImageSizeBytes()
   {
-    return GetNumberOfBytesPerScalar((int)m_scalarType) * m_numberOfScalarComponents * m_imageSize[0] * m_imageSize[1] * m_imageSize[2];
+    return GetNumberOfBytesPerScalar((int)m_scalarType) * m_numberOfScalarComponents * m_frameSize[0] * m_frameSize[1] * m_frameSize[2];
+  }
+
+  //----------------------------------------------------------------------------
+  uint32 Image::GetPixelFormat(bool normalized)
+  {
+    switch (m_numberOfScalarComponents)
+    {
+    case 1:
+      switch (m_scalarType)
+      {
+      case IGTL_SCALARTYPE_INT8:
+        return normalized ? DXGI_FORMAT_R8_SNORM : DXGI_FORMAT_R8_SINT;
+      case IGTL_SCALARTYPE_UINT8:
+        return normalized ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_R8_UINT;
+      case IGTL_SCALARTYPE_INT16:
+        return normalized ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R16_SINT;
+      case IGTL_SCALARTYPE_UINT16:
+        return normalized ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R16_UINT;
+      case IGTL_SCALARTYPE_INT32:
+        return DXGI_FORMAT_R32_SINT;
+      case IGTL_SCALARTYPE_UINT32:
+        return DXGI_FORMAT_R32_UINT;
+      case IGTL_SCALARTYPE_FLOAT32:
+        return DXGI_FORMAT_R32_FLOAT;
+      }
+      break;
+    case 2:
+      switch (m_scalarType)
+      {
+      case IGTL_SCALARTYPE_INT8:
+        return normalized ? DXGI_FORMAT_R8G8_SNORM : DXGI_FORMAT_R8G8_SINT;
+      case IGTL_SCALARTYPE_UINT8:
+        return normalized ? DXGI_FORMAT_R8G8_UNORM : DXGI_FORMAT_R8G8_UINT;
+      case IGTL_SCALARTYPE_INT16:
+        return normalized ? DXGI_FORMAT_R16G16_SNORM : DXGI_FORMAT_R16G16_SINT;
+      case IGTL_SCALARTYPE_UINT16:
+        return normalized ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R16G16_UINT;
+      case IGTL_SCALARTYPE_INT32:
+        return DXGI_FORMAT_R32G32_SINT;
+      case IGTL_SCALARTYPE_UINT32:
+        return DXGI_FORMAT_R32G32_UINT;
+      case IGTL_SCALARTYPE_FLOAT32:
+        return DXGI_FORMAT_R32G32_FLOAT;
+      }
+      break;
+    case 3:
+      switch (m_scalarType)
+      {
+      case IGTL_SCALARTYPE_INT8:
+        return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+      case IGTL_SCALARTYPE_UINT8:
+        return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UINT;
+      case IGTL_SCALARTYPE_INT16:
+        return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+      case IGTL_SCALARTYPE_UINT16:
+        return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_UINT;
+      case IGTL_SCALARTYPE_INT32:
+        return DXGI_FORMAT_R32G32B32_SINT;
+      case IGTL_SCALARTYPE_UINT32:
+        return DXGI_FORMAT_R32G32B32_UINT;
+      case IGTL_SCALARTYPE_FLOAT32:
+        return DXGI_FORMAT_R32G32B32_FLOAT;
+      }
+    case 4:
+      switch (m_scalarType)
+      {
+      case IGTL_SCALARTYPE_INT8:
+        return normalized ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+      case IGTL_SCALARTYPE_UINT8:
+        return normalized ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+      case IGTL_SCALARTYPE_INT16:
+        return normalized ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+      case IGTL_SCALARTYPE_UINT16:
+        return normalized ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+      case IGTL_SCALARTYPE_INT32:
+        return DXGI_FORMAT_R32G32B32A32_SINT;
+      case IGTL_SCALARTYPE_UINT32:
+        return DXGI_FORMAT_R32G32B32A32_UINT;
+      case IGTL_SCALARTYPE_FLOAT32:
+        return DXGI_FORMAT_R32G32B32A32_FLOAT;
+      }
+      break;
+    }
+    return DXGI_FORMAT_UNKNOWN;
   }
 
   //----------------------------------------------------------------------------
@@ -165,7 +254,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void Image::ScalarType::set(int type)
   {
-    m_scalarType = (IGTLScalarType)type;
+    m_scalarType = (IGTL_SCALAR_TYPE)type;
   }
 
   //----------------------------------------------------------------------------
@@ -181,21 +270,21 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  Platform::Array<uint16>^ Image::FrameSize::get()
+  FrameSizeABI^ Image::Dimensions::get()
   {
-    auto frameSize = ref new Platform::Array<uint16>(3);
-    frameSize[0] = m_imageSize[0];
-    frameSize[1] = m_imageSize[1];
-    frameSize[2] = m_imageSize[2];
+    auto frameSize = ref new FrameSizeABI(3);
+    frameSize[0] = m_frameSize[0];
+    frameSize[1] = m_frameSize[1];
+    frameSize[2] = m_frameSize[2];
     return frameSize;
   }
 
   //----------------------------------------------------------------------------
-  void Image::FrameSize::set(const Platform::Array<uint16>^ frameSize)
+  void Image::Dimensions::set(const FrameSizeABI^ frameSize)
   {
-    m_imageSize[0] = frameSize[0];
-    m_imageSize[1] = frameSize[1];
-    m_imageSize[2] = frameSize[2];
+    m_frameSize[0] = frameSize[0];
+    m_frameSize[1] = frameSize[1];
+    m_frameSize[2] = frameSize[2];
   }
 
   //----------------------------------------------------------------------------
@@ -239,5 +328,17 @@ namespace UWPOpenIGTLink
 
     m_imageData = std::shared_ptr<byte>(new byte[bufferLength], std::default_delete<byte[]>());
     memcpy(m_imageData.get(), pRawData, bufferLength * sizeof(byte));
+  }
+
+  //----------------------------------------------------------------------------
+  float4x4 Image::EmbeddedImageTransform::get()
+  {
+    return m_embeddedImageTransform;
+  }
+
+  //----------------------------------------------------------------------------
+  void Image::EmbeddedImageTransform::set(float4x4 arg)
+  {
+    m_embeddedImageTransform = arg;
   }
 }

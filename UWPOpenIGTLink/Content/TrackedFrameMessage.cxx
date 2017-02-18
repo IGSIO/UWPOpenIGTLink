@@ -24,9 +24,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 // Local includes
 #include "pch.h"
 #include "TrackedFrameMessage.h"
+#include "Transform.h"
 
 // IGT includes
-#include "igtlMessageFactory.h"
+#include <igtlMessageFactory.h>
 
 namespace igtl
 {
@@ -79,19 +80,13 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  const std::map<std::wstring, std::wstring>& TrackedFrameMessage::GetCustomFrameFields()
-  {
-    return this->m_customFrameFields;
-  }
-
-  //----------------------------------------------------------------------------
-  const std::vector<UWPOpenIGTLink::TransformEntryUWP^>& TrackedFrameMessage::GetFrameTransforms()
+  UWPOpenIGTLink::TransformListInternal TrackedFrameMessage::GetFrameTransforms()
   {
     return m_frameTransforms;
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrameMessage::SetFrameTransforms(const std::vector<UWPOpenIGTLink::TransformEntryUWP^>& transforms)
+  void TrackedFrameMessage::SetFrameTransforms(const UWPOpenIGTLink::TransformListInternal& transforms)
   {
     m_frameTransforms = transforms;
   }
@@ -106,9 +101,9 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  US_IMAGE_TYPE TrackedFrameMessage::GetImageType()
+  UWPOpenIGTLink::US_IMAGE_TYPE TrackedFrameMessage::GetImageType()
   {
-    return (US_IMAGE_TYPE)m_messageHeader.m_ImageType;
+    return (UWPOpenIGTLink::US_IMAGE_TYPE)m_messageHeader.m_ImageType;
   }
 
   //----------------------------------------------------------------------------
@@ -130,15 +125,15 @@ namespace igtl
   }
 
   //----------------------------------------------------------------------------
-  US_IMAGE_ORIENTATION TrackedFrameMessage::GetImageOrientation()
+  UWPOpenIGTLink::US_IMAGE_ORIENTATION TrackedFrameMessage::GetImageOrientation()
   {
-    return (US_IMAGE_ORIENTATION)this->m_messageHeader.m_ImageOrientation;
+    return (UWPOpenIGTLink::US_IMAGE_ORIENTATION)this->m_messageHeader.m_ImageOrientation;
   }
 
   //----------------------------------------------------------------------------
-  UWPOpenIGTLink::IGTLScalarType TrackedFrameMessage::GetScalarType()
+  UWPOpenIGTLink::IGTL_SCALAR_TYPE TrackedFrameMessage::GetScalarType()
   {
-    return (UWPOpenIGTLink::IGTLScalarType)this->m_messageHeader.m_ScalarType;
+    return (UWPOpenIGTLink::IGTL_SCALAR_TYPE)this->m_messageHeader.m_ScalarType;
   }
 
   //----------------------------------------------------------------------------
@@ -291,21 +286,21 @@ namespace igtl
 
       if (childNode->NodeName == L"CustomFrameField")
       {
-        std::wstring nameWide(dynamic_cast<Platform::String^>(childNode->Attributes->GetNamedItem(L"Name")->NodeValue)->Data());
-        std::wstring valueWide(dynamic_cast<Platform::String^>(childNode->Attributes->GetNamedItem(L"Value")->NodeValue)->Data());
-        this->m_customFrameFields[nameWide] = valueWide;
+        auto name = dynamic_cast<Platform::String^>(childNode->Attributes->GetNamedItem(L"Name")->NodeValue);
+        auto value = dynamic_cast<Platform::String^>(childNode->Attributes->GetNamedItem(L"Value")->NodeValue);
+        this->SetMetaDataElement(std::string(begin(name), end(name)), IANA_TYPE_US_ASCII, std::string(begin(value), end(value)));
       }
     }
 
     // Convert custom frame fields storing transforms, to transform entries
     //    We do this in a second loop so that status' are available as well
-    for (auto iter = m_customFrameFields.begin(); iter != m_customFrameFields.end();)
+    for (auto iter = m_MetaDataMap.begin(); iter != m_MetaDataMap.end();)
     {
-      auto name = iter->first;
-      auto value = iter->second;
+      auto name = std::wstring(iter->first.begin(), iter->first.end());
+      auto value = std::wstring(iter->second.begin(), iter->second.end());
       if (UWPOpenIGTLink::TrackedFrame::IsTransform(name))
       {
-        auto entry = ref new UWPOpenIGTLink::TransformEntryUWP();
+        auto entry = ref new UWPOpenIGTLink::Transform();
 
         std::wistringstream wiss(value);
         float transform[16];
@@ -316,16 +311,16 @@ namespace igtl
         DirectX::XMFLOAT4X4 matdx(transform);
         float4x4 result;
         XMStoreFloat4x4(&result, XMLoadFloat4x4(&matdx));
-        entry->Transform = result;
+        entry->Matrix = result;
 
         entry->Name = ref new UWPOpenIGTLink::TransformName(ref new Platform::String(name.c_str()));
 
-        auto statusStr = name;
-        statusStr.append(L"Status");
-        entry->Valid = m_customFrameFields[statusStr] == L"OK";
+        auto statusStr = iter->first;
+        statusStr.append("Status");
+        entry->Valid = UWPOpenIGTLink::IsEqualInsensitive(m_MetaDataMap[statusStr], "OK");
 
         m_frameTransforms.push_back(entry);
-        iter = m_customFrameFields.erase(iter);
+        iter = m_MetaDataMap.erase(iter);
       }
       else
       {
@@ -334,11 +329,12 @@ namespace igtl
     }
 
     // Remove all status fields
-    for (auto iter = m_customFrameFields.begin(); iter != m_customFrameFields.end();)
+    for (auto iter = m_MetaDataMap.begin(); iter != m_MetaDataMap.end();)
     {
-      if (UWPOpenIGTLink::TrackedFrame::IsTransformStatus(iter->first))
+      auto name = std::wstring(iter->first.begin(), iter->first.end());
+      if (UWPOpenIGTLink::TrackedFrame::IsTransformStatus(name))
       {
-        iter = m_customFrameFields.erase(iter);
+        iter = m_MetaDataMap.erase(iter);
       }
       else
       {

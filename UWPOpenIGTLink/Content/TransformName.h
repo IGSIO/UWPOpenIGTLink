@@ -90,6 +90,9 @@ namespace UWPOpenIGTLink
     /// Check if the input string is capitalized, if not capitalize it
     void Capitalize(std::wstring& aString);
 
+  internal:
+    bool operator==(const TransformName^ other);
+
   protected private:
     /// From coordinate frame name
     std::wstring m_From;

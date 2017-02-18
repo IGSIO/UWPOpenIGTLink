@@ -155,8 +155,8 @@ namespace UWPOpenIGTLink
     igtl::TrackedFrameMessage::Pointer trackedFrameMsg = nullptr;
     {
       // Retrieve the next available tracked frame reply
-      std::lock_guard<std::mutex> guard(m_messageListMutex);
-      for (auto replyIter = m_receivedMessages.rbegin(); replyIter != m_receivedMessages.rend(); ++replyIter)
+      std::lock_guard<std::mutex> guard(m_trackedFrameMessagesMutex);
+      for (auto replyIter = m_trackedFrameMessages.rbegin(); replyIter != m_trackedFrameMessages.rend(); ++replyIter)
       {
         if (typeid(*(*replyIter)) == typeid(igtl::TrackedFrameMessage))
         {
@@ -177,17 +177,17 @@ namespace UWPOpenIGTLink
     if (ts->GetTimeStamp() <= lastKnownTimestamp)
     {
       // No new messages since requested timestamp
-      if (m_receivedUWPMessages.find(lastKnownTimestamp) != m_receivedUWPMessages.end())
+      if (m_trackedFrames.find(lastKnownTimestamp) != m_trackedFrames.end())
       {
-        return m_receivedUWPMessages.at(lastKnownTimestamp);
+        return m_trackedFrames.at(lastKnownTimestamp);
       }
       return nullptr;
     }
 
     auto frame = ref new TrackedFrame();
-    m_receivedUWPMessages[ts->GetTimeStamp()] = frame;
+    m_trackedFrames[ts->GetTimeStamp()] = frame;
 
-    // Tracking/other related fields
+    // Fields
     for (auto& pair : trackedFrameMsg->GetMetaData())
     {
       std::wstring keyWideStr(pair.first.begin(), pair.first.end());
@@ -195,100 +195,20 @@ namespace UWPOpenIGTLink
       frame->SetFrameField(keyWideStr, valueWideStr);
     }
 
-    for (auto& pair : trackedFrameMsg->GetCustomFrameFields())
-    {
-      frame->SetFrameField(pair.first, pair.second);
-    }
-
-    // Image related fields
+    // Image
     std::array<uint16, 3> frameSize = { trackedFrameMsg->GetFrameSize()[0], trackedFrameMsg->GetFrameSize()[1], trackedFrameMsg->GetFrameSize()[2] };
     frame->Frame->SetImageData(trackedFrameMsg->GetImage(), trackedFrameMsg->GetNumberOfComponents(), trackedFrameMsg->GetScalarType(), frameSize);
-    frame->Timestamp = ts->GetTimeStamp();
-    frame->SetEmbeddedImageTransform(trackedFrameMsg->GetEmbeddedImageTransform());
     frame->Frame->Type = (uint16)trackedFrameMsg->GetImageType();
     frame->Frame->Orientation = (uint16)trackedFrameMsg->GetImageOrientation();
+
+    // Transforms
+    frame->EmbeddedImageTransform = trackedFrameMsg->GetEmbeddedImageTransform();
     frame->SetFrameTransformsInternal(trackedFrameMsg->GetFrameTransforms());
 
+    // Timestamp
+    frame->Timestamp = ts->GetTimeStamp();
+
     return frame;
-  }
-
-  //----------------------------------------------------------------------------
-  Command^ IGTLinkClient::GetCommand(double lastKnownTimestamp)
-  {
-    igtl::MessageBase::Pointer igtMessage = nullptr;
-    {
-      // Retrieve the next available tracked frame reply
-      std::lock_guard<std::mutex> guard(m_messageListMutex);
-      for (auto replyIter = m_receivedMessages.rbegin(); replyIter != m_receivedMessages.rend(); ++replyIter)
-      {
-        if (typeid(*(*replyIter)) == typeid(igtl::RTSCommandMessage))
-        {
-          igtMessage = *replyIter;
-          break;
-        }
-      }
-
-      if (igtMessage == nullptr)
-      {
-        return nullptr;
-      }
-    }
-
-    auto ts = igtl::TimeStamp::New();
-    igtMessage->GetTimeStamp(ts);
-    if (ts->GetTimeStamp() <= lastKnownTimestamp)
-    {
-      return nullptr;
-    }
-
-    auto cmd = ref new Command();
-    auto cmdMsg = dynamic_cast<igtl::RTSCommandMessage*>(igtMessage.GetPointer());
-
-    cmd->CommandContent = ref new Platform::String(std::wstring(cmdMsg->GetCommandContent().begin(), cmdMsg->GetCommandContent().end()).c_str());
-    cmd->CommandName = ref new Platform::String(std::wstring(cmdMsg->GetCommandName().begin(), cmdMsg->GetCommandName().end()).c_str());
-    cmd->OriginalCommandId = cmdMsg->GetCommandId();
-    cmd->Timestamp = lastKnownTimestamp;
-
-    XmlDocument^ doc = ref new XmlDocument();
-    doc->LoadXml(cmd->CommandContent);
-
-    for (IXmlNode^ node : doc->ChildNodes)
-    {
-      if (dynamic_cast<Platform::String^>(node->NodeName) == L"Result")
-      {
-        cmd->Result = (dynamic_cast<Platform::String^>(node->NodeValue) == L"true");
-        break;
-      }
-    }
-
-    if (!cmd->Result)
-    {
-      bool found(false);
-      // Parse for the error string
-      for (IXmlNode^ node : doc->ChildNodes)
-      {
-        if (dynamic_cast<Platform::String^>(node->NodeName) == L"Error")
-        {
-          cmd->ErrorString = dynamic_cast<Platform::String^>(node->NodeValue);
-          found = true;
-          break;
-        }
-      }
-
-      if (!found)
-      {
-        OutputDebugStringA("Error string not found even though error was reported. Check IGT server implementation.");
-      }
-    }
-
-    for (auto& pair : cmdMsg->GetMetaData())
-    {
-      std::wstring keyWideStr(pair.first.begin(), pair.first.end());
-      std::wstring valueWideStr(pair.second.begin(), pair.second.end());
-      cmd->Parameters->Insert(ref new Platform::String(keyWideStr.c_str()), ref new Platform::String(valueWideStr.c_str()));
-    }
-
-    return cmd;
   }
 
   //----------------------------------------------------------------------------
@@ -319,9 +239,11 @@ namespace UWPOpenIGTLink
   {
     LOG_TRACE(L"IGTLinkClient::DataReceiverPump");
 
+    auto headerMsg = m_igtlMessageFactory->CreateHeaderMessage(IGTL_HEADER_VERSION_1);
+
     while (!token.is_canceled())
     {
-      auto headerMsg = m_igtlMessageFactory->CreateHeaderMessage(IGTL_HEADER_VERSION_1);
+      headerMsg->InitBuffer();
 
       // Receive generic header from the socket
       int numOfBytesReceived = 0;
@@ -334,9 +256,7 @@ namespace UWPOpenIGTLink
         }
         numOfBytesReceived = m_clientSocket->Receive(headerMsg->GetBufferPointer(), headerMsg->GetBufferSize());
       }
-      if (numOfBytesReceived == 0  // No message received
-          || numOfBytesReceived != headerMsg->GetBufferSize() // Received data is not as we expected
-         )
+      if (numOfBytesReceived == 0 || numOfBytesReceived != headerMsg->GetBufferSize())
       {
         // Failed to receive data, maybe the socket is disconnected
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -392,9 +312,12 @@ namespace UWPOpenIGTLink
 
         igtl::TrackedFrameMessage* trackedFrameMessage = (igtl::TrackedFrameMessage*)bodyMsg.GetPointer();
 
+        // Post process tracked frame to adjust for unit scale
+        trackedFrameMessage->ApplyTransformUnitScaling(m_trackerUnitScale);
+
         // Save reply
-        std::lock_guard<std::mutex> guard(m_messageListMutex);
-        m_receivedMessages.push_back(bodyMsg);
+        std::lock_guard<std::mutex> guard(m_trackedFrameMessagesMutex);
+        m_trackedFrameMessages.push_back(bodyMsg);
       }
       else if (typeid(*bodyMsg) != typeid(igtl::StatusMessage))
       {
@@ -416,8 +339,8 @@ namespace UWPOpenIGTLink
         }
 
         // save reply
-        std::lock_guard<std::mutex> guard(m_messageListMutex);
-        m_receivedMessages.push_back(bodyMsg);
+        std::lock_guard<std::mutex> guard(m_trackedFrameMessagesMutex);
+        m_trackedFrameMessages.push_back(bodyMsg);
       }
       else
       {
@@ -425,23 +348,23 @@ namespace UWPOpenIGTLink
         m_clientSocket->Skip(headerMsg->GetBodySizeToRead(), 0);
       }
 
-      if (m_receivedMessages.size() > MESSAGE_LIST_MAX_SIZE)
+      if (m_trackedFrameMessages.size() > MESSAGE_LIST_MAX_SIZE)
       {
-        std::lock_guard<std::mutex> guard(m_messageListMutex);
+        std::lock_guard<std::mutex> guard(m_trackedFrameMessagesMutex);
 
         // erase the front N results
-        uint32 toErase = m_receivedMessages.size() - MESSAGE_LIST_MAX_SIZE;
-        m_receivedMessages.erase(m_receivedMessages.begin(), m_receivedMessages.begin() + toErase);
+        uint32 toErase = m_trackedFrameMessages.size() - MESSAGE_LIST_MAX_SIZE;
+        m_trackedFrameMessages.erase(m_trackedFrameMessages.begin(), m_trackedFrameMessages.begin() + toErase);
       }
 
       auto oldestTimestamp = GetOldestTrackedFrameTimestamp();
       if (oldestTimestamp > 0)
       {
-        for (auto it = m_receivedUWPMessages.begin(); it != m_receivedUWPMessages.end();)
+        for (auto it = m_trackedFrames.begin(); it != m_trackedFrames.end();)
         {
           if (it->first < oldestTimestamp)
           {
-            it = m_receivedUWPMessages.erase(it);
+            it = m_trackedFrames.erase(it);
           }
           else
           {
@@ -465,8 +388,8 @@ namespace UWPOpenIGTLink
   double IGTLinkClient::GetLatestTrackedFrameTimestamp()
   {
     // Retrieve the next available tracked frame reply
-    std::lock_guard<std::mutex> guard(m_messageListMutex);
-    for (auto replyIter = m_receivedMessages.rbegin(); replyIter != m_receivedMessages.rend(); ++replyIter)
+    std::lock_guard<std::mutex> guard(m_trackedFrameMessagesMutex);
+    for (auto replyIter = m_trackedFrameMessages.rbegin(); replyIter != m_trackedFrameMessages.rend(); ++replyIter)
     {
       if (typeid(*(*replyIter)) == typeid(igtl::TrackedFrameMessage))
       {
@@ -482,8 +405,8 @@ namespace UWPOpenIGTLink
   double IGTLinkClient::GetOldestTrackedFrameTimestamp()
   {
     // Retrieve the next available tracked frame reply
-    std::lock_guard<std::mutex> guard(m_messageListMutex);
-    for (auto replyIter = m_receivedMessages.begin(); replyIter != m_receivedMessages.end(); ++replyIter)
+    std::lock_guard<std::mutex> guard(m_trackedFrameMessagesMutex);
+    for (auto replyIter = m_trackedFrameMessages.begin(); replyIter != m_trackedFrameMessages.end(); ++replyIter)
     {
       if (typeid(*(*replyIter)) == typeid(igtl::TrackedFrameMessage))
       {
@@ -535,5 +458,17 @@ namespace UWPOpenIGTLink
   bool IGTLinkClient::Connected::get()
   {
     return m_clientSocket->GetConnected();
+  }
+
+  //----------------------------------------------------------------------------
+  float IGTLinkClient::TrackerUnitScale::get()
+  {
+    return m_trackerUnitScale;
+  }
+
+  //----------------------------------------------------------------------------
+  void IGTLinkClient::TrackerUnitScale::set(float arg)
+  {
+    m_trackerUnitScale = arg;
   }
 }

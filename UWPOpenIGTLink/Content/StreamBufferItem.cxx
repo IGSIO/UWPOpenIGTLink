@@ -91,7 +91,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void StreamBufferItem::SetStatus(int status)
   {
-    m_status = (ToolStatus)status;
+    m_status = (TOOL_STATUS)status;
   }
 
   //----------------------------------------------------------------------------
@@ -168,7 +168,7 @@ namespace UWPOpenIGTLink
       return nullptr;
     }
 
-    FieldMapTypeInternal::iterator fieldIterator;
+    FrameFields::iterator fieldIterator;
     fieldIterator = m_customFrameFields.find(std::wstring(fieldName->Data()));
     if (fieldIterator != m_customFrameFields.end())
     {
@@ -185,7 +185,7 @@ namespace UWPOpenIGTLink
       return false;
     }
 
-    FieldMapTypeInternal::iterator field = m_customFrameFields.find(std::wstring(fieldName->Data()));
+    FrameFields::iterator field = m_customFrameFields.find(std::wstring(fieldName->Data()));
     if (field != m_customFrameFields.end())
     {
       m_customFrameFields.erase(field);
@@ -207,7 +207,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  StreamBufferItem::FieldMapTypeInternal& StreamBufferItem::GetCustomFrameFieldMap()
+  FrameFields StreamBufferItem::GetCustomFrameFields()
   {
     return m_customFrameFields;
   }
@@ -227,6 +227,6 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool StreamBufferItem::HasValidVideoData()
   {
-    return m_frame->IsImageValid();
+    return m_frame->HasImage();
   }
 }

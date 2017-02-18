@@ -24,6 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
 // Local includes
+#include "IGTCommon.h"
 #include "TrackedFrame.h"
 
 // OS includes
@@ -69,13 +70,12 @@ namespace igtl
 
     /// Accessors to the various parts of the message and message header
     std::shared_ptr<byte> GetImage();
-    const std::map<std::wstring, std::wstring>& GetCustomFrameFields();
-    US_IMAGE_TYPE GetImageType();
+    UWPOpenIGTLink::US_IMAGE_TYPE GetImageType();
     igtl_uint16* GetFrameSize();
     igtl_uint16 GetNumberOfComponents();
     igtl_uint32 GetImageSizeInBytes();
-    US_IMAGE_ORIENTATION GetImageOrientation();
-    UWPOpenIGTLink::IGTLScalarType GetScalarType();
+    UWPOpenIGTLink::US_IMAGE_ORIENTATION GetImageOrientation();
+    UWPOpenIGTLink::IGTL_SCALAR_TYPE GetScalarType();
     double GetTimestamp();
 
     /*! Set the embedded transform of the underlying image */
@@ -83,8 +83,8 @@ namespace igtl
     /*! Get the embedded transform of the underlying image */
     Windows::Foundation::Numerics::float4x4 GetEmbeddedImageTransform();
 
-    const std::vector<UWPOpenIGTLink::TransformEntryUWP^>& GetFrameTransforms();
-    void SetFrameTransforms(const std::vector<UWPOpenIGTLink::TransformEntryUWP^>& transforms);
+    UWPOpenIGTLink::TransformListInternal GetFrameTransforms();
+    void SetFrameTransforms(const UWPOpenIGTLink::TransformListInternal& transforms);
     void ApplyTransformUnitScaling(float scalingFactor);
 
   protected:
@@ -114,14 +114,13 @@ namespace igtl
     TrackedFrameMessage();
     ~TrackedFrameMessage();
 
-    std::vector<UWPOpenIGTLink::TransformEntryUWP^>           m_frameTransforms;
-    std::map<std::wstring, std::wstring>                      m_customFrameFields;
-    std::shared_ptr<byte>                                     m_image = nullptr;
-    std::string                                               m_trackedFrameXmlData;
-    bool                                                      m_imageValid = false;
-    double                                                    m_timestamp = 0.0;
+    std::vector<UWPOpenIGTLink::Transform^> m_frameTransforms;
+    std::shared_ptr<byte>                   m_image = nullptr;
+    std::string                             m_trackedFrameXmlData;
+    bool                                    m_imageValid = false;
+    double                                  m_timestamp = 0.0;
 
-    TrackedFrameHeader                                        m_messageHeader;
+    TrackedFrameHeader                      m_messageHeader;
   };
 
 #pragma pack()

@@ -37,29 +37,31 @@ namespace UWPOpenIGTLink
     Image();
     virtual ~Image();
 
-    property Platform::Array<uint16>^ FrameSize { Platform::Array<uint16>^ get(); void set(const Platform::Array<uint16>^ arg); }
+    property FrameSizeABI^ Dimensions { FrameSizeABI ^ get(); void set(const FrameSizeABI ^ arg); }
     property Windows::Storage::Streams::IBuffer^ ImageData { Windows::Storage::Streams::IBuffer ^ get(); void set(Windows::Storage::Streams::IBuffer ^ data); }
     property uint16 NumberOfScalarComponents { uint16 get(); void set(uint16 arg); }
+    property Windows::Foundation::Numerics::float4x4 EmbeddedImageTransform { Windows::Foundation::Numerics::float4x4 get(); void set(Windows::Foundation::Numerics::float4x4 arg); }
     property int ScalarType { int get(); void set(int arg); }
 
     bool DeepCopy(Image^ otherImage);
     bool FillBlank();
-    void AllocateScalars(const Platform::Array<uint16>^ imageSize, uint16 numberOfScalarComponents, int scalarType);
+    void AllocateScalars(const FrameSizeABI^ imageSize, uint16 numberOfScalarComponents, int scalarType);
     uint32 GetImageSizeBytes();
-
+    uint32 GetPixelFormat(bool normalized);
     static uint32 GetNumberOfBytesPerScalar(int scalarType);
 
   internal:
-    void SetImageData(std::shared_ptr<byte> imageData, uint16 numberOfScalarComponents, IGTLScalarType scalarType, std::array<uint16, 3>& imageSize);
+    void SetImageData(std::shared_ptr<byte> imageData, uint16 numberOfScalarComponents, IGTL_SCALAR_TYPE scalarType, const FrameSize& imageSize);
     std::shared_ptr<byte> GetImageData();
-    void AllocateScalars(const std::array<uint16, 3>& imageSize, uint16 numberOfScalarComponents, IGTLScalarType pixelType);
+    void AllocateScalars(const FrameSize& imageSize, uint16 numberOfScalarComponents, IGTL_SCALAR_TYPE pixelType);
 
-    std::array<uint16, 3> GetFrameSize() const;
+    FrameSize GetFrameSize() const;
 
   protected private:
-    std::array<uint16, 3>   m_imageSize;
-    std::shared_ptr<byte>   m_imageData;
-    uint16                  m_numberOfScalarComponents;
-    IGTLScalarType          m_scalarType;
+    FrameSize                                 m_frameSize;
+    std::shared_ptr<byte>                     m_imageData;
+    uint16                                    m_numberOfScalarComponents;
+    IGTL_SCALAR_TYPE                          m_scalarType;
+    Windows::Foundation::Numerics::float4x4   m_embeddedImageTransform = Windows::Foundation::Numerics::float4x4::identity();
   };
 }

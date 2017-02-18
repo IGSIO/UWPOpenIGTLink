@@ -63,6 +63,7 @@ namespace UWPOpenIGTLink
     property Platform::String^ ServerHost { Platform::String ^ get(); void set(Platform::String^); }
     property int ServerIGTLVersion { int get(); void set(int); }
     property bool Connected { bool get(); }
+    property float TrackerUnitScale { float get(); void set(float); }
 
     /// If timeoutSec > 0 then connection will be attempted multiple times until successfully connected or the timeout elapse
     IAsyncOperation<bool>^ ConnectAsync(double timeoutSec);
@@ -72,9 +73,6 @@ namespace UWPOpenIGTLink
 
     /// Retrieve the latest tracked frame reply
     TrackedFrame^ GetTrackedFrame(double lastKnownTimestamp);
-
-    /// Retrieve the latest command
-    Command^ GetCommand(double lastKnownTimestamp);
 
     /// Send a message to the connected server
     bool SendMessage(MessageBasePointerPtr messageBasePointerAsIntPtr);
@@ -104,20 +102,21 @@ namespace UWPOpenIGTLink
     Concurrency::cancellation_token_source    m_receiverPumpTokenSource;
 
     /// Mutex instance for safe data access
-    std::mutex                                m_messageListMutex;
+    std::mutex                                m_trackedFrameMessagesMutex;
     std::mutex                                m_socketMutex;
 
     /// Socket that is connected to the server
     igtl::ClientSocket::Pointer               m_clientSocket;
 
     /// List of messages received through the socket, transformed to igtl messages
-    std::deque<igtl::MessageBase::Pointer>    m_receivedMessages;
+    std::deque<igtl::MessageBase::Pointer>    m_trackedFrameMessages;
     std::vector<igtl::MessageBase::Pointer>   m_sendMessages;
 
     /// List of messages converted to UWP run time
-    std::map<double, TrackedFrame^>           m_receivedUWPMessages;
+    std::map<double, TrackedFrame^>           m_trackedFrames;
 
     /// Server information
+    float                                     m_trackerUnitScale = 0.001f; // Scales translation component of incoming transformations by the given factor
     Platform::String^                         m_serverHost;
     int                                       m_serverPort;
     int                                       m_serverIGTLVersion;

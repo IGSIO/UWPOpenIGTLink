@@ -165,7 +165,7 @@ namespace UWPOpenIGTLink
                        uint32 frameNumber,
                        const Platform::Array<int>^ clipRectangleOrigin,
                        const Platform::Array<int>^ clipRectangleSize,
-                       StreamBufferItem::FieldMapArgumentType^ customFields,
+                       FrameFieldsABI^ frameFields,
                        float unfilteredTimestamp,
                        float filteredTimestamp)
   {
@@ -222,7 +222,7 @@ namespace UWPOpenIGTLink
       return false;
     }
 
-    const auto& bufferItemFrameSize = newObjectInBuffer->GetFrame()->GetFrameSize();
+    const auto& bufferItemFrameSize = newObjectInBuffer->GetFrame()->GetDimensions();
 
     if (frameSize[0] != bufferItemFrameSize[0] || frameSize[1] != bufferItemFrameSize[1] || frameSize[2] != bufferItemFrameSize[2])
     {
@@ -233,7 +233,7 @@ namespace UWPOpenIGTLink
     }
 
     // Shallow set image pointer, ref count will increase
-    newObjectInBuffer->GetFrame()->SetImage(image, (US_IMAGE_ORIENTATION)usImageOrientation, (US_IMAGE_TYPE)imageType);
+    newObjectInBuffer->GetFrame()->ShallowCopy(image, (US_IMAGE_ORIENTATION)usImageOrientation, (US_IMAGE_TYPE)imageType);
 
     newObjectInBuffer->SetFilteredTimestamp(filteredTimestamp);
     newObjectInBuffer->SetUnfilteredTimestamp(unfilteredTimestamp);
@@ -242,7 +242,7 @@ namespace UWPOpenIGTLink
     newObjectInBuffer->GetFrame()->SetImageType(imageType);
 
     // Add custom fields
-    for (auto field : customFields)
+    for (auto field : frameFields)
     {
       newObjectInBuffer->SetCustomFrameField(field->Key, field->Value);
       std::wstring name(field->Key->Data());
@@ -260,7 +260,7 @@ namespace UWPOpenIGTLink
                        uint32 frameNumber,
                        const Platform::Array<int>^ clipRectangleOrigin,
                        const Platform::Array<int>^ clipRectangleSize,
-                       StreamBufferItem::FieldMapArgumentType^ customFields,
+                       FrameFieldsABI^ frameFields,
                        float unfilteredTimestamp,
                        float filteredTimestamp)
   {
@@ -270,13 +270,13 @@ namespace UWPOpenIGTLink
       return false;
     }
 
-    return this->AddItem(frame->Image, frame->Orientation, frame->Type, frameNumber, clipRectangleOrigin, clipRectangleSize, customFields, unfilteredTimestamp, filteredTimestamp);
+    return this->AddItem(frame->Image, frame->Orientation, frame->Type, frameNumber, clipRectangleOrigin, clipRectangleSize, frameFields, unfilteredTimestamp, filteredTimestamp);
   }
 
   //----------------------------------------------------------------------------
-  bool Buffer::AddItem(StreamBufferItem::FieldMapArgumentType^ fields, uint32 frameNumber, float unfilteredTimestamp, float filteredTimestamp)
+  bool Buffer::AddItem(FrameFieldsABI^ frameFields, uint32 frameNumber, float unfilteredTimestamp, float filteredTimestamp)
   {
-    if (fields->Size == 0)
+    if (frameFields->Size == 0)
     {
       return true;
     }
@@ -328,7 +328,7 @@ namespace UWPOpenIGTLink
     newObjectInBuffer->SetUid(itemUid);
 
     // Add custom fields
-    for (auto field : fields)
+    for (auto field : frameFields)
     {
       newObjectInBuffer->SetCustomFrameField(field->Key, field->Value);
       std::wstring name(field->Key->Data());
@@ -342,7 +342,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool Buffer::AddTimeStampedItem(float4x4 matrix, int toolStatus, uint32 frameNumber, float unfilteredTimestamp, StreamBufferItem::FieldMapArgumentType^ customFields, float filteredTimestamp)
+  bool Buffer::AddTimeStampedItem(float4x4 matrix, int toolStatus, uint32 frameNumber, float unfilteredTimestamp, FrameFieldsABI^ customFields, float filteredTimestamp)
   {
     if (unfilteredTimestamp == UNDEFINED_TIMESTAMP)
     {
@@ -600,7 +600,7 @@ namespace UWPOpenIGTLink
       // no change
       return true;
     }
-    this->PixelType = (IGTLScalarType)pixelType;
+    this->PixelType = (IGTL_SCALAR_TYPE)pixelType;
     return AllocateMemoryForFrames();
   }
 

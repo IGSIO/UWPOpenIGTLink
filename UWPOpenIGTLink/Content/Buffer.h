@@ -64,7 +64,7 @@ namespace UWPOpenIGTLink
                  uint32 frameNumber,
                  const Platform::Array<int>^ clipRectangleOrigin,
                  const Platform::Array<int>^ clipRectangleSize,
-                 StreamBufferItem::FieldMapArgumentType^ customFields,
+                 FrameFieldsABI^ customFields,
                  float unfilteredTimestamp,
                  float filteredTimestamp);
     /*!
@@ -78,7 +78,7 @@ namespace UWPOpenIGTLink
                  uint32 frameNumber,
                  const Platform::Array<int>^ clipRectangleOrigin,
                  const Platform::Array<int>^ clipRectangleSize,
-                 StreamBufferItem::FieldMapArgumentType^ customFields,
+                 FrameFieldsABI^ customFields,
                  float unfilteredTimestamp,
                  float filteredTimestamp);
 
@@ -88,7 +88,7 @@ namespace UWPOpenIGTLink
     or if the frame's format doesn't match the buffer's frame format,
     then the frame is not added to the buffer.
     */
-    bool AddItem(StreamBufferItem::FieldMapArgumentType^ fields,
+    bool AddItem(FrameFieldsABI^ fields,
                  uint32 frameNumber,
                  float unfilteredTimestamp,
                  float filteredTimestamp);
@@ -102,7 +102,7 @@ namespace UWPOpenIGTLink
                             int toolStatus,
                             uint32 frameNumber,
                             float unfilteredTimestamp,
-                            StreamBufferItem::FieldMapArgumentType^ customFields,
+                            FrameFieldsABI^ customFields,
                             float filteredTimestamp);
 
     /*! Get a frame with the specified frame uid from the buffer */
@@ -251,7 +251,7 @@ namespace UWPOpenIGTLink
 
   protected private:
     std::array<uint16, 3> FrameSize = { 0, 0, 1 };
-    IGTLScalarType PixelType = IGTL_SCALARTYPE_UINT8;
+    IGTL_SCALAR_TYPE PixelType = IGTL_SCALARTYPE_UINT8;
     uint16 NumberOfScalarComponents = 1;
     US_IMAGE_TYPE ImageType = US_IMG_BRIGHTNESS;
     US_IMAGE_ORIENTATION ImageOrientation = US_IMG_ORIENT_MF;

@@ -31,13 +31,16 @@
     <ClCompile Include="Content\VideoFrame.cxx">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="Content\Image.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="IGTCommon.cxx">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="Content\Buffer.cxx">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Content\Image.cxx">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Content\Transform.cxx">
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
@@ -79,6 +82,9 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Content\Buffer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\Transform.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

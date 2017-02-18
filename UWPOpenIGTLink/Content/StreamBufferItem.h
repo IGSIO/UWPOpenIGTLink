@@ -36,13 +36,6 @@ namespace UWPOpenIGTLink
   public ref class StreamBufferItem sealed
   {
   public:
-    typedef Windows::Foundation::Collections::IMap<Platform::String^, Platform::String^> FieldMapArgumentType;
-    typedef Platform::Collections::Map<Platform::String^, Platform::String^> FieldMapType;
-
-  internal:
-    typedef std::map<std::wstring, std::wstring> FieldMapTypeInternal;
-
-  public:
     StreamBufferItem();
     virtual ~StreamBufferItem();
 
@@ -98,19 +91,19 @@ namespace UWPOpenIGTLink
 
   internal:
     /*! Get custom frame field map */
-    FieldMapTypeInternal& GetCustomFrameFieldMap();
+    FrameFields GetCustomFrameFields();
     /*! Set custom frame field */
     void SetCustomFrameFieldInternal(const std::wstring& fieldName, const std::wstring& fieldValue);
 
   protected private:
-    float                                    m_filteredTimeStamp;
-    float                                    m_unfilteredTimeStamp;
+    float                                     m_filteredTimeStamp;
+    float                                     m_unfilteredTimeStamp;
     uint32                                    m_index;
     BufferItemUidType                         m_uid;
-    FieldMapTypeInternal                      m_customFrameFields;
+    FrameFields                               m_customFrameFields;
     bool                                      m_validTransformData;
     VideoFrame^                               m_frame = ref new VideoFrame();
     Windows::Foundation::Numerics::float4x4   m_matrix;
-    ToolStatus                                m_status;
+    TOOL_STATUS                               m_status;
   };
 }
