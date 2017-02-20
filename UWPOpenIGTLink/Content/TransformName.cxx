@@ -38,6 +38,10 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool TransformName::operator==(const TransformName^ other)
   {
+    if (other == nullptr)
+    {
+      return false;
+    }
     return m_From == other->m_From && m_To == other->m_To;
   }
 
