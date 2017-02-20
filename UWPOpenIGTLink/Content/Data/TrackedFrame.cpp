@@ -78,18 +78,6 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  float4x4 TrackedFrame::EmbeddedImageTransform::get()
-  {
-    return m_frame->EmbeddedImageTransform;
-  }
-
-  //----------------------------------------------------------------------------
-  void TrackedFrame::EmbeddedImageTransform::set(float4x4 arg)
-  {
-    m_frame->EmbeddedImageTransform = arg;
-  }
-
-  //----------------------------------------------------------------------------
   double TrackedFrame::Timestamp::get()
   {
     return m_timestamp;
@@ -102,14 +90,18 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TrackedFrame::SetTransform(TransformName^ name, Transform^ transform)
+  void TrackedFrame::SetTransform(Transform^ transform)
   {
-    auto x = GetTransform(name);
+    auto x = GetTransform(transform->Name);
     if (x != nullptr)
     {
       x->Name = transform->Name;
       x->Matrix = transform->Matrix;
       x->Valid = transform->Valid;
+    }
+    else
+    {
+      m_frameTransforms.push_back(transform);
     }
   }
 

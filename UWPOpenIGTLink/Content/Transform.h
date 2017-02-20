@@ -38,12 +38,16 @@ namespace UWPOpenIGTLink
     property bool Valid { bool get(); void set(bool arg); }
     property double Timestamp { double get(); void set(double arg); }
 
+  public:
+    Transform() {};
+    Transform(TransformName^ name, Windows::Foundation::Numerics::float4x4 matrix, bool valid, double timestamp);
+
     void ScaleTranslationComponent(float scalingFactor);
     void Transpose();
 
   protected private:
-    TransformName^                          m_transformName;
-    Windows::Foundation::Numerics::float4x4 m_transform;
+    TransformName^                          m_transformName = nullptr;
+    Windows::Foundation::Numerics::float4x4 m_transform = Windows::Foundation::Numerics::float4x4::identity();
     double                                  m_timestamp;
     bool                                    m_isValid;
   };

@@ -64,6 +64,7 @@ namespace UWPOpenIGTLink
     property int ServerIGTLVersion { int get(); void set(int); }
     property bool Connected { bool get(); }
     property float TrackerUnitScale { float get(); void set(float); }
+    property TransformName^ EmbeddedImageTransformName { TransformName ^ get(); void set(TransformName^); }
 
     /// If timeoutSec > 0 then connection will be attempted multiple times until successfully connected or the timeout elapse
     IAsyncOperation<bool>^ ConnectAsync(double timeoutSec);
@@ -96,7 +97,7 @@ namespace UWPOpenIGTLink
 
   protected private:
     /// igtl Factory for message sending
-    igtl::MessageFactory::Pointer             m_igtlMessageFactory;
+    igtl::MessageFactory::Pointer             m_igtlMessageFactory = igtl::MessageFactory::New();
 
     Concurrency::task<void>                   m_dataReceiverTask;
     Concurrency::cancellation_token_source    m_receiverPumpTokenSource;
@@ -106,7 +107,7 @@ namespace UWPOpenIGTLink
     std::mutex                                m_socketMutex;
 
     /// Socket that is connected to the server
-    igtl::ClientSocket::Pointer               m_clientSocket;
+    igtl::ClientSocket::Pointer               m_clientSocket = igtl::ClientSocket::New();
 
     /// List of messages received through the socket, transformed to igtl messages
     std::deque<igtl::MessageBase::Pointer>    m_trackedFrameMessages;
@@ -117,9 +118,10 @@ namespace UWPOpenIGTLink
 
     /// Server information
     float                                     m_trackerUnitScale = 0.001f; // Scales translation component of incoming transformations by the given factor
-    Platform::String^                         m_serverHost;
-    int                                       m_serverPort;
-    int                                       m_serverIGTLVersion;
+    Platform::String^                         m_serverHost = L"127.0.0.1";
+    TransformName^                            m_embeddedImageTransformName = nullptr;
+    int                                       m_serverPort = 18944;
+    int                                       m_serverIGTLVersion = IGTL_HEADER_VERSION_2;
 
     static const int                          CLIENT_SOCKET_TIMEOUT_MSEC;
     static const uint32                       MESSAGE_LIST_MAX_SIZE;

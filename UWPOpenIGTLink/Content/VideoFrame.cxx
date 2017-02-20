@@ -548,23 +548,4 @@ namespace UWPOpenIGTLink
     }
     return m_image->ImageData;
   }
-
-  //----------------------------------------------------------------------------
-  float4x4 VideoFrame::EmbeddedImageTransform::get()
-  {
-    if (!HasImage())
-    {
-      return float4x4::identity();
-    }
-    return m_image->EmbeddedImageTransform;
-  }
-
-  //----------------------------------------------------------------------------
-  void VideoFrame::EmbeddedImageTransform::set(float4x4 arg)
-  {
-    if (HasImage())
-    {
-      m_image->EmbeddedImageTransform = arg;
-    }
-  }
 }

@@ -79,6 +79,19 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  Transform::Transform(TransformName^ name, Windows::Foundation::Numerics::float4x4 matrix, bool valid, double timestamp)
+    : m_transformName(name)
+    , m_transform(matrix)
+    , m_isValid(valid)
+    , m_timestamp(timestamp)
+  {
+    if (m_transformName == nullptr)
+    {
+      throw ref new Platform::Exception(E_INVALIDARG, L"Null transform name sent to Transform.");
+    }
+  }
+
+  //----------------------------------------------------------------------------
   void Transform::ScaleTranslationComponent(float scalingFactor)
   {
     m_transform.m14 *= scalingFactor;

@@ -59,13 +59,8 @@ namespace UWPOpenIGTLink
 
   //----------------------------------------------------------------------------
   IGTLinkClient::IGTLinkClient()
-    : m_igtlMessageFactory(igtl::MessageFactory::New())
-    , m_clientSocket(igtl::ClientSocket::New())
   {
     m_igtlMessageFactory->AddMessageType("TRACKEDFRAME", (igtl::MessageFactory::PointerToMessageBaseNew)&igtl::TrackedFrameMessage::New);
-    ServerHost = L"127.0.0.1";
-    ServerPort = 18944;
-    ServerIGTLVersion = IGTL_HEADER_VERSION_2;
   }
 
   //----------------------------------------------------------------------------
@@ -202,7 +197,10 @@ namespace UWPOpenIGTLink
     frame->Frame->Orientation = (uint16)trackedFrameMsg->GetImageOrientation();
 
     // Transforms
-    frame->EmbeddedImageTransform = trackedFrameMsg->GetEmbeddedImageTransform();
+    if (EmbeddedImageTransformName != nullptr)
+    {
+      frame->SetTransform(ref new Transform(EmbeddedImageTransformName, trackedFrameMsg->GetEmbeddedImageTransform(), trackedFrameMsg->GetEmbeddedImageTransform() != float4x4::identity(), frame->Timestamp));
+    }
     frame->SetFrameTransformsInternal(trackedFrameMsg->GetFrameTransforms());
 
     // Timestamp
@@ -470,5 +468,17 @@ namespace UWPOpenIGTLink
   void IGTLinkClient::TrackerUnitScale::set(float arg)
   {
     m_trackerUnitScale = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  TransformName^ IGTLinkClient::EmbeddedImageTransformName::get()
+  {
+    return m_embeddedImageTransformName;
+  }
+
+  //----------------------------------------------------------------------------
+  void IGTLinkClient::EmbeddedImageTransformName::set(TransformName^ arg)
+  {
+    m_embeddedImageTransformName = arg;
   }
 }

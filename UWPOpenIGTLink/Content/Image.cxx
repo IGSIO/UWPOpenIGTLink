@@ -52,7 +52,6 @@ namespace UWPOpenIGTLink
   bool Image::DeepCopy(Image^ otherImage)
   {
     m_numberOfScalarComponents = otherImage->m_numberOfScalarComponents;
-    m_embeddedImageTransform = otherImage->m_embeddedImageTransform;
     m_scalarType = otherImage->m_scalarType;
     m_frameSize = otherImage->m_frameSize;
 
@@ -328,17 +327,5 @@ namespace UWPOpenIGTLink
 
     m_imageData = std::shared_ptr<byte>(new byte[bufferLength], std::default_delete<byte[]>());
     memcpy(m_imageData.get(), pRawData, bufferLength * sizeof(byte));
-  }
-
-  //----------------------------------------------------------------------------
-  float4x4 Image::EmbeddedImageTransform::get()
-  {
-    return m_embeddedImageTransform;
-  }
-
-  //----------------------------------------------------------------------------
-  void Image::EmbeddedImageTransform::set(float4x4 arg)
-  {
-    m_embeddedImageTransform = arg;
   }
 }

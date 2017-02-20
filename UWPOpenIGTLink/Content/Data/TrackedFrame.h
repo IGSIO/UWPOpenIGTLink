@@ -41,10 +41,9 @@ namespace UWPOpenIGTLink
     property VideoFrame^ Frame { VideoFrame ^ get(); }
     property FrameSizeABI^ Dimensions { FrameSizeABI ^ get(); }
     property TransformListABI^ Transforms { TransformListABI ^ get(); void set(TransformListABI ^ arg); }
-    property Windows::Foundation::Numerics::float4x4 EmbeddedImageTransform { Windows::Foundation::Numerics::float4x4 get(); void set(Windows::Foundation::Numerics::float4x4 arg); }
     property double Timestamp { double get(); void set(double arg); }
 
-    void SetTransform(TransformName^ name, Transform^ transform);
+    void SetTransform(Transform^ transform);
     Transform^ GetTransform(TransformName^ name);
 
     void SetFrameField(Platform::String^ key, Platform::String^ value);
@@ -82,6 +81,5 @@ namespace UWPOpenIGTLink
     VideoFrame^               m_frame = ref new VideoFrame();
     double                    m_timestamp = 0.0;
     FrameSize                 m_frameSize = { 0, 0, 0 };
-
   };
 }

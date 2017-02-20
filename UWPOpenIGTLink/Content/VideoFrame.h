@@ -38,7 +38,6 @@ namespace UWPOpenIGTLink
     property FrameSizeABI^ Dimensions { FrameSizeABI ^ get(); }
     property UWPOpenIGTLink::Image^ Image { UWPOpenIGTLink::Image ^ get();  }
     property Windows::Storage::Streams::IBuffer^ ImageData { Windows::Storage::Streams::IBuffer ^ get(); }
-    property Windows::Foundation::Numerics::float4x4 EmbeddedImageTransform { Windows::Foundation::Numerics::float4x4 get(); void set(Windows::Foundation::Numerics::float4x4 arg); }
     property uint16 NumberOfScalarComponents { uint16 get(); }
     property int ScalarType { int get(); }
     property uint16 Type { uint16 get(); void set(uint16 arg); }

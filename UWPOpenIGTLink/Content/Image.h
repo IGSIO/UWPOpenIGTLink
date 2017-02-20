@@ -40,7 +40,6 @@ namespace UWPOpenIGTLink
     property FrameSizeABI^ Dimensions { FrameSizeABI ^ get(); void set(const FrameSizeABI ^ arg); }
     property Windows::Storage::Streams::IBuffer^ ImageData { Windows::Storage::Streams::IBuffer ^ get(); void set(Windows::Storage::Streams::IBuffer ^ data); }
     property uint16 NumberOfScalarComponents { uint16 get(); void set(uint16 arg); }
-    property Windows::Foundation::Numerics::float4x4 EmbeddedImageTransform { Windows::Foundation::Numerics::float4x4 get(); void set(Windows::Foundation::Numerics::float4x4 arg); }
     property int ScalarType { int get(); void set(int arg); }
 
     bool DeepCopy(Image^ otherImage);
@@ -62,6 +61,5 @@ namespace UWPOpenIGTLink
     std::shared_ptr<byte>                     m_imageData;
     uint16                                    m_numberOfScalarComponents;
     IGTL_SCALAR_TYPE                          m_scalarType;
-    Windows::Foundation::Numerics::float4x4   m_embeddedImageTransform = Windows::Foundation::Numerics::float4x4::identity();
   };
 }
