@@ -43,6 +43,10 @@ namespace UWPOpenIGTLink
     property TransformListABI^ Transforms { TransformListABI ^ get(); void set(TransformListABI ^ arg); }
     property double Timestamp { double get(); void set(double arg); }
 
+  public:
+    TrackedFrame();
+    virtual ~TrackedFrame();
+
     void SetTransform(Transform^ transform);
     Transform^ GetTransform(TransformName^ name);
 

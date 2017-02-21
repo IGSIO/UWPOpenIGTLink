@@ -90,6 +90,18 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  TrackedFrame::TrackedFrame()
+  {
+
+  }
+
+  //----------------------------------------------------------------------------
+  TrackedFrame::~TrackedFrame()
+  {
+
+  }
+
+  //----------------------------------------------------------------------------
   void TrackedFrame::SetTransform(Transform^ transform)
   {
     auto x = GetTransform(transform->Name);
