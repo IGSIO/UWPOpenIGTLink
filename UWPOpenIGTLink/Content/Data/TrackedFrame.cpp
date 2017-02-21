@@ -133,6 +133,18 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  void TrackedFrame::SetFrameSize(const FrameSize& frameSize)
+  {
+    m_frameSize = frameSize;
+  }
+
+  //----------------------------------------------------------------------------
+  UWPOpenIGTLink::FrameSize TrackedFrame::GetFrameSize() const
+  {
+    return m_frameSize;
+  }
+
+  //----------------------------------------------------------------------------
   void TrackedFrame::SetFrameField(const std::wstring& fieldName, const std::wstring& value)
   {
     m_frameFields[fieldName] = value;

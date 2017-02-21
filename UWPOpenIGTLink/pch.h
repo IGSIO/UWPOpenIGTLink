@@ -1,8 +1,5 @@
 #pragma once
 
-// Local includes
-#include "IGTCommon.h"
-
 // System includes
 #include <concrt.h>
 #include <WindowsNumerics.h>

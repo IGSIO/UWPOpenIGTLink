@@ -99,10 +99,10 @@ namespace UWPOpenIGTLinkUI
 
       if (m_WriteableBitmap == nullptr)
       {
-        m_WriteableBitmap = ref new WriteableBitmap(frame->Frame->FrameSize[0], frame->Frame->FrameSize[1]);
+        m_WriteableBitmap = ref new WriteableBitmap(frame->Dimensions[0], frame->Dimensions[1]);
       }
 
-      if (!IBufferToWriteableBitmap(frame->Frame->Image->ImageData, frame->Frame->FrameSize[0], frame->Frame->FrameSize[1], frame->Frame->NumberOfScalarComponents))
+      if (!IBufferToWriteableBitmap(frame->Frame->Image->ImageData, frame->Dimensions[0], frame->Dimensions[1], frame->Frame->NumberOfScalarComponents))
       {
         return;
       }
@@ -111,10 +111,10 @@ namespace UWPOpenIGTLinkUI
       {
         ImageDisplay->Source = m_WriteableBitmap;
       }
-      Platform::String^ text = L"Received " + frame->GetTransforms()->Size + L" transforms:\n";
-      for (auto transformEntry : frame->GetTransforms())
+      Platform::String^ text = L"Received " + frame->Transforms->Size + L" transforms:\n";
+      for (auto transformEntry : frame->Transforms)
       {
-        float3 origin = transform(float3(0.f, 0.f, 0.f), transpose(transformEntry->Transform));
+        float3 origin = transform(float3(0.f, 0.f, 0.f), transpose(transformEntry->Matrix));
         std::wstringstream ss;
         ss << L"  " << transformEntry->Name->GetTransformName()->Data() << L" (" << std::fixed << std::setprecision(2) << origin.x << "L, " << origin.y << L", " << origin.z << L")" << std::endl;
         text += ref new Platform::String(ss.str().c_str());

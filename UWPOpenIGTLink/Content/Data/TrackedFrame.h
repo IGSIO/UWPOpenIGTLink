@@ -56,6 +56,9 @@ namespace UWPOpenIGTLink
     void SetFrameField(const std::wstring& fieldName, const std::wstring& value);
     bool GetFrameField(const std::wstring& fieldName, std::wstring& value);
 
+    void SetFrameSize(const FrameSize& frameSize);
+    FrameSize GetFrameSize()const;
+
     /// Returns true if the input string ends with "Transform", else false
     static bool IsTransform(const std::wstring& str);
 
