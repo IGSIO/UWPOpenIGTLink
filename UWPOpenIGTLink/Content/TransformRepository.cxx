@@ -199,16 +199,16 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  float4x4 TransformRepository::GetTransform(TransformName^ aTransformName)
+  bool TransformRepository::GetTransform(TransformName^ aTransformName, float4x4* outTransform)
   {
     if (!aTransformName->IsValid())
     {
-      throw ref new Platform::Exception(E_INVALIDARG, L"Invalid transform name sent: " + aTransformName->GetTransformName());
+      return false;
     }
 
     if (aTransformName->From() == aTransformName->To())
     {
-      return float4x4::identity();
+      return false;
     }
 
     std::lock_guard<std::mutex> guard(m_CriticalSection);
@@ -219,7 +219,7 @@ namespace UWPOpenIGTLink
     if (!FindPath(aTransformName, transformInfoList))
     {
       // the transform cannot be computed, error has been already logged by FindPath
-      throw ref new Platform::Exception(E_FAIL, L"Transform " + aTransformName->GetTransformName() + L" cannot be computed. See debug output for available transforms.");
+      return false;
     }
 
     // Create transform chain and compute transform status
@@ -234,22 +234,18 @@ namespace UWPOpenIGTLink
       }
     }
 
-    return combinedTransform;
+    if (outTransform != nullptr)
+    {
+      *outTransform = combinedTransform;
+    }
+
+    return combinedTransformValid;
   }
 
   //----------------------------------------------------------------------------
   bool TransformRepository::GetTransformValid(TransformName^ aTransformName)
   {
-    try
-    {
-      GetTransform(aTransformName);
-    }
-    catch (const std::exception&)
-    {
-      return false;
-    }
-
-    return true;
+    return GetTransform(aTransformName, nullptr);
   }
 
   //----------------------------------------------------------------------------

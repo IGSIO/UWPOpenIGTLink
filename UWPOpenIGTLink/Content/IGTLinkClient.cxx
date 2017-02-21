@@ -197,11 +197,11 @@ namespace UWPOpenIGTLink
     frame->Frame->Orientation = (uint16)trackedFrameMsg->GetImageOrientation();
 
     // Transforms
+    frame->SetFrameTransformsInternal(trackedFrameMsg->GetFrameTransforms());
     if (EmbeddedImageTransformName != nullptr)
     {
       frame->SetTransform(ref new Transform(EmbeddedImageTransformName, trackedFrameMsg->GetEmbeddedImageTransform(), trackedFrameMsg->GetEmbeddedImageTransform() != float4x4::identity(), frame->Timestamp));
     }
-    frame->SetFrameTransformsInternal(trackedFrameMsg->GetFrameTransforms());
 
     // Timestamp
     frame->Timestamp = ts->GetTimeStamp();

@@ -156,7 +156,7 @@ namespace UWPOpenIGTLink
       \param aTransformName name of the transform to retrieve from the repository
       \param isValid whether or not the computed or original transform is valid
     */
-    Windows::Foundation::Numerics::float4x4 GetTransform(TransformName^ aTransformName);
+    bool GetTransform(TransformName^ aTransformName, Windows::Foundation::Numerics::float4x4* outTransform);
 
     /*!
       Get the valid status of a transform matrix between two coordinate frames.
