@@ -430,13 +430,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  std::shared_ptr<byte> VideoFrame::GetImageData()
+  std::shared_ptr<byte> VideoFrame::GetImageDataInternal()
   {
     if (!HasImage())
     {
       return nullptr;
     }
-    return m_image->GetImageData();
+    return m_image->GetImageDataInternal();
   }
 
   //----------------------------------------------------------------------------
