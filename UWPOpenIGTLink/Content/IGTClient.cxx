@@ -165,11 +165,12 @@ namespace UWPOpenIGTLink
     std::lock_guard<std::mutex> guard(m_framesMutex);
     auto ts = igtl::TimeStamp::New();
     trackedFrameMsg->GetTimeStamp(ts);
+
     if (ts->GetTimeStamp() <= lastKnownTimestamp)
     {
       auto iter = std::find_if(m_trackedFrames.begin(), m_trackedFrames.end(), [this, lastKnownTimestamp](TrackedFrame ^ frame)
       {
-        return abs(frame->Timestamp == lastKnownTimestamp) < NEGLIGIBLE_DIFFERENCE;
+        return fabs(frame->Timestamp - lastKnownTimestamp) < NEGLIGIBLE_DIFFERENCE;
       });
       // No new messages since requested timestamp
       if (iter != m_trackedFrames.end())
@@ -180,7 +181,6 @@ namespace UWPOpenIGTLink
     }
 
     auto frame = ref new TrackedFrame();
-    frame->Timestamp = ts->GetTimeStamp();
     m_trackedFrames.push_back(frame);
 
     // Fields
