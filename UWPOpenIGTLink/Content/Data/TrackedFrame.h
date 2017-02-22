@@ -54,6 +54,7 @@ namespace UWPOpenIGTLink
     Platform::String^ GetFrameField(Platform::String^ fieldName);
 
     bool HasImage();
+    SharedBytePtr GetImageData();
     uint32 GetPixelFormat(bool normalized);
 
   internal:

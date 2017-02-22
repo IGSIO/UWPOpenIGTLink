@@ -66,6 +66,16 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  UWPOpenIGTLink::SharedBytePtr TrackedFrame::GetImageData()
+  {
+    if (HasImage())
+    {
+      return m_frame->Image->GetImageData();
+    }
+    return 0;
+  }
+
+  //----------------------------------------------------------------------------
   uint32 TrackedFrame::GetPixelFormat(bool normalized)
   {
     return m_frame->GetPixelFormat(normalized);

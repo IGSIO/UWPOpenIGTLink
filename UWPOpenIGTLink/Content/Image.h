@@ -49,9 +49,11 @@ namespace UWPOpenIGTLink
     uint32 GetPixelFormat(bool normalized);
     static uint32 GetNumberOfBytesPerScalar(int scalarType);
 
+    SharedBytePtr GetImageData() { return (SharedBytePtr)&m_imageData; }
+
   internal:
     void SetImageData(std::shared_ptr<byte> imageData, uint16 numberOfScalarComponents, IGTL_SCALAR_TYPE scalarType, const FrameSize& imageSize);
-    std::shared_ptr<byte> GetImageData();
+    std::shared_ptr<byte> GetImageDataInternal();
     void AllocateScalars(const FrameSize& imageSize, uint16 numberOfScalarComponents, IGTL_SCALAR_TYPE pixelType);
 
     FrameSize GetFrameSize() const;

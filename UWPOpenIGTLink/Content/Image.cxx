@@ -112,7 +112,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  std::shared_ptr<byte> Image::GetImageData()
+  std::shared_ptr<byte> Image::GetImageDataInternal()
   {
     return m_imageData;
   }
