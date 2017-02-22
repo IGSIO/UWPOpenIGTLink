@@ -84,7 +84,7 @@
     <ClInclude Include="Content\Buffer.h" />
     <ClInclude Include="Content\Data\Command.h" />
     <ClInclude Include="Content\Data\TrackedFrame.h" />
-    <ClInclude Include="Content\IGTLinkClient.h" />
+    <ClInclude Include="Content\IGTClient.h" />
     <ClInclude Include="Content\Image.h" />
     <ClInclude Include="Content\StreamBufferItem.h" />
     <ClInclude Include="Content\TimestampedCircularBuffer.h" />
@@ -100,7 +100,7 @@
     <ClCompile Include="Content\Buffer.cxx" />
     <ClCompile Include="Content\Data\Command.cpp" />
     <ClCompile Include="Content\Data\TrackedFrame.cpp" />
-    <ClCompile Include="Content\IGTLinkClient.cxx" />
+    <ClCompile Include="Content\IGTClient.cxx" />
     <ClCompile Include="Content\Image.cxx" />
     <ClCompile Include="Content\StreamBufferItem.cxx" />
     <ClCompile Include="Content\TimestampedCircularBuffer.cxx" />

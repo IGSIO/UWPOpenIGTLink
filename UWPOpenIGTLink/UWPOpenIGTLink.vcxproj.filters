@@ -16,9 +16,6 @@
     <ClCompile Include="Content\TransformRepository.cxx">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="Content\IGTLinkClient.cxx">
-      <Filter>Network</Filter>
-    </ClCompile>
     <ClCompile Include="Content\TrackedFrameMessage.cxx">
       <Filter>Network</Filter>
     </ClCompile>
@@ -43,6 +40,9 @@
     <ClCompile Include="Content\Transform.cxx">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Content\IGTClient.cxx">
+      <Filter>Network</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Content\Data\TrackedFrame.h">
@@ -66,9 +66,6 @@
     <ClInclude Include="Content\TrackedFrameMessage.h">
       <Filter>Network</Filter>
     </ClInclude>
-    <ClInclude Include="Content\IGTLinkClient.h">
-      <Filter>Network</Filter>
-    </ClInclude>
     <ClInclude Include="Content\TimestampedCircularBuffer.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -86,6 +83,9 @@
     </ClInclude>
     <ClInclude Include="Content\Transform.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\IGTClient.h">
+      <Filter>Network</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -52,12 +52,11 @@ namespace UWPOpenIGTLink
   ///
   /// \description It connects to an IGTLink v3+ server, sends requests and receives responses.
   ///
-  [Windows::Foundation::Metadata::WebHostHiddenAttribute]
-  public ref class IGTLinkClient sealed
+  public ref class IGTClient sealed
   {
   public:
-    IGTLinkClient();
-    virtual ~IGTLinkClient();
+    IGTClient();
+    virtual ~IGTClient();
 
     property int ServerPort {int get(); void set(int); }
     property Platform::String^ ServerHost { Platform::String ^ get(); void set(Platform::String^); }
@@ -88,6 +87,8 @@ namespace UWPOpenIGTLink
   protected private:
     /// Thread-safe method that allows child classes to read data from the socket
     int SocketReceive(void* data, int length);
+    void PruneTrackedFrames();
+    void PruneIGTMessages();
 
     /// Query the list of retrieved frames and determine the latest timestamp
     double GetLatestTrackedFrameTimestamp();
@@ -110,11 +111,12 @@ namespace UWPOpenIGTLink
     igtl::ClientSocket::Pointer               m_clientSocket = igtl::ClientSocket::New();
 
     /// List of messages received through the socket, transformed to igtl messages
-    std::deque<igtl::MessageBase::Pointer>    m_trackedFrameMessages;
-    std::vector<igtl::MessageBase::Pointer>   m_sendMessages;
+    std::deque<igtl::TrackedFrameMessage::Pointer>    m_trackedFrameMessages;
+    std::vector<igtl::MessageBase::Pointer>           m_sendMessages;
 
     /// List of messages converted to UWP run time
-    std::map<double, TrackedFrame^>           m_trackedFrames;
+    std::mutex                                m_framesMutex;
+    std::deque<TrackedFrame^>                 m_trackedFrames;
 
     /// Server information
     float                                     m_trackerUnitScale = 0.001f; // Scales translation component of incoming transformations by the given factor
@@ -127,7 +129,7 @@ namespace UWPOpenIGTLink
     static const uint32                       MESSAGE_LIST_MAX_SIZE;
 
   private:
-    IGTLinkClient(IGTLinkClient^) {}
-    void operator=(IGTLinkClient^) {}
+    IGTClient(IGTClient^) {}
+    void operator=(IGTClient^) {}
   };
 }
