@@ -12,3 +12,4 @@ Generated Files
 /TrackedUltrasound/*.filters
 /OpenIGTLink-bin
 /packages
+/UWPOpenIGTLink/*.user
