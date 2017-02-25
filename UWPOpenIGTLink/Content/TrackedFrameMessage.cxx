@@ -94,6 +94,9 @@ namespace igtl
   //----------------------------------------------------------------------------
   void TrackedFrameMessage::ApplyTransformUnitScaling(float scalingFactor)
   {
+    m_messageHeader.m_EmbeddedImageTransform[0][3] = m_messageHeader.m_EmbeddedImageTransform[0][3] * scalingFactor;
+    m_messageHeader.m_EmbeddedImageTransform[1][3] = m_messageHeader.m_EmbeddedImageTransform[1][3] * scalingFactor;
+    m_messageHeader.m_EmbeddedImageTransform[2][3] = m_messageHeader.m_EmbeddedImageTransform[2][3] * scalingFactor;
     for (auto& transform : m_frameTransforms)
     {
       transform->ScaleTranslationComponent(scalingFactor);

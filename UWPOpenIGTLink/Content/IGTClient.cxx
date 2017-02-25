@@ -240,9 +240,6 @@ namespace UWPOpenIGTLink
 
     auto headerMsg = m_igtlMessageFactory->CreateHeaderMessage(IGTL_HEADER_VERSION_1);
 
-    //auto startTime = std::chrono::system_clock::now();
-    //uint32 messageCount(0);
-
     while (!token.is_canceled())
     {
       headerMsg->InitBuffer();
@@ -271,16 +268,6 @@ namespace UWPOpenIGTLink
         std::cerr << "Failed to receive message (invalid header)" << std::endl;
         continue;
       }
-
-      //messageCount++;
-      //auto diff = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - startTime);
-      //if (messageCount % 20 == 0)
-      //{
-      //std::stringstream ss;
-      //ss << "mps: " << messageCount / diff.count() << std::endl;
-      //OutputDebugStringA(ss.str().c_str());
-      //}
-
 
       igtl::MessageBase::Pointer bodyMsg = nullptr;
       try
