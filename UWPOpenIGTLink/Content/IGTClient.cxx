@@ -28,13 +28,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "TrackedFrameMessage.h"
 
 // IGT includes
-#include "igtlCommandMessage.h"
-#include "igtlCommon.h"
-#include "igtlMessageHeader.h"
-#include "igtlOSUtil.h"
-#include "igtlStatusMessage.h"
+#include <igtlCommandMessage.h>
+#include <igtlCommon.h>
+#include <igtlMessageHeader.h>
+#include <igtlOSUtil.h>
+#include <igtlStatusMessage.h>
 
-// STD includes
+// STL includes
 #include <chrono>
 #include <regex>
 
@@ -46,6 +46,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 using namespace Concurrency;
 using namespace Windows::Foundation;
+using namespace Windows::Foundation::Numerics;
 using namespace Platform::Collections;
 using namespace Windows::Storage::Streams;
 using namespace Windows::UI::Xaml::Controls;
@@ -71,20 +72,15 @@ namespace UWPOpenIGTLink
   IGTClient::~IGTClient()
   {
     Disconnect();
-    auto disconnectTask = concurrency::create_task([this]()
-    {
-      while (Connected)
-      {
-        std::this_thread::sleep_for(std::chrono::milliseconds(33));
-      }
-    });
-    disconnectTask.wait();
   }
 
   //----------------------------------------------------------------------------
   IAsyncOperation<bool>^ IGTClient::ConnectAsync(double timeoutSec)
   {
-    Disconnect();
+    if (m_clientSocket->GetConnected())
+    {
+      return create_async([]() {return true; });
+    }
 
     m_receiverPumpTokenSource = cancellation_token_source();
 
@@ -122,7 +118,7 @@ namespace UWPOpenIGTLink
       // We're connected, start the data receiver thread
       create_task([this]()
       {
-        DataReceiverPump(m_receiverPumpTokenSource.get_token());
+        DataReceiverPump();
       }).then([this](task<void> previousTask)
       {
         try
@@ -187,7 +183,7 @@ namespace UWPOpenIGTLink
     for (auto& pair : trackedFrameMsg->GetMetaData())
     {
       std::wstring keyWideStr(pair.first.begin(), pair.first.end());
-      std::wstring valueWideStr(pair.second.begin(), pair.second.end());
+      std::wstring valueWideStr(pair.second.second.begin(), pair.second.second.end());
       frame->SetFrameField(keyWideStr, valueWideStr);
     }
 
@@ -211,13 +207,73 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  Windows::Foundation::Collections::IVector<Transform^>^ IGTClient::GetTransforms(double lastKnownTimestamp)
+  {
+    igtl::TrackingDataMessage::Pointer tdataMsg = nullptr;
+    {
+      // Retrieve the next available tracked frame reply
+      std::lock_guard<std::mutex> guard(m_tdataMessagesMutex);
+      if (m_tdataMessages.size() == 0)
+      {
+        return nullptr;
+      }
+      tdataMsg = dynamic_cast<igtl::TrackingDataMessage*>((*m_tdataMessages.rbegin()).GetPointer());
+    }
+
+    auto ts = igtl::TimeStamp::New();
+    tdataMsg->GetTimeStamp(ts);
+
+    if (ts->GetTimeStamp() <= lastKnownTimestamp)
+    {
+      std::lock_guard<std::mutex> guard(m_transformsMutex);
+      auto iter = std::find_if(m_transforms.begin(), m_transforms.end(), [this, lastKnownTimestamp](TransformFrame ^ frame)
+      {
+        if (frame->Size == 0)
+        {
+          return false;
+        }
+        return fabs(frame->GetAt(0)->Timestamp - lastKnownTimestamp) < NEGLIGIBLE_DIFFERENCE;
+      });
+      // No new messages since requested timestamp
+      if (iter != m_transforms.end())
+      {
+        return *iter;
+      }
+      return nullptr;
+    }
+
+    std::lock_guard<std::mutex> guard(m_transformsMutex);
+    auto frame = ref new TransformFrame();
+    m_transforms.push_back(frame);
+
+    auto element = igtl::TrackingDataElement::New();
+    igtl::Matrix4x4 mat;
+    for (auto i = 0; i < tdataMsg->GetNumberOfTrackingDataElements(); ++i)
+    {
+      auto transform = ref new Transform();
+      tdataMsg->GetTrackingDataElement(i, element);
+      auto name = std::string(element->GetName());
+      auto transformName = ref new TransformName(std::wstring(begin(name), end(name)));
+      element->GetMatrix(mat);
+      float4x4 matrix;
+      XMStoreFloat4x4(&matrix, XMLoadFloat4x4(&DirectX::XMFLOAT4X4(&mat[0][0])));
+
+      transform->Name = transformName;
+      transform->Matrix = matrix;
+      transform->Valid = (matrix == float4x4::identity());
+      transform->Timestamp = ts->GetTimeStamp();
+      frame->Append(transform);
+    }
+
+    return frame;
+  }
+
+  //----------------------------------------------------------------------------
   bool IGTClient::SendMessage(igtl::MessageBase::Pointer packedMessage)
   {
-    int success = 0;
-    {
-      std::lock_guard<std::mutex> guard(m_socketMutex);
-      success = m_clientSocket->Send(packedMessage->GetBufferPointer(), packedMessage->GetBufferSize());
-    }
+    std::lock_guard<std::mutex> guard(m_socketMutex);
+    int success = m_clientSocket->Send(packedMessage->GetBufferPointer(), packedMessage->GetBufferSize());
+
     if (!success)
     {
       std::cerr << "OpenIGTLink client couldn't send message to server." << std::endl;
@@ -234,11 +290,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void IGTClient::DataReceiverPump(concurrency::cancellation_token token)
+  void IGTClient::DataReceiverPump()
   {
     LOG_TRACE(L"IGTLinkClient::DataReceiverPump");
 
     auto headerMsg = m_igtlMessageFactory->CreateHeaderMessage(IGTL_HEADER_VERSION_1);
+
+    auto token = m_receiverPumpTokenSource.get_token();
 
     while (!token.is_canceled())
     {
@@ -289,26 +347,26 @@ namespace UWPOpenIGTLink
         continue;
       }
 
+      {
+        std::lock_guard<std::mutex> guard(m_socketMutex);
+        if (!m_clientSocket->GetConnected())
+        {
+          // We've become disconnected while waiting for the socket, we're done here!
+          return;
+        }
+        m_clientSocket->Receive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+      }
+
+      c = bodyMsg->Unpack(1);
+      if (!(c & igtl::MessageHeader::UNPACK_BODY))
+      {
+        LOG_TRACE("Failed to receive reply (invalid body)");
+        continue;
+      }
+
       // Accept all messages but status messages, they are used as a keep alive mechanism
       if (typeid(*bodyMsg) == typeid(igtl::TrackedFrameMessage))
       {
-        {
-          std::lock_guard<std::mutex> guard(m_socketMutex);
-          if (!m_clientSocket->GetConnected())
-          {
-            // We've become disconnected while waiting for the socket, we're done here!
-            return;
-          }
-          m_clientSocket->Receive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
-        }
-
-        int c = bodyMsg->Unpack(1);
-        if (!(c & igtl::MessageHeader::UNPACK_BODY))
-        {
-          LOG_TRACE("Failed to receive reply (invalid body)");
-          continue;
-        }
-
         igtl::TrackedFrameMessage* trackedFrameMessage = (igtl::TrackedFrameMessage*)bodyMsg.GetPointer();
 
         // Post process tracked frame to adjust for unit scale
@@ -318,6 +376,14 @@ namespace UWPOpenIGTLink
         std::lock_guard<std::mutex> guard(m_trackedFrameMessagesMutex);
         m_trackedFrameMessages.push_back(trackedFrameMessage);
       }
+      else if (typeid(*bodyMsg) == typeid(igtl::TrackingDataMessage))
+      {
+        igtl::TrackingDataMessage* tdataMessage = (igtl::TrackingDataMessage*)bodyMsg.GetPointer();
+
+        // Save reply
+        std::lock_guard<std::mutex> guard(m_tdataMessagesMutex);
+        m_tdataMessages.push_back(tdataMessage);
+      }
       else
       {
         std::lock_guard<std::mutex> guard(m_socketMutex);
@@ -325,7 +391,7 @@ namespace UWPOpenIGTLink
       }
 
       PruneIGTMessages();
-      PruneTrackedFrames();
+      PruneUWPTypes();
     }
 
     return;
@@ -339,19 +405,37 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void IGTClient::PruneTrackedFrames()
+  void IGTClient::PruneUWPTypes()
   {
-    std::lock_guard<std::mutex> guard(m_framesMutex);
-    auto oldestTimestamp = GetOldestTrackedFrameTimestamp();
-    for (auto iter = begin(m_trackedFrames); iter != end(m_trackedFrames);)
     {
-      if ((*iter)->Timestamp < oldestTimestamp)
+      std::lock_guard<std::mutex> guard(m_framesMutex);
+      auto oldestTimestamp = GetOldestTrackedFrameTimestamp();
+      for (auto iter = begin(m_trackedFrames); iter != end(m_trackedFrames);)
       {
-        iter = m_trackedFrames.erase(iter);
+        if ((*iter)->Timestamp < oldestTimestamp)
+        {
+          iter = m_trackedFrames.erase(iter);
+        }
+        else
+        {
+          ++iter;
+        }
       }
-      else
+    }
+
+    {
+      std::lock_guard<std::mutex> guard(m_transformsMutex);
+      auto oldestTimestamp = GetOldestTDataTimestamp();
+      for (auto iter = begin(m_transforms); iter != end(m_transforms);)
       {
-        ++iter;
+        if ((*iter)->Size == 0 || (*iter)->GetAt(0)->Timestamp < oldestTimestamp)
+        {
+          iter = m_transforms.erase(iter);
+        }
+        else
+        {
+          ++iter;
+        }
       }
     }
   }
@@ -359,41 +443,55 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void IGTClient::PruneIGTMessages()
   {
-    std::lock_guard<std::mutex> guard(m_trackedFrameMessagesMutex);
-    if (m_trackedFrameMessages.size() > MESSAGE_LIST_MAX_SIZE)
     {
-      // erase the front N results
-      uint32 toErase = m_trackedFrameMessages.size() - MESSAGE_LIST_MAX_SIZE;
-      m_trackedFrameMessages.erase(begin(m_trackedFrameMessages), begin(m_trackedFrameMessages) + toErase);
+      std::lock_guard<std::mutex> guard(m_trackedFrameMessagesMutex);
+      if (m_trackedFrameMessages.size() > MESSAGE_LIST_MAX_SIZE)
+      {
+        // erase the front N results
+        uint32 toErase = m_trackedFrameMessages.size() - MESSAGE_LIST_MAX_SIZE;
+        m_trackedFrameMessages.erase(begin(m_trackedFrameMessages), begin(m_trackedFrameMessages) + toErase);
+      }
+    }
+
+    {
+      std::lock_guard<std::mutex> guard(m_tdataMessagesMutex);
+      if (m_tdataMessages.size() > MESSAGE_LIST_MAX_SIZE)
+      {
+        // erase the front N results
+        uint32 toErase = m_tdataMessages.size() - MESSAGE_LIST_MAX_SIZE;
+        m_tdataMessages.erase(begin(m_tdataMessages), begin(m_tdataMessages) + toErase);
+      }
     }
   }
 
   //----------------------------------------------------------------------------
-  double IGTClient::GetLatestTrackedFrameTimestamp()
+  double IGTClient::GetLatestTrackedFrameTimestamp() const
   {
     // Retrieve the next available tracked frame reply
     std::lock_guard<std::mutex> guard(m_trackedFrameMessagesMutex);
-    if (m_trackedFrameMessages.size() > 0)
-    {
-      igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-      (*m_trackedFrameMessages.rbegin())->GetTimeStamp(ts);
-      return ts->GetTimeStamp();
-    }
-    return -1.0;
+    return GetLatestTimestamp<igtl::TrackedFrameMessage::Pointer>(m_trackedFrameMessages);
   }
 
   //----------------------------------------------------------------------------
-  double IGTClient::GetOldestTrackedFrameTimestamp()
+  double IGTClient::GetOldestTrackedFrameTimestamp() const
   {
     // Retrieve the next available tracked frame reply
     std::lock_guard<std::mutex> guard(m_trackedFrameMessagesMutex);
-    if (m_trackedFrameMessages.size() > 0)
-    {
-      igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-      (*m_trackedFrameMessages.begin())->GetTimeStamp(ts);
-      return ts->GetTimeStamp();
-    }
-    return -1.0;
+    return GetOldestTimestamp<igtl::TrackedFrameMessage::Pointer>(m_trackedFrameMessages);
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTClient::GetLatestTDataTimestamp() const
+  {
+    std::lock_guard<std::mutex> guard(m_tdataMessagesMutex);
+    return GetLatestTimestamp<igtl::TrackingDataMessage::Pointer>(m_tdataMessages);
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTClient::GetOldestTDataTimestamp() const
+  {
+    std::lock_guard<std::mutex> guard(m_tdataMessagesMutex);
+    return GetOldestTimestamp<igtl::TrackingDataMessage::Pointer>(m_tdataMessages);
   }
 
   //----------------------------------------------------------------------------

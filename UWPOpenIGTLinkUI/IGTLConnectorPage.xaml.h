@@ -44,7 +44,7 @@ namespace UWPOpenIGTLinkUI
     bool IBufferToWriteableBitmap(Windows::Storage::Streams::IBuffer^ data, uint32 width, uint32 height, uint16 numberOfcomponents);
 
   protected private:
-    UWPOpenIGTLink::IGTLinkClient^                          m_IGTClient = ref new UWPOpenIGTLink::IGTLinkClient();
+    UWPOpenIGTLink::IGTClient^                              m_IGTClient = ref new UWPOpenIGTLink::IGTClient();
     Windows::UI::Xaml::Media::Imaging::WriteableBitmap^     m_WriteableBitmap = nullptr;
     Windows::UI::Xaml::DispatcherTimer^                     m_UITimer = ref new Windows::UI::Xaml::DispatcherTimer();
   };

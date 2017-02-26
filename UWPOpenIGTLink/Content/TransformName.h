@@ -86,6 +86,11 @@ namespace UWPOpenIGTLink
     // Check if the current transform name is valid
     bool IsValid();
 
+  internal:
+    TransformName(const std::wstring& aFrom, const std::wstring& aTo);
+    TransformName(const std::wstring& transformName);
+    void SetTransformName(const std::wstring& aTransformName);
+
   protected private:
     /// Check if the input string is capitalized, if not capitalize it
     void Capitalize(std::wstring& aString);

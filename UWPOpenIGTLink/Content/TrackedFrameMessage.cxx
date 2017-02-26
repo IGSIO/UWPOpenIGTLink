@@ -66,7 +66,6 @@ namespace igtl
       msg->CopyBody(this);
     }
 
-    msg->m_MetaDataHeaderEntries = this->m_MetaDataHeaderEntries;
     msg->m_MetaDataMap = this->m_MetaDataMap;
     msg->m_IsExtendedHeaderUnpacked = this->m_IsExtendedHeaderUnpacked;
 
@@ -300,7 +299,7 @@ namespace igtl
     for (auto iter = m_MetaDataMap.begin(); iter != m_MetaDataMap.end();)
     {
       auto name = std::wstring(iter->first.begin(), iter->first.end());
-      auto value = std::wstring(iter->second.begin(), iter->second.end());
+      auto value = std::wstring(iter->second.second.begin(), iter->second.second.end());
       if (UWPOpenIGTLink::TrackedFrame::IsTransform(name))
       {
         auto entry = ref new UWPOpenIGTLink::Transform();
@@ -320,7 +319,7 @@ namespace igtl
 
         auto statusStr = iter->first;
         statusStr.append("Status");
-        entry->Valid = UWPOpenIGTLink::IsEqualInsensitive(m_MetaDataMap[statusStr], "OK");
+        entry->Valid = UWPOpenIGTLink::IsEqualInsensitive(m_MetaDataMap[statusStr].second, "OK");
 
         m_frameTransforms.push_back(entry);
         iter = m_MetaDataMap.erase(iter);

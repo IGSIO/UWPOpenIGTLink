@@ -104,5 +104,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Content\IGTClient.txx">
+      <Filter>Network</Filter>
+    </None>
   </ItemGroup>
 </Project>

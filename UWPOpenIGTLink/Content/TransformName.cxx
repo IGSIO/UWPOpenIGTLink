@@ -67,6 +67,22 @@ namespace UWPOpenIGTLink
   }
 
   //-------------------------------------------------------
+  TransformName::TransformName(const std::wstring& aFrom, const std::wstring& aTo)
+  {
+    m_From = aFrom;
+    Capitalize(m_From);
+
+    m_To = aTo;
+    Capitalize(m_To);
+  }
+
+  //-------------------------------------------------------
+  TransformName::TransformName(const std::wstring& transformName)
+  {
+    SetTransformName(transformName);
+  }
+
+  //-------------------------------------------------------
   bool TransformName::IsValid()
   {
     if (m_From.empty())
@@ -141,6 +157,12 @@ namespace UWPOpenIGTLink
     m_To = postFrom;
     Capitalize(m_From);
     Capitalize(m_To);
+  }
+
+  //----------------------------------------------------------------------------
+  void TransformName::SetTransformName(const std::wstring& aTransformName)
+  {
+    SetTransformName(ref new Platform::String(aTransformName.c_str()));
   }
 
   //-------------------------------------------------------

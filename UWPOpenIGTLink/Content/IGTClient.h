@@ -31,10 +31,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 // IGT includes
 #include <igtlClientSocket.h>
-#include <igtlMessageHeader.h>
 #include <igtlMessageFactory.h>
+#include <igtlTrackingDataMessage.h>
 
-// std includes
+// STL includes
 #include <deque>
 #include <string>
 
@@ -54,6 +54,8 @@ namespace UWPOpenIGTLink
   ///
   public ref class IGTClient sealed
   {
+    typedef Platform::Collections::Vector<Transform^> TransformFrame;
+
   public:
     IGTClient();
     virtual ~IGTClient();
@@ -71,8 +73,11 @@ namespace UWPOpenIGTLink
     /// Disconnect from the connected server
     void Disconnect();
 
-    /// Retrieve the latest tracked frame reply
+    /// Retrieve the latest tracked frame
     TrackedFrame^ GetTrackedFrame(double lastKnownTimestamp);
+
+    /// Retrieve the latest transform frame
+    Windows::Foundation::Collections::IVector<Transform^>^ GetTransforms(double lastKnownTimestamp);
 
     /// Send a message to the connected server
     bool SendMessage(MessageBasePointerPtr messageBasePointerAsIntPtr);
@@ -82,54 +87,64 @@ namespace UWPOpenIGTLink
     bool SendMessage(igtl::MessageBase::Pointer packedMessage);
 
     /// Threaded function to receive data from the connected server
-    void DataReceiverPump(concurrency::cancellation_token token);
+    void DataReceiverPump();
 
   protected private:
     /// Thread-safe method that allows child classes to read data from the socket
     int SocketReceive(void* data, int length);
-    void PruneTrackedFrames();
+    void PruneUWPTypes();
     void PruneIGTMessages();
 
-    /// Query the list of retrieved frames and determine the latest timestamp
-    double GetLatestTrackedFrameTimestamp();
+    double GetLatestTrackedFrameTimestamp() const;
+    double GetOldestTrackedFrameTimestamp() const;
 
-    /// Query the list of retrieved frames and determine the oldest timestamp
-    double GetOldestTrackedFrameTimestamp();
+    double GetLatestTDataTimestamp() const;
+    double GetOldestTDataTimestamp() const;
+
+    template<typename MessageTypePointer> double GetLatestTimestamp(const std::deque<MessageTypePointer>& messages) const;
+    template<typename MessageTypePointer> double GetOldestTimestamp(const std::deque<MessageTypePointer>& messages) const;
 
   protected private:
     /// igtl Factory for message sending
-    igtl::MessageFactory::Pointer             m_igtlMessageFactory = igtl::MessageFactory::New();
+    igtl::MessageFactory::Pointer                     m_igtlMessageFactory = igtl::MessageFactory::New();
 
-    Concurrency::task<void>                   m_dataReceiverTask;
-    Concurrency::cancellation_token_source    m_receiverPumpTokenSource;
-
-    /// Mutex instance for safe data access
-    std::mutex                                m_trackedFrameMessagesMutex;
-    std::mutex                                m_socketMutex;
+    Concurrency::task<void>                           m_dataReceiverTask;
+    Concurrency::cancellation_token_source            m_receiverPumpTokenSource;
 
     /// Socket that is connected to the server
-    igtl::ClientSocket::Pointer               m_clientSocket = igtl::ClientSocket::New();
+    std::mutex                                        m_socketMutex;
+    igtl::ClientSocket::Pointer                       m_clientSocket = igtl::ClientSocket::New();
 
-    /// List of messages received through the socket, transformed to igtl messages
+    /// Lists of messages received through the socket, transformed to igtl messages
+    mutable std::mutex                                m_trackedFrameMessagesMutex;
     std::deque<igtl::TrackedFrameMessage::Pointer>    m_trackedFrameMessages;
+
+    mutable std::mutex                                m_tdataMessagesMutex;
+    std::deque<igtl::TrackingDataMessage::Pointer>    m_tdataMessages;
+
+    /// List of messages to be sent to the IGT server
     std::vector<igtl::MessageBase::Pointer>           m_sendMessages;
 
     /// List of messages converted to UWP run time
-    std::mutex                                m_framesMutex;
-    std::deque<TrackedFrame^>                 m_trackedFrames;
+    std::mutex                                        m_framesMutex;
+    std::deque<TrackedFrame^>                         m_trackedFrames;
+    std::mutex                                        m_transformsMutex;
+    std::deque<TransformFrame^>                       m_transforms;
 
     /// Server information
-    float                                     m_trackerUnitScale = 0.001f; // Scales translation component of incoming transformations by the given factor
-    Platform::String^                         m_serverHost = L"127.0.0.1";
-    TransformName^                            m_embeddedImageTransformName = nullptr;
-    int                                       m_serverPort = 18944;
-    int                                       m_serverIGTLVersion = IGTL_HEADER_VERSION_2;
+    float                                             m_trackerUnitScale = 0.001f; // Scales translation component of incoming transformations by the given factor
+    Platform::String^                                 m_serverHost = L"127.0.0.1";
+    TransformName^                                    m_embeddedImageTransformName = nullptr;
+    int                                               m_serverPort = 18944;
+    int                                               m_serverIGTLVersion = IGTL_HEADER_VERSION_2;
 
-    static const int                          CLIENT_SOCKET_TIMEOUT_MSEC;
-    static const uint32                       MESSAGE_LIST_MAX_SIZE;
+    static const int                                  CLIENT_SOCKET_TIMEOUT_MSEC;
+    static const uint32                               MESSAGE_LIST_MAX_SIZE;
 
   private:
     IGTClient(IGTClient^) {}
     void operator=(IGTClient^) {}
   };
 }
+
+#include "IGTClient.txx"
