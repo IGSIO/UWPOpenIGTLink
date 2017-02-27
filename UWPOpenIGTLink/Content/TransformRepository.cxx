@@ -103,6 +103,18 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  bool TransformRepository::SetTransforms(TransformListABI^ transforms)
+  {
+    bool result(true);
+    for (auto entry : transforms)
+    {
+      result &= SetTransform(entry->Name, entry->Matrix, entry->Valid);
+    }
+
+    return result;
+  }
+
+  //----------------------------------------------------------------------------
   bool TransformRepository::SetTransform(TransformName^ aTransformName, float4x4 matrix, bool isValid)
   {
     if (!aTransformName->IsValid())

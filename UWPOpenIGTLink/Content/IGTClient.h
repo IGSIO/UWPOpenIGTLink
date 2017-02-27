@@ -54,8 +54,6 @@ namespace UWPOpenIGTLink
   ///
   public ref class IGTClient sealed
   {
-    typedef Platform::Collections::Vector<Transform^> TransformFrame;
-
   public:
     IGTClient();
     virtual ~IGTClient();
@@ -77,7 +75,7 @@ namespace UWPOpenIGTLink
     TrackedFrame^ GetTrackedFrame(double lastKnownTimestamp);
 
     /// Retrieve the latest transform frame
-    Windows::Foundation::Collections::IVector<Transform^>^ GetTransforms(double lastKnownTimestamp);
+    TransformListABI^ GetTransformFrame(double lastKnownTimestamp);
 
     /// Send a message to the connected server
     bool SendMessage(MessageBasePointerPtr messageBasePointerAsIntPtr);
@@ -129,7 +127,7 @@ namespace UWPOpenIGTLink
     std::mutex                                        m_framesMutex;
     std::deque<TrackedFrame^>                         m_trackedFrames;
     std::mutex                                        m_transformsMutex;
-    std::deque<TransformFrame^>                       m_transforms;
+    std::deque<TransformListABI^>                     m_transforms;
 
     /// Server information
     float                                             m_trackerUnitScale = 0.001f; // Scales translation component of incoming transformations by the given factor

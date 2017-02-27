@@ -152,7 +152,6 @@ namespace UWPOpenIGTLink
   typedef Platform::Array<uint16> FrameSizeABI;
   typedef std::array<uint16, 3> FrameSize;
 
-
 #ifdef _WIN64
   typedef int64 SharedBytePtr;
   typedef int64 MessageBasePointerPtr;
@@ -226,7 +225,7 @@ namespace UWPOpenIGTLink
 }
 
 #if defined(ENABLE_LOG_TRACE)
-#define LOG_TRACE(msg) LogMessage(msg, __FILE__, __LINE__);
+  #define LOG_TRACE(msg) LogMessage(msg, __FILE__, __LINE__);
 #else
-#define LOG_TRACE(x) do {} while (0)
+  #define LOG_TRACE(x) do {} while (0)
 #endif

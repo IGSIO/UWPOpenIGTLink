@@ -104,6 +104,7 @@ namespace UWPOpenIGTLink
       have non valid statuses.
     */
     bool SetTransforms(TrackedFrame^ trackedFrame);
+    bool SetTransforms(TransformListABI^ transforms);
 
     /*!
       Set the valid status of a transform matrix between two coordinate frames. A transform is normally valid,

@@ -207,7 +207,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  Windows::Foundation::Collections::IVector<Transform^>^ IGTClient::GetTransforms(double lastKnownTimestamp)
+  TransformListABI^ IGTClient::GetTransformFrame(double lastKnownTimestamp)
   {
     igtl::TrackingDataMessage::Pointer tdataMsg = nullptr;
     {
@@ -226,7 +226,7 @@ namespace UWPOpenIGTLink
     if (ts->GetTimeStamp() <= lastKnownTimestamp)
     {
       std::lock_guard<std::mutex> guard(m_transformsMutex);
-      auto iter = std::find_if(m_transforms.begin(), m_transforms.end(), [this, lastKnownTimestamp](TransformFrame ^ frame)
+      auto iter = std::find_if(m_transforms.begin(), m_transforms.end(), [this, lastKnownTimestamp](TransformListABI ^ frame)
       {
         if (frame->Size == 0)
         {
@@ -243,7 +243,7 @@ namespace UWPOpenIGTLink
     }
 
     std::lock_guard<std::mutex> guard(m_transformsMutex);
-    auto frame = ref new TransformFrame();
+    auto frame = ref new Vector<Transform^>();
     m_transforms.push_back(frame);
 
     auto element = igtl::TrackingDataElement::New();
@@ -253,14 +253,24 @@ namespace UWPOpenIGTLink
       auto transform = ref new Transform();
       tdataMsg->GetTrackingDataElement(i, element);
       auto name = std::string(element->GetName());
-      auto transformName = ref new TransformName(std::wstring(begin(name), end(name)));
+      TransformName^ transformName(nullptr);
+      try
+      {
+        // If the transform name is > 20 characters, name will be ""
+        transformName = ref new TransformName(std::wstring(begin(name), end(name)));
+      }
+      catch (Platform::Exception^ e)
+      {
+        OutputDebugStringA("Transform being sent from IGT server has a name > 20 characters.");
+        continue;
+      }
       element->GetMatrix(mat);
       float4x4 matrix;
       XMStoreFloat4x4(&matrix, XMLoadFloat4x4(&DirectX::XMFLOAT4X4(&mat[0][0])));
 
       transform->Name = transformName;
       transform->Matrix = matrix;
-      transform->Valid = (matrix == float4x4::identity());
+      transform->Valid = (matrix != float4x4::identity());
       transform->Timestamp = ts->GetTimeStamp();
       frame->Append(transform);
     }
@@ -378,7 +388,20 @@ namespace UWPOpenIGTLink
       }
       else if (typeid(*bodyMsg) == typeid(igtl::TrackingDataMessage))
       {
-        igtl::TrackingDataMessage* tdataMessage = (igtl::TrackingDataMessage*)bodyMsg.GetPointer();
+        auto tdataMessage = (igtl::TrackingDataMessage*)bodyMsg.GetPointer();
+
+        // Post process tdata to adjust for unit scale
+        auto element = igtl::TrackingDataElement::New();
+        for (int i = 0; i < tdataMessage->GetNumberOfTrackingDataElements(); ++i)
+        {
+          tdataMessage->GetTrackingDataElement(i, element);
+          igtl::Matrix4x4 mat;
+          element->GetMatrix(mat);
+          mat[0][3] = mat[0][3] * m_trackerUnitScale;
+          mat[1][3] = mat[1][3] * m_trackerUnitScale;
+          mat[2][3] = mat[2][3] * m_trackerUnitScale;
+          element->SetMatrix(mat);
+        }
 
         // Save reply
         std::lock_guard<std::mutex> guard(m_tdataMessagesMutex);
