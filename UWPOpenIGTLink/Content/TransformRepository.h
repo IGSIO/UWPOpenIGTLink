@@ -136,20 +136,20 @@ namespace UWPOpenIGTLink
       can be already constructed by concatenating/inverting already stored transforms. Changing an already
       set transform is allowed.
     */
-    void ReadConfiguration(Windows::Data::Xml::Dom::XmlDocument^ doc);
+    bool ReadConfiguration(Windows::Data::Xml::Dom::XmlDocument^ doc);
 
     /*!
       Delete all transforms from XML data CoordinateDefinitions element then write all transform matrices with persistent status
       into the xml data CoordinateDefinitions element. The function will give a warning message in case of any non valid persistent transform.
     */
-    void WriteConfiguration(Windows::Data::Xml::Dom::XmlDocument^ doc);
+    bool WriteConfiguration(Windows::Data::Xml::Dom::XmlDocument^ doc);
 
     /*!
       Delete all transforms from XML data CoordinateDefinitions element then write all transform matrices that are persistent and non-persistent if boolean
       is true, only persistent if the boolean is false into the xml data CoordinateDefinitions element. The function will give a warning message
       in case of any non valid persistent transform.
     */
-    void WriteConfigurationGeneric(Windows::Data::Xml::Dom::XmlDocument^ doc, bool copyAllTransforms);
+    bool WriteConfigurationGeneric(Windows::Data::Xml::Dom::XmlDocument^ doc, bool copyAllTransforms);
 
     /*!
       Get a transform matrix between two coordinate frames. The method fails if the transform

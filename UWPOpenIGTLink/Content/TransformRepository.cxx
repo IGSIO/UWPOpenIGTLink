@@ -518,7 +518,7 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::ReadConfiguration(XmlDocument^ doc)
+  bool TransformRepository::ReadConfiguration(XmlDocument^ doc)
   {
     auto xpath = ref new Platform::String(L"/HoloIntervention/CoordinateDefinitions");
     if (doc->SelectNodes(xpath)->Length != 1)
@@ -698,34 +698,38 @@ namespace UWPOpenIGTLink
 
     if (numberOfErrors > 0)
     {
-      throw ref new Platform::Exception(E_FAIL, L"Errors reported during reading of configuration.");
+      return false;
     }
+
+    return true;
   }
 
   //----------------------------------------------------------------------------
   // copyAllTransforms: include non-persistent and invalid transforms
   // Attributes: Persistent="TRUE/FALSE" Valid="TRUE/FALSE" => add it to ReadConfiguration, too
-  void TransformRepository::WriteConfigurationGeneric(XmlDocument^ doc, bool copyAllTransforms)
+  bool TransformRepository::WriteConfigurationGeneric(XmlDocument^ doc, bool copyAllTransforms)
   {
     auto xpath = ref new Platform::String(L"/HoloIntervention/CoordinateDefinitions");
+    XmlElement^ coordinateDefinitionsElement(nullptr);
     if (doc->SelectNodes(xpath)->Length == 0)
     {
-      auto trXpath = ref new Platform::String(L"/HoloIntervention");
-      if (doc->SelectNodes(trXpath)->Length == 0)
+      auto rootXpath = ref new Platform::String(L"/HoloIntervention");
+      if (doc->SelectNodes(rootXpath)->Length == 0)
       {
-        XmlElement^ trElem = doc->CreateElement(L"HoloIntervention");
-        doc->AppendChild(trElem);
+        XmlElement^ rootElem = doc->CreateElement(L"HoloIntervention");
+        doc->AppendChild(rootElem);
       }
-      XmlElement^ elem = doc->CreateElement(L"CoordinateDefinitions");
-      doc->SelectNodes(trXpath)->Item(0)->AppendChild(elem);
+      coordinateDefinitionsElement = doc->CreateElement(L"CoordinateDefinitions");
+      doc->SelectNodes(rootXpath)->Item(0)->AppendChild(coordinateDefinitionsElement);
     }
-
-    IXmlNode^ coordinateDefinitions = doc->SelectNodes(xpath)->Item(0);
-    XmlElement^ coordinateDefinitionsElement = dynamic_cast<XmlElement^>(coordinateDefinitions);
+    else
+    {
+      coordinateDefinitionsElement = dynamic_cast<XmlElement^>(doc->SelectNodes(xpath)->Item(0));
+    }
 
     if (coordinateDefinitionsElement == nullptr)
     {
-      return;
+      return false;
     }
 
     for (auto& coordFrame : m_CoordinateFrames)
@@ -787,14 +791,16 @@ namespace UWPOpenIGTLink
             newTransformElement->SetAttribute("Date", ref new Platform::String(woss.str().c_str()));
           }
 
-          coordinateDefinitions->AppendChild(newTransformElement);
+          coordinateDefinitionsElement->AppendChild(newTransformElement);
         }
       }
     }
+
+    return true;
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::WriteConfiguration(XmlDocument^ doc)
+  bool TransformRepository::WriteConfiguration(XmlDocument^ doc)
   {
     return this->WriteConfigurationGeneric(doc, false);
   }
