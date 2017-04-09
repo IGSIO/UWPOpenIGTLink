@@ -261,7 +261,7 @@ namespace UWPOpenIGTLink
       }
       catch (Platform::Exception^ e)
       {
-        OutputDebugStringA("Transform being sent from IGT server has a name > 20 characters.");
+        OutputDebugStringA("Transform being sent from IGT server has an invalid name.\n");
         continue;
       }
       element->GetMatrix(mat);

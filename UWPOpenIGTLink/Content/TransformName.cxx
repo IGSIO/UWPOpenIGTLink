@@ -165,6 +165,18 @@ namespace UWPOpenIGTLink
     SetTransformName(ref new Platform::String(aTransformName.c_str()));
   }
 
+  //----------------------------------------------------------------------------
+  std::wstring TransformName::ToInternal() const
+  {
+    return m_To;
+  }
+
+  //----------------------------------------------------------------------------
+  std::wstring TransformName::FromInternal() const
+  {
+    return m_From;
+  }
+
   //-------------------------------------------------------
   Platform::String^ TransformName::GetTransformName()
   {

@@ -91,6 +91,9 @@ namespace UWPOpenIGTLink
     TransformName(const std::wstring& transformName);
     void SetTransformName(const std::wstring& aTransformName);
 
+    std::wstring ToInternal() const;
+    std::wstring FromInternal() const;
+
   protected private:
     /// Check if the input string is capitalized, if not capitalize it
     void Capitalize(std::wstring& aString);

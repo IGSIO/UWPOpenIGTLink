@@ -386,7 +386,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool TransformRepository::FindPath(TransformName^ aTransformName, TransformInfoListType& transformInfoList, const wchar_t* skipCoordFrameName /*=NULL*/, bool silent /*=false*/)
   {
-    if (aTransformName->From() == aTransformName->To())
+    if (aTransformName->FromInternal() == aTransformName->ToInternal())
     {
       return false;
     }
@@ -399,8 +399,7 @@ namespace UWPOpenIGTLink
       return true;
     }
     // not found, so try to find a path through all the connected coordinate frames
-    std::wstring fromStr = std::wstring(aTransformName->From()->Data());
-    CoordFrameToTransformMapType& fromCoordFrame = this->m_CoordinateFrames[fromStr];
+    CoordFrameToTransformMapType& fromCoordFrame = this->m_CoordinateFrames[aTransformName->FromInternal()];
     for (CoordFrameToTransformMapType::iterator transformInfoIt = fromCoordFrame.begin(); transformInfoIt != fromCoordFrame.end(); ++transformInfoIt)
     {
       if (skipCoordFrameName != NULL && transformInfoIt->first.compare(std::wstring(skipCoordFrameName)) == 0)
@@ -409,8 +408,8 @@ namespace UWPOpenIGTLink
         // (probably it would just go back to the previous coordinate frame where we come from)
         continue;
       }
-      TransformName^ newTransformName = ref new TransformName(ref new Platform::String(transformInfoIt->first.c_str()), aTransformName->To());
-      if (FindPath(newTransformName, transformInfoList, fromStr.c_str(), true /*silent*/))
+      TransformName^ newTransformName = ref new TransformName(transformInfoIt->first, aTransformName->ToInternal());
+      if (FindPath(newTransformName, transformInfoList, aTransformName->FromInternal().c_str(), true /*silent*/))
       {
         transformInfoList.push_back(&(transformInfoIt->second));
         return true;
@@ -444,8 +443,13 @@ namespace UWPOpenIGTLink
                                 << (transformInfo.second.m_IsPersistent ? L"persistent" : L"non-persistent") << ")";
         }
       }
-      OutputDebugStringW((L"Transform path not found from " + aTransformName->From() + L" to " + aTransformName->To() + L" coordinate system."
-                          + L" Available transforms in the repository (including the inverse of these transforms): " + ref new Platform::String(osAvailableTransforms.str().c_str()))->Data());
+      OutputDebugStringW((L"Transform path not found from "
+                          + aTransformName->From()
+                          + L" to "
+                          + aTransformName->To()
+                          + L" coordinate system. Available transforms in the repository (including the inverse of these transforms): "
+                          + ref new Platform::String(osAvailableTransforms.str().c_str())
+                          + L"\n")->Data());
     }
 
     return false;
