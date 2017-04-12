@@ -286,7 +286,7 @@ namespace UWPOpenIGTLink
 
     if (!success)
     {
-      std::cerr << "OpenIGTLink client couldn't send message to server." << std::endl;
+      OutputDebugStringA("OpenIGTLink client couldn't send message to server.\n");
       return false;
     }
     return true;
@@ -333,7 +333,7 @@ namespace UWPOpenIGTLink
       int c = headerMsg->Unpack(1);
       if (!(c & igtl::MessageHeader::UNPACK_HEADER))
       {
-        std::cerr << "Failed to receive message (invalid header)" << std::endl;
+        OutputDebugStringA("Failed to receive message (invalid header)\n");
         continue;
       }
 
