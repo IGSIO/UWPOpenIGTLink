@@ -1,5 +1,5 @@
 # UWPOpenIGTLink
-This project implements a client for OpenIGTLink implemented for the Universal Windows Platform. Currently the client is read-only in that it does not send any messages.
+This project implements a client for OpenIGTLink implemented for the [Universal Windows Platform](https://docs.microsoft.com/en-us/windows/uwp/get-started/universal-application-platform-guide). Currently the client is read-only in that it does not send any messages.
 
 # Features
 * Currently the [TRACKEDFRAME](https://app.assembla.com/spaces/plus/subversion/source/HEAD/trunk/PlusLib/src/PlusOpenIGTLink/igtlPlusTrackedFrameMessage.h) and TDATA messages are the only message types that are received.
