@@ -566,7 +566,12 @@ namespace UWPOpenIGTLink
         continue;
       }
       Platform::String^ matrixString = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Matrix")->NodeValue);
-      if (!matrixString->IsEmpty())
+      if (matrixString->IsEmpty())
+      {
+        numberOfErrors++;
+        continue;
+      }
+      else
       {
         std::wstring matrixStr(matrixString->Data());
 
@@ -600,102 +605,34 @@ namespace UWPOpenIGTLink
         matrix.m42 = vectorMatrix[13];
         matrix.m43 = vectorMatrix[14];
         matrix.m44 = vectorMatrix[15];
-      }
-      else
-      {
-        numberOfErrors++;
-        continue;
-      }
 
-      try
-      {
-        SetTransform(transformName, matrix, true);
-      }
-      catch (Platform::Exception^ e)
-      {
-        numberOfErrors++;
-        continue;
-      }
-
-      bool isPersistent = true;
-      if (nestedElement->Attributes->GetNamedItem(L"Persistent") != nullptr)
-      {
-        Platform::String^ persistentAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Persistent")->NodeValue);
-        if (!persistentAttribute->IsEmpty())   // if it exists, then it is non-persistent
-        {
-          std::wstring persistentString(persistentAttribute->Data());
-          std::transform(persistentString.begin(), persistentString.end(), persistentString.begin(), towlower);
-          if (persistentString == L"false")
-          {
-            isPersistent = false;
-          }
-        }
         try
         {
-          SetTransformPersistent(transformName, isPersistent);
+          SetTransform(transformName, matrix, true);
+          SetTransformPersistent(transformName, true);
+
+          if (nestedElement->Attributes->GetNamedItem(L"Error") != nullptr)
+          {
+            Platform::String^ errorAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Error")->NodeValue);
+            if (!errorAttribute->IsEmpty())
+            {
+              SetTransformError(transformName, stod(std::wstring(errorAttribute->Data())));
+            }
+          }
+
+          if (nestedElement->Attributes->GetNamedItem(L"Date") != nullptr)
+          {
+            Platform::String^ dateAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Date")->NodeValue);
+            if (!dateAttribute->IsEmpty())
+            {
+              SetTransformDate(transformName, dateAttribute);
+            }
+          }
         }
-        catch (Platform::Exception^ e)
+        catch (...)
         {
           numberOfErrors++;
           continue;
-        }
-      }
-
-      bool isValid = true;
-      if (nestedElement->Attributes->GetNamedItem(L"Valid") != nullptr)
-      {
-        Platform::String^ validAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Valid")->NodeValue);
-        if (!validAttribute->IsEmpty())   // if it exists, then it is non-persistent
-        {
-          std::wstring validString(validAttribute->Data());
-          std::transform(validString.begin(), validString.end(), validString.begin(), towlower);
-          if (validString == L"false")
-          {
-            isValid = false;
-          }
-        }
-        try
-        {
-          SetTransformValid(transformName, isValid);
-        }
-        catch (Platform::Exception^ e)
-        {
-          numberOfErrors++;
-          continue;
-        }
-      }
-
-      if (nestedElement->Attributes->GetNamedItem(L"Error") != nullptr)
-      {
-        Platform::String^ errorAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Error")->NodeValue);
-        if (!errorAttribute->IsEmpty())
-        {
-          try
-          {
-            SetTransformError(transformName, stod(std::wstring(errorAttribute->Data())));
-          }
-          catch (Platform::Exception^ e)
-          {
-            numberOfErrors++;
-            continue;
-          }
-        }
-      }
-
-      if (nestedElement->Attributes->GetNamedItem(L"Date") != nullptr)
-      {
-        Platform::String^ dateAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Date")->NodeValue);
-        if (!dateAttribute->IsEmpty())
-        {
-          try
-          {
-            SetTransformDate(transformName, dateAttribute);
-          }
-          catch (Platform::Exception^ e)
-          {
-            numberOfErrors++;
-            continue;
-          }
         }
       }
     }
