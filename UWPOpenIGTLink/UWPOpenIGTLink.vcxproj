@@ -119,6 +119,14 @@
     <None Include="Content\IGTClient.txx" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenIGTLink-bin\Source\igtlutil\igtlutil.vcxproj">
+      <Project>{3f41e8dc-61d4-3037-92e6-f20d2f356c6d}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\OpenIGTLink-bin\Source\OpenIGTLink.vcxproj">
+      <Project>{93cf8484-732b-35ac-bb0a-120252b10222}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\boost.1.64.0.0\build\native\boost.targets" Condition="Exists('..\packages\boost.1.64.0.0\build\native\boost.targets')" />
