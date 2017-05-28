@@ -45,13 +45,16 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <robuffer.h>
 
 using namespace Concurrency;
-using namespace Windows::Foundation;
-using namespace Windows::Foundation::Numerics;
 using namespace Platform::Collections;
+using namespace Windows::Data::Xml::Dom;
+using namespace Windows::Foundation::Numerics;
+using namespace Windows::Foundation;
+using namespace Windows::Networking::Sockets;
+using namespace Windows::Security::Cryptography;
+using namespace Windows::Storage::Streams;
 using namespace Windows::Storage::Streams;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Media;
-using namespace Windows::Data::Xml::Dom;
 
 namespace UWPOpenIGTLink
 {
@@ -66,6 +69,11 @@ namespace UWPOpenIGTLink
   IGTClient::IGTClient()
   {
     m_igtlMessageFactory->AddMessageType("TRACKEDFRAME", (igtl::MessageFactory::PointerToMessageBaseNew)&igtl::TrackedFrameMessage::New);
+
+    m_clientSocket->Control->KeepAlive = true;
+    m_clientSocket->Control->NoDelay = false; // true => accumulate data until enough has been queued to occupy a full TCP/IP packet
+    m_sendStream = ref new DataWriter(m_clientSocket->OutputStream);
+    m_readStream = ref new DataReader(m_clientSocket->InputStream);
   }
 
   //----------------------------------------------------------------------------
@@ -77,71 +85,75 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   IAsyncOperation<bool>^ IGTClient::ConnectAsync(double timeoutSec)
   {
-    if (m_clientSocket->GetConnected())
+    if (m_connected)
     {
-      return create_async([]() {return true; });
+      return create_async([]() {return true;});
     }
 
     m_receiverPumpTokenSource = cancellation_token_source();
 
-    return create_async([this, timeoutSec]() -> bool
+    // Connect to the server (by default, the listener we created in the previous step).
+    return create_async([this, timeoutSec]() -> task<bool>
     {
-      const int retryDelaySec = 1.0;
-      int errorCode = 1;
-      auto start = std::chrono::high_resolution_clock::now();
-      while (errorCode != 0)
-      {
-        std::wstring wideStr(ServerHost->Begin());
-        std::string str(wideStr.begin(), wideStr.end());
-        errorCode = m_clientSocket->ConnectToServer(str.c_str(), ServerPort);
-        if (errorCode == 0)
-        {
-          break;
-        }
-        std::chrono::duration<double, std::milli> timeDiff = std::chrono::high_resolution_clock::now() - start;
-        if (timeDiff.count() > timeoutSec * 1000)
-        {
-          // time is up
-          break;
-        }
-        std::this_thread::sleep_for(std::chrono::seconds(retryDelaySec));
-      }
-
-      if (errorCode != 0)
-      {
-        return false;
-      }
-
-      m_clientSocket->SetTimeout(CLIENT_SOCKET_TIMEOUT_MSEC);
-      m_clientSocket->SetReceiveBlocking(true);
-
-      // We're connected, start the data receiver thread
-      create_task([this]()
-      {
-        DataReceiverPump();
-      }).then([this](task<void> previousTask)
+      return create_task(m_clientSocket->ConnectAsync(m_hostName, m_serverPort)).then([this](task<void> previousTask)
       {
         try
         {
-          previousTask.wait();
+          // Try getting all exceptions from the continuation chain above this point.
+          previousTask.get();
+          m_connected = true;
         }
-        catch (const std::exception& e)
+        catch (Platform::Exception^ exception)
         {
-          OutputDebugStringA((std::string("DataReceiverPump crash: ") + e.what()).c_str());
+          return;
         }
-      });
+      }).then([this, timeoutSec]() -> bool
+      {
+        if (!m_connected)
+        {
+          return false;
+        }
 
-      return true;
+        // We're connected, start the data receiver thread
+        create_task([this]()
+        {
+          DataReceiverPump();
+        }).then([this](task<void> previousTask)
+        {
+          try
+          {
+            previousTask.wait();
+
+            std::lock_guard<std::mutex> guard(m_socketMutex);
+            m_sendStream = nullptr;
+            m_readStream = nullptr;
+            delete m_clientSocket;
+
+            // Recreate blank socket
+            m_clientSocket = ref new StreamSocket();
+            m_clientSocket->Control->KeepAlive = true;
+            m_clientSocket->Control->NoDelay = false;
+            m_sendStream = ref new DataWriter(m_clientSocket->OutputStream);
+            m_readStream = ref new DataReader(m_clientSocket->InputStream);
+
+            m_connected = false;
+          }
+          catch (const std::exception& e)
+          {
+            OutputDebugStringA((std::string("DataReceiverPump crash: ") + e.what()).c_str());
+          }
+        });
+
+        return true;
+      });
     });
   }
 
   //----------------------------------------------------------------------------
   void IGTClient::Disconnect()
   {
+    m_clientSocket->CancelIOAsync();
     m_receiverPumpTokenSource.cancel();
-
-    std::lock_guard<std::mutex> guard(m_socketMutex);
-    m_clientSocket->CloseSocket();
   }
 
   //----------------------------------------------------------------------------
@@ -279,24 +291,33 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool IGTClient::SendMessage(igtl::MessageBase::Pointer packedMessage)
+  task<bool> IGTClient::SendMessageAsync(igtl::MessageBase::Pointer packedMessage)
   {
     std::lock_guard<std::mutex> guard(m_socketMutex);
-    int success = m_clientSocket->Send(packedMessage->GetBufferPointer(), packedMessage->GetBufferSize());
-
-    if (!success)
+    m_sendStream->WriteBytes(Platform::ArrayReference<byte>((byte*)packedMessage->GetBufferPointer(), packedMessage->GetBufferSize()));
+    return create_task(m_sendStream->StoreAsync()).then([size = packedMessage->GetBufferSize()](task<uint32> writeTask)
     {
-      OutputDebugStringA("OpenIGTLink client couldn't send message to server.\n");
-      return false;
-    }
-    return true;
+      uint32 bytesWritten;
+      try
+      {
+        bytesWritten = writeTask.get();
+        return bytesWritten == size;
+      }
+      catch (Platform::Exception^ exception)
+      {
+        return false;
+      }
+    });
   }
 
   //----------------------------------------------------------------------------
-  bool IGTClient::SendMessage(MessageBasePointerPtr messageBasePointerPtr)
+  IAsyncOperation<bool>^ IGTClient::SendMessageAsync(MessageBasePointerPtr messageBasePointerPtr)
   {
-    igtl::MessageBase::Pointer* messageBasePointer = (igtl::MessageBase::Pointer*)(messageBasePointerPtr);
-    return SendMessage(*messageBasePointer);
+    return create_async([this, messageBasePointerPtr]()
+    {
+      igtl::MessageBase::Pointer* messageBasePointer = (igtl::MessageBase::Pointer*)(messageBasePointerPtr);
+      return SendMessageAsync(*messageBasePointer);
+    });
   }
 
   //----------------------------------------------------------------------------
@@ -316,18 +337,31 @@ namespace UWPOpenIGTLink
       int numOfBytesReceived = 0;
       {
         std::lock_guard<std::mutex> guard(m_socketMutex);
-        if (!m_clientSocket->GetConnected())
+        if (!m_connected)
         {
           // We've become disconnected while waiting for the socket, we're done here!
           return;
         }
-        numOfBytesReceived = m_clientSocket->Receive(headerMsg->GetBufferPointer(), headerMsg->GetBufferSize());
-      }
-      if (numOfBytesReceived == 0 || numOfBytesReceived != headerMsg->GetBufferSize())
-      {
-        // Failed to receive data, maybe the socket is disconnected
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        continue;
+        auto readTask = create_task(m_readStream->LoadAsync(headerMsg->GetBufferSize()));
+        int bytesRead(-1);
+        try
+        {
+          bytesRead = readTask.get();
+          if (bytesRead != headerMsg->GetBufferSize())
+          {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
+          }
+
+          auto buffer = m_readStream->ReadBuffer(headerMsg->GetBufferSize());
+          auto header = GetDataFromIBuffer<byte>(buffer);
+          memcpy(headerMsg->GetBufferPointer(), header, headerMsg->GetBufferSize());
+        }
+        catch (...)
+        {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          continue;
+        }
       }
 
       int c = headerMsg->Unpack(1);
@@ -359,12 +393,32 @@ namespace UWPOpenIGTLink
 
       {
         std::lock_guard<std::mutex> guard(m_socketMutex);
-        if (!m_clientSocket->GetConnected())
+        if (!m_connected)
         {
           // We've become disconnected while waiting for the socket, we're done here!
           return;
         }
-        m_clientSocket->Receive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+        // Read the body
+        auto readTask = create_task(m_readStream->LoadAsync(bodyMsg->GetBufferBodySize()));
+        int bytesRead(-1);
+        try
+        {
+          bytesRead = readTask.get();
+          if (bytesRead != bodyMsg->GetBufferBodySize())
+          {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
+          }
+
+          auto buffer = m_readStream->ReadBuffer(bodyMsg->GetBufferBodySize());
+          auto header = GetDataFromIBuffer<byte>(buffer);
+          memcpy(bodyMsg->GetBufferBodyPointer(), header, bodyMsg->GetBufferBodySize());
+        }
+        catch (...)
+        {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          continue;
+        }
       }
 
       c = bodyMsg->Unpack(1);
@@ -407,11 +461,6 @@ namespace UWPOpenIGTLink
         std::lock_guard<std::mutex> guard(m_tdataMessagesMutex);
         m_tdataMessages.push_back(tdataMessage);
       }
-      else
-      {
-        std::lock_guard<std::mutex> guard(m_socketMutex);
-        m_clientSocket->Skip(headerMsg->GetBodySizeToRead(), 0);
-      }
 
       PruneIGTMessages();
       PruneUWPTypes();
@@ -424,7 +473,26 @@ namespace UWPOpenIGTLink
   int IGTClient::SocketReceive(void* data, int length)
   {
     std::lock_guard<std::mutex> guard(m_socketMutex);
-    return m_clientSocket->Receive(data, length);
+    auto readTask = create_task(m_readStream->LoadAsync(length));
+    int bytesRead(-1);
+    try
+    {
+      bytesRead = readTask.get();
+      if (bytesRead != length)
+      {
+        return length;
+      }
+
+      auto buffer = m_readStream->ReadBuffer(length);
+      auto content = GetDataFromIBuffer<byte>(buffer);
+      memcpy(data, content, length);
+
+      return length;
+    }
+    catch (...)
+    {
+      return -1;
+    }
   }
 
   //----------------------------------------------------------------------------
@@ -518,27 +586,27 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  int IGTClient::ServerPort::get()
+  Platform::String^ IGTClient::ServerPort::get()
   {
     return m_serverPort;
   }
 
   //----------------------------------------------------------------------------
-  void IGTClient::ServerPort::set(int arg)
+  void IGTClient::ServerPort::set(Platform::String^ arg)
   {
     m_serverPort = arg;
   }
 
   //----------------------------------------------------------------------------
-  Platform::String^ IGTClient::ServerHost::get()
+  Windows::Networking::HostName^ IGTClient::ServerHost::get()
   {
-    return m_serverHost;
+    return m_hostName;
   }
 
   //----------------------------------------------------------------------------
-  void IGTClient::ServerHost::set(Platform::String^ arg)
+  void IGTClient::ServerHost::set(Windows::Networking::HostName^ arg)
   {
-    m_serverHost = arg;
+    m_hostName = arg;
   }
 
   //----------------------------------------------------------------------------
@@ -556,7 +624,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool IGTClient::Connected::get()
   {
-    return m_clientSocket->GetConnected();
+    return m_connected;
   }
 
   //----------------------------------------------------------------------------

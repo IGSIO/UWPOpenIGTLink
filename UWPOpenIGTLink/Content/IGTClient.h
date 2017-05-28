@@ -58,15 +58,15 @@ namespace UWPOpenIGTLink
     IGTClient();
     virtual ~IGTClient();
 
-    property int ServerPort {int get(); void set(int); }
-    property Platform::String^ ServerHost { Platform::String ^ get(); void set(Platform::String^); }
+    property Platform::String^ ServerPort {Platform::String ^ get(); void set(Platform::String^); }
+    property Windows::Networking::HostName^ ServerHost { Windows::Networking::HostName ^ get(); void set(Windows::Networking::HostName^); }
     property int ServerIGTLVersion { int get(); void set(int); }
     property bool Connected { bool get(); }
     property float TrackerUnitScale { float get(); void set(float); }
     property TransformName^ EmbeddedImageTransformName { TransformName ^ get(); void set(TransformName^); }
 
     /// If timeoutSec > 0 then connection will be attempted multiple times until successfully connected or the timeout elapse
-    IAsyncOperation<bool>^ ConnectAsync(double timeoutSec);
+    Windows::Foundation::IAsyncOperation<bool>^ ConnectAsync(double timeoutSec);
 
     /// Disconnect from the connected server
     void Disconnect();
@@ -78,11 +78,11 @@ namespace UWPOpenIGTLink
     TransformListABI^ GetTransformFrame(double lastKnownTimestamp);
 
     /// Send a message to the connected server
-    bool SendMessage(MessageBasePointerPtr messageBasePointerAsIntPtr);
+    Windows::Foundation::IAsyncOperation<bool>^ SendMessageAsync(MessageBasePointerPtr messageBasePointerAsIntPtr);
 
   internal:
     /// Send a packed message to the connected server
-    bool SendMessage(igtl::MessageBase::Pointer packedMessage);
+    Concurrency::task<bool> SendMessageAsync(igtl::MessageBase::Pointer packedMessage);
 
     /// Threaded function to receive data from the connected server
     void DataReceiverPump();
@@ -111,7 +111,11 @@ namespace UWPOpenIGTLink
 
     /// Socket that is connected to the server
     std::mutex                                        m_socketMutex;
-    igtl::ClientSocket::Pointer                       m_clientSocket = igtl::ClientSocket::New();
+    Windows::Networking::Sockets::StreamSocket^       m_clientSocket = ref new Windows::Networking::Sockets::StreamSocket();
+    Windows::Storage::Streams::DataWriter^            m_sendStream = nullptr;
+    Windows::Storage::Streams::DataReader^            m_readStream = nullptr;
+    Windows::Networking::HostName^                    m_hostName = nullptr;
+    std::atomic_bool                                  m_connected = false;
 
     /// Lists of messages received through the socket, transformed to igtl messages
     mutable std::mutex                                m_trackedFrameMessagesMutex;
@@ -131,9 +135,8 @@ namespace UWPOpenIGTLink
 
     /// Server information
     float                                             m_trackerUnitScale = 0.001f; // Scales translation component of incoming transformations by the given factor
-    Platform::String^                                 m_serverHost = L"127.0.0.1";
     TransformName^                                    m_embeddedImageTransformName = nullptr;
-    int                                               m_serverPort = 18944;
+    Platform::String^                                 m_serverPort = L"18944";
     int                                               m_serverIGTLVersion = IGTL_HEADER_VERSION_2;
 
     static const int                                  CLIENT_SOCKET_TIMEOUT_MSEC;

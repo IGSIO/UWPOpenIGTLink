@@ -40,6 +40,7 @@ using namespace UWPOpenIGTLink;
 using namespace Windows::Foundation::Collections;
 using namespace Windows::Foundation::Numerics;
 using namespace Windows::Foundation;
+using namespace Windows::Networking;
 using namespace Windows::Storage::Streams;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Media::Imaging;
@@ -81,7 +82,7 @@ namespace UWPOpenIGTLinkUI
   {
     InitializeComponent();
 
-    m_IGTClient->ServerHost = L"192.168.0.103";
+    m_IGTClient->ServerHost = ref new HostName(L"192.168.0.103");
     ServerHostnameTextBox->Text = L"192.168.0.103";
   }
 
@@ -128,9 +129,9 @@ namespace UWPOpenIGTLinkUI
   void IGTLConnectorPage::ServerPortTextBox_TextChanged(Platform::Object^ sender, TextChangedEventArgs^ e)
   {
     TextBox^ textBox = dynamic_cast<TextBox^>(sender);
-    if (_wtoi(textBox->Text->Data()) != m_IGTClient->ServerPort)
+    if (textBox->Text != m_IGTClient->ServerPort)
     {
-      m_IGTClient->ServerPort = _wtoi(textBox->Text->Data());
+      m_IGTClient->ServerPort = textBox->Text;
     }
   }
 
@@ -138,9 +139,9 @@ namespace UWPOpenIGTLinkUI
   void IGTLConnectorPage::ServerHostnameTextBox_TextChanged(Platform::Object^ sender, TextChangedEventArgs^ e)
   {
     TextBox^ textBox = dynamic_cast<TextBox^>(sender);
-    if (textBox->Text != m_IGTClient->ServerHost)
+    if (textBox->Text != m_IGTClient->ServerHost->DisplayName)
     {
-      m_IGTClient->ServerHost = textBox->Text;
+      m_IGTClient->ServerHost = ref new HostName(textBox->Text);
     }
   }
 
@@ -176,7 +177,7 @@ namespace UWPOpenIGTLinkUI
     ConnectButton->IsEnabled = true;
     if (result)
     {
-      StatusBarTextBlock->Text = L"Success! Connected to " + m_IGTClient->ServerHost + L":" + m_IGTClient->ServerPort.ToString();
+      StatusBarTextBlock->Text = L"Success! Connected to " + m_IGTClient->ServerHost + L":" + m_IGTClient->ServerPort;
       StatusIcon->Source = ref new BitmapImage(ref new Uri("ms-appx:///Assets/glossy-green-button-2400px.png"));
       ConnectButton->Content = L"Disconnect";
 

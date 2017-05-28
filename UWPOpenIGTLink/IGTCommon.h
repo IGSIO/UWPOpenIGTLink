@@ -207,6 +207,42 @@ namespace UWPOpenIGTLink
     return output;
   }
 
+  //------------------------------------------------------------------------
+  template <typename t = byte>
+  t * GetDataFromIBuffer(Windows::Storage::Streams::IBuffer^ container)
+  {
+    if (container == nullptr)
+    {
+      return nullptr;
+    }
+
+    unsigned int bufferLength = container->Length;
+
+    if (!(bufferLength > 0))
+    {
+      return nullptr;
+    }
+
+    HRESULT hr = S_OK;
+
+    Microsoft::WRL::ComPtr<IUnknown> pUnknown = reinterpret_cast<IUnknown*>(container);
+    Microsoft::WRL::ComPtr<Windows::Storage::Streams::IBufferByteAccess> spByteAccess;
+    hr = pUnknown.As(&spByteAccess);
+    if (FAILED(hr))
+    {
+      return nullptr;
+    }
+
+    byte* pRawData = nullptr;
+    hr = spByteAccess->Buffer(&pRawData);
+    if (FAILED(hr))
+    {
+      return nullptr;
+    }
+
+    return reinterpret_cast<t*>(pRawData);
+  }
+
   //--------------------------------------------------------
   class ItemNotAvailableAnymoreException : public std::exception
   {
