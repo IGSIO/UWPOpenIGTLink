@@ -398,7 +398,13 @@ namespace UWPOpenIGTLink
           // We've become disconnected while waiting for the socket, we're done here!
           return;
         }
-        // Read the body
+        if (bodyMsg->GetBufferBodySize() == 0)
+        {
+          // Empty message, can be possible (for example, if all tools are out of view...)
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          continue;
+        }
+
         auto readTask = create_task(m_readStream->LoadAsync(bodyMsg->GetBufferBodySize()));
         int bytesRead(-1);
         try
