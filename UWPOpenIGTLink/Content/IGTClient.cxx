@@ -273,9 +273,6 @@ namespace UWPOpenIGTLink
       // No new messages since requested timestamp
       if (iter != m_tdata.end())
       {
-        std::stringstream ss;
-        ss << "Found existing message: " << lastKnownTimestamp << " > " << ts->GetTimeStamp() << std::endl;
-        OutputDebugStringA(ss.str().c_str());
         return *iter;
       }
       return nullptr;
