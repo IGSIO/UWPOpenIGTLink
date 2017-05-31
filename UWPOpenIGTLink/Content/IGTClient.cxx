@@ -390,7 +390,6 @@ namespace UWPOpenIGTLink
 
     while (!token.is_canceled())
     {
-      auto start = std::chrono::system_clock::now();
       headerMsg->InitBuffer();
 
       // Receive generic header from the socket
@@ -424,27 +423,17 @@ namespace UWPOpenIGTLink
         continue;
       }
 
-      if (bodyMsg.IsNull() || bodyMsg->GetBufferBodySize() == 0)
+      if (bodyMsg.IsNull())
       {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        auto end = std::chrono::system_clock::now();
-
-        std::chrono::duration<double> elapsed_seconds = end - start;
-        std::stringstream ss;
-        ss << (bodyMsg.IsNull() ? "true" : "false") << ". bodysize: " << bodyMsg->GetBufferBodySize() << ". elapsed seconds: " << elapsed_seconds.count() << std::endl;
-        OutputDebugStringA(ss.str().c_str());
-        continue;
-      }
-
-      if (SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize()) != bodyMsg->GetBufferBodySize())
-      {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        LOG_TRACE("Unable to create message of type: " << headerMsg->GetMessageType());
         continue;
       }
 
       // Accept all messages but status messages, they are used as a keep alive mechanism
       if (typeid(*bodyMsg) == typeid(igtl::TrackedFrameMessage))
       {
+        SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+
         c = bodyMsg->Unpack(1);
         if (!(c & igtl::MessageHeader::UNPACK_BODY))
         {
@@ -459,10 +448,16 @@ namespace UWPOpenIGTLink
 
         // Save reply
         std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-        m_receiveMessages.push_back(trackedFrameMessage);
+        m_receiveMessages.push_back(bodyMsg);
       }
       else if (typeid(*bodyMsg) == typeid(igtl::TrackingDataMessage))
       {
+        if (bodyMsg->GetBufferBodySize() == 0)
+        {
+          continue;
+        }
+        SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+
         c = bodyMsg->Unpack(1);
         if (!(c & igtl::MessageHeader::UNPACK_BODY))
         {
@@ -487,10 +482,12 @@ namespace UWPOpenIGTLink
 
         // Save reply
         std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-        m_receiveMessages.push_back(tdataMessage);
+        m_receiveMessages.push_back(bodyMsg);
       }
       else if (typeid(*bodyMsg) == typeid(igtl::TransformMessage))
       {
+        SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+
         c = bodyMsg->Unpack(1);
         if (!(c & igtl::MessageHeader::UNPACK_BODY))
         {
@@ -508,17 +505,17 @@ namespace UWPOpenIGTLink
 
         // Save reply
         std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-        m_receiveMessages.push_back(transformMessage);
+        m_receiveMessages.push_back(bodyMsg);
+      }
+      else
+      {
+        // if the incoming message is not a reply to a command, we discard it and continue
+        std::lock_guard<std::mutex> socketGuard(m_socketMutex);
+        LOG_TRACE("Received message: " << bodyMsg->GetMessageType() << " (not processed)");
+        SocketReceive(nullptr, bodyMsg->GetBodySizeToRead());
       }
 
       PruneIGTMessages();
-
-      auto end = std::chrono::system_clock::now();
-
-      std::chrono::duration<double> elapsed_seconds = end - start;
-      std::stringstream ss;
-      ss << "elapsed seconds: " << elapsed_seconds.count() << std::endl;
-      OutputDebugStringA(ss.str().c_str());
     }
 
     return;
@@ -623,8 +620,11 @@ namespace UWPOpenIGTLink
       }
 
       auto buffer = m_readStream->ReadBuffer(size);
-      auto header = GetDataFromIBuffer<byte>(buffer);
-      memcpy(dest, header, size);
+      if (dest != nullptr)
+      {
+        auto header = GetDataFromIBuffer<byte>(buffer);
+        memcpy(dest, header, size);
+      }
     }
     catch (...)
     {
