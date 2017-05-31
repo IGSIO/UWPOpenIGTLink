@@ -92,7 +92,6 @@ namespace UWPOpenIGTLink
     void DataReceiverPump();
 
   protected private:
-    void PruneUWPTypes();
     void PruneIGTMessages();
 
     double GetLatestTrackedFrameTimestamp() const;
@@ -131,14 +130,6 @@ namespace UWPOpenIGTLink
     /// List of messages to be sent to the IGT server
     mutable std::mutex                                m_sendMessagesMutex;
     std::vector<igtl::MessageBase::Pointer>           m_sendMessages;
-
-    /// List of messages converted to UWP run time
-    std::mutex                                        m_framesMutex;
-    std::deque<TrackedFrame^>                         m_trackedFrames;
-    std::mutex                                        m_tdataMutex;
-    std::deque<TransformListABI^>                     m_tdata;
-    std::mutex                                        m_transformsMutex;
-    std::map<std::wstring, std::deque<Transform^>>    m_transforms;
 
     /// Server information
     float                                             m_trackerUnitScale = 0.001f; // Scales translation component of incoming transformations by the given factor

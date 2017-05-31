@@ -182,26 +182,15 @@ namespace UWPOpenIGTLink
       return nullptr;
     }
 
-    std::lock_guard<std::mutex> guard(m_framesMutex);
     auto ts = igtl::TimeStamp::New();
     trackedFrameMsg->GetTimeStamp(ts);
 
     if (ts->GetTimeStamp() <= lastKnownTimestamp)
     {
-      auto iter = std::find_if(m_trackedFrames.begin(), m_trackedFrames.end(), [this, lastKnownTimestamp](TrackedFrame ^ frame)
-      {
-        return fabs(frame->Timestamp - lastKnownTimestamp) < NEGLIGIBLE_DIFFERENCE;
-      });
-      // No new messages since requested timestamp
-      if (iter != m_trackedFrames.end())
-      {
-        return *iter;
-      }
       return nullptr;
     }
 
     auto frame = ref new TrackedFrame();
-    m_trackedFrames.push_back(frame);
 
     // Fields
     for (auto& pair : trackedFrameMsg->GetMetaData())
@@ -261,26 +250,10 @@ namespace UWPOpenIGTLink
 
     if (ts->GetTimeStamp() <= lastKnownTimestamp)
     {
-      std::lock_guard<std::mutex> guard(m_tdataMutex);
-      auto iter = std::find_if(m_tdata.begin(), m_tdata.end(), [this, lastKnownTimestamp](TransformListABI ^ frame)
-      {
-        if (frame->Size == 0)
-        {
-          return false;
-        }
-        return fabs(frame->GetAt(0)->Timestamp - lastKnownTimestamp) < NEGLIGIBLE_DIFFERENCE;
-      });
-      // No new messages since requested timestamp
-      if (iter != m_tdata.end())
-      {
-        return *iter;
-      }
       return nullptr;
     }
 
-    std::lock_guard<std::mutex> guard(m_tdataMutex);
     auto frame = ref new Vector<Transform^>();
-    m_tdata.push_back(frame);
 
     auto element = igtl::TrackingDataElement::New();
     igtl::Matrix4x4 mat;
@@ -348,23 +321,10 @@ namespace UWPOpenIGTLink
 
     if (ts->GetTimeStamp() <= lastKnownTimestamp)
     {
-      std::lock_guard<std::mutex> guard(m_transformsMutex);
-      auto iter = std::find_if(m_transforms[wname].begin(), m_transforms[wname].end(), [this, lastKnownTimestamp](Transform ^ transform)
-      {
-        return fabs(transform->Timestamp - lastKnownTimestamp) < NEGLIGIBLE_DIFFERENCE;
-      });
-
-      // No new messages since requested timestamp
-      if (iter != m_transforms[wname].end())
-      {
-        return *iter;
-      }
       return nullptr;
     }
 
-    std::lock_guard<std::mutex> guard(m_transformsMutex);
     auto transform = ref new Transform();
-    m_transforms[wname].push_back(transform);
 
     TransformName^ transformName(nullptr);
     try
@@ -467,6 +427,12 @@ namespace UWPOpenIGTLink
       if (bodyMsg.IsNull() || bodyMsg->GetBufferBodySize() == 0)
       {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        auto end = std::chrono::system_clock::now();
+
+        std::chrono::duration<double> elapsed_seconds = end - start;
+        std::stringstream ss;
+        ss << (bodyMsg.IsNull() ? "true" : "false") << ". bodysize: " << bodyMsg->GetBufferBodySize() << ". elapsed seconds: " << elapsed_seconds.count() << std::endl;
+        OutputDebugStringA(ss.str().c_str());
         continue;
       }
 
@@ -546,7 +512,6 @@ namespace UWPOpenIGTLink
       }
 
       PruneIGTMessages();
-      PruneUWPTypes();
 
       auto end = std::chrono::system_clock::now();
 
@@ -560,66 +525,10 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void IGTClient::PruneUWPTypes()
-  {
-    {
-      std::lock_guard<std::mutex> guard(m_framesMutex);
-      auto oldestTimestamp = GetOldestTrackedFrameTimestamp();
-      for (auto iter = begin(m_trackedFrames); iter != end(m_trackedFrames);)
-      {
-        if ((*iter)->Timestamp < oldestTimestamp)
-        {
-          iter = m_trackedFrames.erase(iter);
-        }
-        else
-        {
-          // Messages are stored in increasing timestamp, once we reach one that is newer than limit, we're done
-          break;
-        }
-      }
-    }
-
-    {
-      std::lock_guard<std::mutex> guard(m_tdataMutex);
-      auto oldestTimestamp = GetOldestTDataTimestamp();
-      for (auto iter = begin(m_tdata); iter != end(m_tdata);)
-      {
-        if ((*iter)->Size == 0 || (*iter)->GetAt(0)->Timestamp < oldestTimestamp)
-        {
-          iter = m_tdata.erase(iter);
-        }
-        else
-        {
-          break;
-        }
-      }
-    }
-
-    {
-      std::lock_guard<std::mutex> guard(m_transformsMutex);
-      for (auto iter = begin(m_transforms); iter != end(m_transforms);)
-      {
-        auto oldestTimestamp = GetOldestTransformTimestamp(iter->first);
-        for (auto dequeIter = begin(iter->second); dequeIter != end(iter->second); ++dequeIter)
-        {
-          if ((*dequeIter)->Timestamp < oldestTimestamp)
-          {
-            dequeIter = iter->second.erase(dequeIter);
-          }
-          else
-          {
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  //----------------------------------------------------------------------------
   void IGTClient::PruneIGTMessages()
   {
     std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-    if (m_receiveMessages.size() > MESSAGE_LIST_MAX_SIZE)
+    if (m_receiveMessages.size() > MESSAGE_LIST_MAX_SIZE + 50)
     {
       // erase the front N results
       uint32 toErase = m_receiveMessages.size() - MESSAGE_LIST_MAX_SIZE;
