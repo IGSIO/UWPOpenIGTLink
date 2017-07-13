@@ -91,6 +91,8 @@ namespace UWPOpenIGTLink
     TransformName(const std::wstring& transformName);
     void SetTransformName(const std::wstring& aTransformName);
 
+    std::wstring GetTransformNameInternal();
+
     std::wstring ToInternal() const;
     std::wstring FromInternal() const;
 

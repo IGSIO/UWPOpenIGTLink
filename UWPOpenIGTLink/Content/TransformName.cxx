@@ -166,6 +166,12 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  std::wstring TransformName::GetTransformNameInternal()
+  {
+    return m_From + L"To" + m_To;
+  }
+
+  //----------------------------------------------------------------------------
   std::wstring TransformName::ToInternal() const
   {
     return m_To;

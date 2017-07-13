@@ -24,27 +24,39 @@ OTHER DEALINGS IN THE SOFTWARE.
 namespace UWPOpenIGTLink
 {
   //----------------------------------------------------------------------------
-  template<typename MessageTypePointer> double IGTClient::GetLatestTimestamp(const std::deque<MessageTypePointer>& messages) const
+  template<typename MessageTypePointer> double IGTClient::GetLatestTimestamp() const
   {
     // Retrieve the next available tracked frame reply
-    if (messages.size() > 0)
+    if (m_receiveMessages.size() > 0)
     {
       igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-      (*messages.rbegin())->GetTimeStamp(ts);
-      return ts->GetTimeStamp();
+      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); riter++)
+      {
+        if (dynamic_cast<MessageTypePointer*>(riter->GetPointer()) != nullptr)
+        {
+          (*riter)->GetTimeStamp(ts);
+          return ts->GetTimeStamp();
+        }
+      }
     }
     return -1.0;
   }
 
   //----------------------------------------------------------------------------
-  template<typename MessageTypePointer> double IGTClient::GetOldestTimestamp(const std::deque<MessageTypePointer>& messages) const
+  template<typename MessageTypePointer> double IGTClient::GetOldestTimestamp() const
   {
     // Retrieve the next available tracked frame reply
-    if (messages.size() > 0)
+    if (m_receiveMessages.size() > 0)
     {
       igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-      (*messages.begin())->GetTimeStamp(ts);
-      return ts->GetTimeStamp();
+      for (auto iter = m_receiveMessages.begin(); iter != m_receiveMessages.end(); iter++)
+      {
+        if (dynamic_cast<MessageTypePointer*>(iter->GetPointer()) != nullptr)
+        {
+          (*iter)->GetTimeStamp(ts);
+          return ts->GetTimeStamp();
+        }
+      }
     }
     return -1.0;
   }
