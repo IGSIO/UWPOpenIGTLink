@@ -353,6 +353,13 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   task<bool> IGTClient::SendMessageAsync(igtl::MessageBase::Pointer packedMessage)
   {
+    if (packedMessage->GetMessageType() == "COMMAND")
+    {
+      // Keep track of requested message
+      // TODO : implement OpenIGTLink v2 query mechanism or PLUS command mechanism?
+      packedMessage->SetDeviceName()
+    }
+
     std::lock_guard<std::mutex> guard(m_socketMutex);
     m_sendStream->WriteBytes(Platform::ArrayReference<byte>((byte*)packedMessage->GetBufferPointer(), packedMessage->GetBufferSize()));
     return create_task(m_sendStream->StoreAsync()).then([size = packedMessage->GetBufferSize()](task<uint32> writeTask)

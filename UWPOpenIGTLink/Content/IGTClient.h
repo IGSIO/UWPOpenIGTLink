@@ -131,6 +131,10 @@ namespace UWPOpenIGTLink
     mutable std::mutex                                m_sendMessagesMutex;
     std::vector<igtl::MessageBase::Pointer>           m_sendMessages;
 
+    // Handle the OpenIGTLink query mechanism
+    uint64                                            m_nextQueryId = 1; // No reason not to use 0, reserving it just in case
+    std::vector<uint64>                               m_outstandingQueries;
+
     /// Server information
     float                                             m_trackerUnitScale = 0.001f; // Scales translation component of incoming transformations by the given factor
     TransformName^                                    m_embeddedImageTransformName = nullptr;
