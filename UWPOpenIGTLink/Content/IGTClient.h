@@ -63,6 +63,8 @@ namespace UWPOpenIGTLink
   ///
   public ref class IGTClient sealed
   {
+    typedef std::deque<igtl::MessageBase::Pointer> MessageList;
+
   public:
     IGTClient();
     virtual ~IGTClient();
@@ -145,11 +147,11 @@ namespace UWPOpenIGTLink
 
     /// Lists of messages received through the socket, transformed to igtl messages
     mutable std::mutex                                m_receiveMessagesMutex;
-    std::deque<igtl::MessageBase::Pointer>            m_receiveMessages;
+    MessageList                                       m_receiveMessages;
 
     /// List of messages to be sent to the IGT server
     mutable std::mutex                                m_sendMessagesMutex;
-    std::vector<igtl::MessageBase::Pointer>           m_sendMessages;
+    MessageList                                       m_sendMessages;
 
     // Handle the OpenIGTLink query mechanism
     uint32                                            m_nextQueryId = 1; // No reason not to use 0, reserving it just in case
@@ -163,7 +165,7 @@ namespace UWPOpenIGTLink
     int                                               m_serverIGTLVersion = IGTL_HEADER_VERSION_2;
 
     static const int                                  CLIENT_SOCKET_TIMEOUT_MSEC;
-    static const uint32                               MESSAGE_LIST_MAX_SIZE;
+    static const MessageList::size_type               MESSAGE_LIST_MAX_SIZE;
 
   private:
     IGTClient(IGTClient^) {}

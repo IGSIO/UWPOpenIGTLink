@@ -61,7 +61,7 @@ namespace igtl
     msg->InitBuffer();
     msg->CopyHeader(this);
     msg->AllocateBuffer(bodySize);
-    if (bodySize > 0)
+    if(bodySize > 0)
     {
       msg->CopyBody(this);
     }
@@ -96,7 +96,7 @@ namespace igtl
     m_messageHeader.m_EmbeddedImageTransform[0][3] = m_messageHeader.m_EmbeddedImageTransform[0][3] * scalingFactor;
     m_messageHeader.m_EmbeddedImageTransform[1][3] = m_messageHeader.m_EmbeddedImageTransform[1][3] * scalingFactor;
     m_messageHeader.m_EmbeddedImageTransform[2][3] = m_messageHeader.m_EmbeddedImageTransform[2][3] * scalingFactor;
-    for (auto& transform : m_frameTransforms)
+    for(auto& transform : m_frameTransforms)
     {
       transform->ScaleTranslationComponent(scalingFactor);
     }
@@ -197,9 +197,9 @@ namespace igtl
   //----------------------------------------------------------------------------
   int TrackedFrameMessage::CalculateContentBufferSize()
   {
-    return this->m_messageHeader.GetMessageHeaderSize()
-           + this->m_messageHeader.m_ImageDataSizeInBytes
-           + this->m_messageHeader.m_XmlDataSizeInBytes;
+    return static_cast<int>(this->m_messageHeader.GetMessageHeaderSize()
+                            + this->m_messageHeader.m_ImageDataSizeInBytes
+                            + this->m_messageHeader.m_XmlDataSizeInBytes);
   }
 
   //----------------------------------------------------------------------------
@@ -275,18 +275,18 @@ namespace igtl
 
     this->m_imageValid = dynamic_cast<Platform::String^>(rootAttributes->GetNamedItem(L"ImageDataValid")->NodeValue) == L"true";
 
-    if (this->m_imageValid)
+    if(this->m_imageValid)
     {
       // Make a duplicate of the image that is reference counted, this allows it to persist in memory while it's needed
       this->m_image = std::shared_ptr<byte>(new byte[header->m_ImageDataSizeInBytes], std::default_delete<byte[]>());
       memcpy(m_image.get(), this->m_Content + header->GetMessageHeaderSize() + header->m_XmlDataSizeInBytes, header->m_ImageDataSizeInBytes);
     }
 
-    for (unsigned int i = 0; i < document.GetElementsByTagName(L"TrackedFrame")->Item(0)->ChildNodes->Size; ++i)
+    for(unsigned int i = 0; i < document.GetElementsByTagName(L"TrackedFrame")->Item(0)->ChildNodes->Size; ++i)
     {
       auto childNode = document.GetElementsByTagName(L"TrackedFrame")->Item(0)->ChildNodes->Item(i);
 
-      if (childNode->NodeName == L"CustomFrameField")
+      if(childNode->NodeName == L"CustomFrameField")
       {
         auto name = dynamic_cast<Platform::String^>(childNode->Attributes->GetNamedItem(L"Name")->NodeValue);
         auto value = dynamic_cast<Platform::String^>(childNode->Attributes->GetNamedItem(L"Value")->NodeValue);
@@ -296,17 +296,17 @@ namespace igtl
 
     // Convert custom frame fields storing transforms, to transform entries
     //    We do this in a second loop so that status' are available as well
-    for (auto iter = m_MetaDataMap.begin(); iter != m_MetaDataMap.end();)
+    for(auto iter = m_MetaDataMap.begin(); iter != m_MetaDataMap.end();)
     {
       auto name = std::wstring(iter->first.begin(), iter->first.end());
       auto value = std::wstring(iter->second.second.begin(), iter->second.second.end());
-      if (UWPOpenIGTLink::TrackedFrame::IsTransform(name))
+      if(UWPOpenIGTLink::TrackedFrame::IsTransform(name))
       {
         auto entry = ref new UWPOpenIGTLink::Transform();
 
         std::wistringstream wiss(value);
         float transform[16];
-        for (int i = 0; i < 16; ++i)
+        for(int i = 0; i < 16; ++i)
         {
           wiss >> transform[i];
         }
@@ -331,10 +331,10 @@ namespace igtl
     }
 
     // Remove all status fields
-    for (auto iter = m_MetaDataMap.begin(); iter != m_MetaDataMap.end();)
+    for(auto iter = m_MetaDataMap.begin(); iter != m_MetaDataMap.end();)
     {
       auto name = std::wstring(iter->first.begin(), iter->first.end());
-      if (UWPOpenIGTLink::TrackedFrame::IsTransformStatus(name))
+      if(UWPOpenIGTLink::TrackedFrame::IsTransformStatus(name))
       {
         iter = m_MetaDataMap.erase(iter);
       }
@@ -358,9 +358,9 @@ namespace igtl
   {
     m_FrameSize[0] = m_FrameSize[1] = m_FrameSize[2] = 0;
 
-    for (int i = 0; i < 4; ++i)
+    for(int i = 0; i < 4; ++i)
     {
-      for (int j = 0; j < 4; ++j)
+      for(int j = 0; j < 4; ++j)
       {
         m_EmbeddedImageTransform[i][j] = (i == j) ? 1.f : 0.f;
       }
@@ -386,7 +386,7 @@ namespace igtl
   //----------------------------------------------------------------------------
   void TrackedFrameMessage::TrackedFrameHeader::ConvertEndianness()
   {
-    if (igtl_is_little_endian())
+    if(igtl_is_little_endian())
     {
       m_ScalarType = BYTE_SWAP_INT16(m_ScalarType);
       m_NumberOfComponents = BYTE_SWAP_INT16(m_NumberOfComponents);

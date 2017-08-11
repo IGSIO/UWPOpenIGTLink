@@ -45,8 +45,8 @@ namespace UWPOpenIGTLink
     TimestampedCircularBuffer();
     virtual ~TimestampedCircularBuffer();
 
-    bool SetBufferSize(uint32 n);
-    uint32 GetBufferSize();
+    bool SetBufferSize(BufferItemList::size_type n);
+    BufferItemList::size_type GetBufferSize();
 
     /*!
       Get the number of items in the list (this is not the same as
@@ -54,7 +54,7 @@ namespace UWPOpenIGTLink
       have been added to the list).  This will never be greater than
       the BufferSize.
     */
-    uint32 GetNumberOfItems();
+    BufferItemList::size_type GetNumberOfItems();
 
     /*!
       Given a timestamp, compute the nearest frame UID
@@ -81,12 +81,12 @@ namespace UWPOpenIGTLink
 
 
     /*! Get the index assigned by the data reacquisition system (usually a counter) from the buffer by frame UID. */
-    uint32 GetIndex(BufferItemUidType uid);
+    BufferItemList::size_type GetIndex(BufferItemUidType uid);
     /*!
       Given a timestamp, compute the nearest buffer index
       This assumes that the times moronically increase
     */
-    uint32 GetBufferIndexFromTime(float time);
+    BufferItemList::size_type GetBufferIndexFromTime(float time);
 
     /*!
       Make this buffer into a copy of another buffer.  You should
@@ -117,7 +117,7 @@ namespace UWPOpenIGTLink
       Get next writable buffer object
       INTERNAL USE ONLY! Need to lock buffer until we use the buffer index
     */
-    StreamBufferItem^ GetBufferItemFromBufferIndex(uint32 bufferIndex);
+    StreamBufferItem^ GetBufferItemFromBufferIndex(BufferItemList::size_type bufferIndex);
 
     /*!
       Get next writable buffer object
@@ -125,7 +125,7 @@ namespace UWPOpenIGTLink
     */
     StreamBufferItem^ GetBufferItemFromUid(BufferItemUidType uid);
 
-    bool PrepareForNewItem(float timestamp, BufferItemUidType* outNewFrameUid, int* bufferIndex);
+    bool PrepareForNewItem(float timestamp, BufferItemUidType* outNewFrameUid, BufferItemList::size_type* bufferIndex);
 
     /*!
       Create filtered and unfiltered timestamp for accurate timing of the buffer item.
@@ -151,12 +151,12 @@ namespace UWPOpenIGTLink
 
   protected private:
     std::recursive_mutex          m_mutex;
-    uint32                        m_numberOfItems;
-    uint32                        m_writePointer;
+    BufferItemList::size_type     m_numberOfItems;
+    BufferItemList::size_type     m_writePointer;
     float                         m_currentTimeStamp;
     float                         m_localTimeOffsetSec;
     BufferItemUidType             m_latestItemUid;
-    std::deque<StreamBufferItem^> m_bufferItemContainer;
+    BufferItemList                m_bufferItemContainer;
     std::vector<uint32>           m_filterContainerIndexVector;
     std::vector<float>            m_filterContainerTimestampVector;
     uint32                        m_filterContainersOldestIndex;

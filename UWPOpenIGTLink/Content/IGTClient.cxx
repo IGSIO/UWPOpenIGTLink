@@ -64,7 +64,7 @@ namespace UWPOpenIGTLink
     static const double NEGLIGIBLE_DIFFERENCE = 0.0001;
   }
   const int IGTClient::CLIENT_SOCKET_TIMEOUT_MSEC = 500;
-  const uint32 IGTClient::MESSAGE_LIST_MAX_SIZE = 200;
+  const BufferItemList::size_type IGTClient::MESSAGE_LIST_MAX_SIZE = 200;
 
   //----------------------------------------------------------------------------
   IGTClient::IGTClient()
@@ -86,7 +86,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   IAsyncOperation<bool>^ IGTClient::ConnectAsync(double timeoutSec)
   {
-    if (m_connected)
+    if(m_connected)
     {
       return create_async([]() {return true;});
     }
@@ -104,13 +104,13 @@ namespace UWPOpenIGTLink
           previousTask.get();
           m_connected = true;
         }
-        catch (Platform::Exception^ exception)
+        catch(Platform::Exception^ exception)
         {
           return;
         }
       }).then([this, timeoutSec]() -> bool
       {
-        if (!m_connected)
+        if(!m_connected)
         {
           return false;
         }
@@ -139,7 +139,7 @@ namespace UWPOpenIGTLink
 
             m_connected = false;
           }
-          catch (const std::exception& e)
+          catch(const std::exception& e)
           {
             OutputDebugStringA((std::string("DataReceiverPump crash: ") + e.what()).c_str());
           }
@@ -164,13 +164,13 @@ namespace UWPOpenIGTLink
     {
       // Retrieve the next available tracked frame message
       std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-      if (m_receiveMessages.size() == 0)
+      if(m_receiveMessages.size() == 0)
       {
         return nullptr;
       }
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
+      for(auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
       {
-        if (std::string((*riter)->GetDeviceType()).compare("TRACKEDFRAME") == 0)
+        if(std::string((*riter)->GetDeviceType()).compare("TRACKEDFRAME") == 0)
         {
           trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>(riter->GetPointer());
           break;
@@ -178,7 +178,7 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if (trackedFrameMsg == nullptr)
+    if(trackedFrameMsg == nullptr)
     {
       return nullptr;
     }
@@ -186,7 +186,7 @@ namespace UWPOpenIGTLink
     auto ts = igtl::TimeStamp::New();
     trackedFrameMsg->GetTimeStamp(ts);
 
-    if (ts->GetTimeStamp() <= lastKnownTimestamp)
+    if(ts->GetTimeStamp() <= lastKnownTimestamp)
     {
       return nullptr;
     }
@@ -194,7 +194,7 @@ namespace UWPOpenIGTLink
     auto frame = ref new TrackedFrame();
 
     // Fields
-    for (auto& pair : trackedFrameMsg->GetMetaData())
+    for(auto& pair : trackedFrameMsg->GetMetaData())
     {
       std::wstring keyWideStr(pair.first.begin(), pair.first.end());
       std::wstring valueWideStr(pair.second.second.begin(), pair.second.second.end());
@@ -209,7 +209,7 @@ namespace UWPOpenIGTLink
 
     // Transforms
     frame->SetFrameTransformsInternal(trackedFrameMsg->GetFrameTransforms());
-    if (EmbeddedImageTransformName != nullptr)
+    if(EmbeddedImageTransformName != nullptr)
     {
       frame->SetTransform(ref new Transform(EmbeddedImageTransformName, trackedFrameMsg->GetEmbeddedImageTransform(), trackedFrameMsg->GetEmbeddedImageTransform() != float4x4::identity(), frame->Timestamp));
     }
@@ -227,13 +227,13 @@ namespace UWPOpenIGTLink
     {
       // Retrieve the next available TDATA message
       std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-      if (m_receiveMessages.size() == 0)
+      if(m_receiveMessages.size() == 0)
       {
         return nullptr;
       }
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
+      for(auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
       {
-        if (std::string((*riter)->GetDeviceType()).compare("TDATA") == 0)
+        if(std::string((*riter)->GetDeviceType()).compare("TDATA") == 0)
         {
           tdataMsg = dynamic_cast<igtl::TrackingDataMessage*>(riter->GetPointer());
           break;
@@ -241,7 +241,7 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if (tdataMsg == nullptr)
+    if(tdataMsg == nullptr)
     {
       return nullptr;
     }
@@ -249,7 +249,7 @@ namespace UWPOpenIGTLink
     auto ts = igtl::TimeStamp::New();
     tdataMsg->GetTimeStamp(ts);
 
-    if (ts->GetTimeStamp() <= lastKnownTimestamp)
+    if(ts->GetTimeStamp() <= lastKnownTimestamp)
     {
       return nullptr;
     }
@@ -258,7 +258,7 @@ namespace UWPOpenIGTLink
 
     auto element = igtl::TrackingDataElement::New();
     igtl::Matrix4x4 mat;
-    for (auto i = 0; i < tdataMsg->GetNumberOfTrackingDataElements(); ++i)
+    for(auto i = 0; i < tdataMsg->GetNumberOfTrackingDataElements(); ++i)
     {
       auto transform = ref new Transform();
       tdataMsg->GetTrackingDataElement(i, element);
@@ -269,7 +269,7 @@ namespace UWPOpenIGTLink
         // If the transform name is > 20 characters, name will be ""
         transformName = ref new TransformName(std::wstring(begin(name), end(name)));
       }
-      catch (Platform::Exception^ e)
+      catch(Platform::Exception^ e)
       {
         OutputDebugStringA("Transform being sent from IGT server has an invalid name.\n");
         continue;
@@ -298,13 +298,13 @@ namespace UWPOpenIGTLink
     {
       // Retrieve the next available TDATA message
       std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-      if (m_receiveMessages.size() == 0)
+      if(m_receiveMessages.size() == 0)
       {
         return nullptr;
       }
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
+      for(auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
       {
-        if (std::string((*riter)->GetDeviceType()).compare("TRANSFORM") == 0 && nameStr.compare((*riter)->GetDeviceName()) == 0)
+        if(std::string((*riter)->GetDeviceType()).compare("TRANSFORM") == 0 && nameStr.compare((*riter)->GetDeviceName()) == 0)
         {
           transformMessage = dynamic_cast<igtl::TransformMessage*>(riter->GetPointer());
           break;
@@ -312,7 +312,7 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if (transformMessage == nullptr)
+    if(transformMessage == nullptr)
     {
       return nullptr;
     }
@@ -320,7 +320,7 @@ namespace UWPOpenIGTLink
     auto ts = igtl::TimeStamp::New();
     transformMessage->GetTimeStamp(ts);
 
-    if (ts->GetTimeStamp() <= lastKnownTimestamp)
+    if(ts->GetTimeStamp() <= lastKnownTimestamp)
     {
       return nullptr;
     }
@@ -334,7 +334,7 @@ namespace UWPOpenIGTLink
       transformName = ref new TransformName(wname);
       transform->Name = transformName;
     }
-    catch (Platform::Exception^ e)
+    catch(Platform::Exception^ e)
     {
       OutputDebugStringA("Transform being sent from IGT server has an invalid name.\n");
     }
@@ -359,21 +359,21 @@ namespace UWPOpenIGTLink
     {
       // Retrieve the next available TDATA message
       std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-      if (m_receiveMessages.size() == 0)
+      if(m_receiveMessages.size() == 0)
       {
         return nullptr;
       }
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
+      for(auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
       {
         rtsCommandMsg = dynamic_cast<igtl::RTSCommandMessage*>(riter->GetPointer());
-        if (rtsCommandMsg != nullptr && rtsCommandMsg->GetCommandId() == commandId)
+        if(rtsCommandMsg != nullptr && rtsCommandMsg->GetCommandId() == commandId)
         {
           break;
         }
       }
     }
 
-    if (rtsCommandMsg == nullptr)
+    if(rtsCommandMsg == nullptr)
     {
       return nullptr;
     }
@@ -381,7 +381,7 @@ namespace UWPOpenIGTLink
     // Extract result
     auto command = ref new Command();
     std::string result;
-    if (!rtsCommandMsg->GetMetaDataElement("Result", result))
+    if(!rtsCommandMsg->GetMetaDataElement("Result", result))
     {
       // Message was not sent with metadata, abort
       OutputDebugStringA("Command response was not sent using v3 style metadata. Cannot process.");
@@ -394,17 +394,17 @@ namespace UWPOpenIGTLink
     auto cmdContent = rtsCommandMsg->GetCommandContent();
     command->CommandContent = ref new Platform::String(std::wstring(begin(cmdContent), end(cmdContent)).c_str());
     command->OriginalCommandId = rtsCommandMsg->GetCommandId();
-    if (!command->Result)
+    if(!command->Result)
     {
       std::string cmdError;
-      if (!rtsCommandMsg->GetMetaDataElement("Error", cmdError))
+      if(!rtsCommandMsg->GetMetaDataElement("Error", cmdError))
       {
         cmdError = "Unknown error. Not sent in metadata.";
       }
       command->ErrorString = ref new Platform::String(std::wstring(begin(cmdError), end(cmdError)).c_str());
     }
     auto map = ref new Platform::Collections::Map<Platform::String^, Platform::String^>();
-    for (auto& pair : rtsCommandMsg->GetMetaData())
+    for(auto& pair : rtsCommandMsg->GetMetaData())
     {
       map->Insert(ref new Platform::String(std::wstring(begin(pair.first), end(pair.first)).c_str()),
                   ref new Platform::String(std::wstring(begin(pair.second.second), end(pair.second.second)).c_str()));
@@ -428,19 +428,19 @@ namespace UWPOpenIGTLink
     {
       // Retrieve the next available TDATA message
       std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-      if (m_receiveMessages.size() == 0)
+      if(m_receiveMessages.size() == 0)
       {
         return nullptr;
       }
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
+      for(auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
       {
         std::string fileName;
-        if (!(*riter)->GetMetaDataElement("fileName", fileName))
+        if(!(*riter)->GetMetaDataElement("fileName", fileName))
         {
           continue;
         }
 
-        if (std::string((*riter)->GetDeviceType()).compare("POLYDATA") == 0 && nameStr.compare(fileName) == 0)
+        if(std::string((*riter)->GetDeviceType()).compare("POLYDATA") == 0 && nameStr.compare(fileName) == 0)
         {
           polyMessage = dynamic_cast<igtl::PolyDataMessage*>(riter->GetPointer());
           break;
@@ -448,7 +448,7 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if (polyMessage == nullptr)
+    if(polyMessage == nullptr)
     {
       return nullptr;
     }
@@ -460,11 +460,11 @@ namespace UWPOpenIGTLink
     polydata->Timestamp = ts->GetTimeStamp();
 
     // If scalars are present
-    if (polyMessage->GetPoints() != nullptr)
+    if(polyMessage->GetPoints() != nullptr)
     {
       auto posList = ref new Platform::Collections::Vector<float3>();
       auto& points = *polyMessage->GetPoints();
-      for (auto& point : points)
+      for(auto& point : points)
       {
         assert(point.size() == 3);
         posList->Append(float3(point[0], point[1], point[2]));
@@ -473,11 +473,11 @@ namespace UWPOpenIGTLink
     }
 
     // If normals are present
-    if (polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_NORMAL) != nullptr)
+    if(polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_NORMAL) != nullptr)
     {
       auto normList = ref new Platform::Collections::Vector<float3>();
       auto& entries = *polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_NORMAL);
-      for (uint32 i = 0; i < entries.GetSize(); ++i)
+      for(uint32 i = 0; i < entries.GetSize(); ++i)
       {
         std::vector<float> normal;
         entries.GetNthData(i, normal);
@@ -488,11 +488,11 @@ namespace UWPOpenIGTLink
     }
 
     // If texture coordinates are present
-    if (polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_TCOORDS) != nullptr)
+    if(polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_TCOORDS) != nullptr)
     {
       auto tcoordList = ref new Platform::Collections::Vector<float3>();
       auto& entries = *polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_TCOORDS);
-      for (uint32 i = 0; i < entries.GetSize(); ++i)
+      for(uint32 i = 0; i < entries.GetSize(); ++i)
       {
         std::vector<float> tcoords;
         entries.GetNthData(i, tcoords);
@@ -503,14 +503,14 @@ namespace UWPOpenIGTLink
     }
 
     // TODO: for now, only support polygons? triangle strips?
-    if (polyMessage->GetPolygons() != nullptr)
+    if(polyMessage->GetPolygons() != nullptr)
     {
       auto indexList = ref new Platform::Collections::Vector<uint16>();
       auto& indices = *polyMessage->GetPolygons();
-      for (uint32 i = 0; i < indices.GetNumberOfCells(); ++i)
+      for(uint32 i = 0; i < indices.GetNumberOfCells(); ++i)
       {
         igtl::PolyDataCellArray::Cell cell;
-        if (indices.GetCell(i, cell) == 1)
+        if(indices.GetCell(i, cell) == 1)
         {
           assert(cell.size() == 3);
           auto iter = cell.begin();
@@ -528,7 +528,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   task<bool> IGTClient::SendMessageAsyncInternal(igtl::MessageBase::Pointer packedMessage)
   {
-    if (typeid(*packedMessage) == typeid(igtl::CommandMessage))
+    if(typeid(*packedMessage) == typeid(igtl::CommandMessage))
     {
       OutputDebugStringA("Do not send a command as a message. Use SendCommandAsync instead.");
       return task_from_result(false);
@@ -544,7 +544,7 @@ namespace UWPOpenIGTLink
         bytesWritten = writeTask.get();
         return bytesWritten == size;
       }
-      catch (Platform::Exception^ exception)
+      catch(Platform::Exception^ exception)
       {
         return false;
       }
@@ -554,7 +554,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   Concurrency::task<CommandData> IGTClient::SendCommandAsyncInternal(igtl::MessageBase::Pointer packedMessage)
   {
-    if (typeid(*packedMessage) != typeid(igtl::CommandMessage))
+    if(typeid(*packedMessage) != typeid(igtl::CommandMessage))
     {
       OutputDebugStringA("Non command message sent to SendCommandAsync. Aborting.");
       return task_from_result(CommandData() = {0, false});
@@ -579,7 +579,7 @@ namespace UWPOpenIGTLink
         CommandData command = { m_nextQueryId - 1, success };
         return command;
       }
-      catch (Platform::Exception^ exception)
+      catch(Platform::Exception^ exception)
       {
         CommandData command = { 0, false };
         return command;
@@ -615,14 +615,14 @@ namespace UWPOpenIGTLink
     auto headerMsg = m_igtlMessageFactory->CreateHeaderMessage(IGTL_HEADER_VERSION_1);
     auto token = m_receiverPumpTokenSource.get_token();
 
-    while (!token.is_canceled())
+    while(!token.is_canceled())
     {
       headerMsg->InitBuffer();
 
       // Receive generic header from the socket
       int numOfBytesReceived = 0;
       {
-        if (SocketReceive(headerMsg->GetBufferPointer(), headerMsg->GetBufferSize()) != headerMsg->GetBufferSize())
+        if(SocketReceive(headerMsg->GetBufferPointer(), headerMsg->GetBufferSize()) != headerMsg->GetBufferSize())
         {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
           continue;
@@ -630,7 +630,7 @@ namespace UWPOpenIGTLink
       }
 
       int c = headerMsg->Unpack(1);
-      if (!(c & igtl::MessageHeader::UNPACK_HEADER))
+      if(!(c & igtl::MessageHeader::UNPACK_HEADER))
       {
         OutputDebugStringA("Failed to receive message (invalid header)\n");
         continue;
@@ -641,7 +641,7 @@ namespace UWPOpenIGTLink
       {
         bodyMsg = m_igtlMessageFactory->CreateReceiveMessage(headerMsg);
       }
-      catch (const std::exception&)
+      catch(const std::exception&)
       {
         // Message header was not correct, skip this message
         // Will be impossible to tell if the body of this message is in the socket... this is a pretty bad corruption.
@@ -650,19 +650,19 @@ namespace UWPOpenIGTLink
         continue;
       }
 
-      if (bodyMsg.IsNull())
+      if(bodyMsg.IsNull())
       {
         LOG_TRACE("Unable to create message of type: " << headerMsg->GetMessageType());
         continue;
       }
 
       // Accept all messages but status messages, they are used as a keep alive mechanism
-      if (typeid(*bodyMsg) == typeid(igtl::TrackedFrameMessage))
+      if(typeid(*bodyMsg) == typeid(igtl::TrackedFrameMessage))
       {
         SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
 
         c = bodyMsg->Unpack(1);
-        if (!(c & igtl::MessageHeader::UNPACK_BODY))
+        if(!(c & igtl::MessageHeader::UNPACK_BODY))
         {
           LOG_TRACE("Failed to receive reply (invalid body)");
           continue;
@@ -677,16 +677,16 @@ namespace UWPOpenIGTLink
         std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
         m_receiveMessages.push_back(bodyMsg);
       }
-      else if (typeid(*bodyMsg) == typeid(igtl::TrackingDataMessage))
+      else if(typeid(*bodyMsg) == typeid(igtl::TrackingDataMessage))
       {
-        if (bodyMsg->GetBufferBodySize() == 0)
+        if(bodyMsg->GetBufferBodySize() == 0)
         {
           continue;
         }
         SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
 
         c = bodyMsg->Unpack(1);
-        if (!(c & igtl::MessageHeader::UNPACK_BODY))
+        if(!(c & igtl::MessageHeader::UNPACK_BODY))
         {
           LOG_TRACE("Failed to receive reply (invalid body)");
           continue;
@@ -696,7 +696,7 @@ namespace UWPOpenIGTLink
 
         // Post process TDATA to adjust for unit scale
         auto element = igtl::TrackingDataElement::New();
-        for (int i = 0; i < tdataMessage->GetNumberOfTrackingDataElements(); ++i)
+        for(int i = 0; i < tdataMessage->GetNumberOfTrackingDataElements(); ++i)
         {
           tdataMessage->GetTrackingDataElement(i, element);
           igtl::Matrix4x4 mat;
@@ -711,12 +711,12 @@ namespace UWPOpenIGTLink
         std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
         m_receiveMessages.push_back(bodyMsg);
       }
-      else if (typeid(*bodyMsg) == typeid(igtl::TransformMessage))
+      else if(typeid(*bodyMsg) == typeid(igtl::TransformMessage))
       {
         SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
 
         c = bodyMsg->Unpack(1);
-        if (!(c & igtl::MessageHeader::UNPACK_BODY))
+        if(!(c & igtl::MessageHeader::UNPACK_BODY))
         {
           LOG_TRACE("Failed to receive reply (invalid body)");
           continue;
@@ -734,13 +734,13 @@ namespace UWPOpenIGTLink
         std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
         m_receiveMessages.push_back(bodyMsg);
       }
-      else if (typeid(*bodyMsg) == typeid(igtl::PolyDataMessage))
+      else if(typeid(*bodyMsg) == typeid(igtl::PolyDataMessage))
       {
         // We got ourselves a live one! 3D model sent over the network
         SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
 
         c = bodyMsg->Unpack(1);
-        if (!(c & igtl::MessageHeader::UNPACK_BODY))
+        if(!(c & igtl::MessageHeader::UNPACK_BODY))
         {
           LOG_TRACE("Failed to receive reply (invalid body)");
           continue;
@@ -750,12 +750,12 @@ namespace UWPOpenIGTLink
         std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
         m_receiveMessages.push_back(bodyMsg);
       }
-      else if (typeid(*bodyMsg) == typeid(igtl::RTSCommandMessage))
+      else if(typeid(*bodyMsg) == typeid(igtl::RTSCommandMessage))
       {
         SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
 
         c = bodyMsg->Unpack(1);
-        if (!(c & igtl::MessageHeader::UNPACK_BODY))
+        if(!(c & igtl::MessageHeader::UNPACK_BODY))
         {
           LOG_TRACE("Failed to receive reply (invalid body)");
           continue;
@@ -765,9 +765,9 @@ namespace UWPOpenIGTLink
 
         // Clear from outstanding queries
         std::lock_guard<std::mutex> guard(m_queriesMutex);
-        for (auto iter = begin(m_outstandingQueries); iter != end(m_outstandingQueries); ++iter)
+        for(auto iter = begin(m_outstandingQueries); iter != end(m_outstandingQueries); ++iter)
         {
-          if ((*iter) == rtsCmdMsg->GetCommandId())
+          if((*iter) == rtsCmdMsg->GetCommandId())
           {
             m_outstandingQueries.erase(iter);
             break;
@@ -792,10 +792,10 @@ namespace UWPOpenIGTLink
   void IGTClient::PruneIGTMessages()
   {
     std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-    if (m_receiveMessages.size() > MESSAGE_LIST_MAX_SIZE + 50)
+    if(m_receiveMessages.size() > MESSAGE_LIST_MAX_SIZE + 50)
     {
       // erase the front N results
-      uint32 toErase = m_receiveMessages.size() - MESSAGE_LIST_MAX_SIZE;
+      MessageList::size_type toErase = m_receiveMessages.size() - MESSAGE_LIST_MAX_SIZE;
       m_receiveMessages.erase(begin(m_receiveMessages), begin(m_receiveMessages) + toErase);
     }
   }
@@ -836,12 +836,12 @@ namespace UWPOpenIGTLink
     auto str = std::string(begin(name), end(name));
 
     // Retrieve the next available tracked frame reply
-    if (m_receiveMessages.size() > 0)
+    if(m_receiveMessages.size() > 0)
     {
       igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); riter++)
+      for(auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); riter++)
       {
-        if (dynamic_cast<igtl::TransformMessage*>(riter->GetPointer()) != nullptr && std::string((*riter)->GetDeviceName()).compare(str) == 0)
+        if(dynamic_cast<igtl::TransformMessage*>(riter->GetPointer()) != nullptr && std::string((*riter)->GetDeviceName()).compare(str) == 0)
         {
           (*riter)->GetTimeStamp(ts);
           return ts->GetTimeStamp();
@@ -857,12 +857,12 @@ namespace UWPOpenIGTLink
     auto str = std::string(begin(name), end(name));
 
     // Retrieve the next available tracked frame reply
-    if (m_receiveMessages.size() > 0)
+    if(m_receiveMessages.size() > 0)
     {
       igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-      for (auto iter = m_receiveMessages.begin(); iter != m_receiveMessages.end(); iter++)
+      for(auto iter = m_receiveMessages.begin(); iter != m_receiveMessages.end(); iter++)
       {
-        if (dynamic_cast<igtl::TransformMessage*>(iter->GetPointer()) != nullptr && std::string((*iter)->GetDeviceName()).compare(str) == 0)
+        if(dynamic_cast<igtl::TransformMessage*>(iter->GetPointer()) != nullptr && std::string((*iter)->GetDeviceName()).compare(str) == 0)
         {
           (*iter)->GetTimeStamp(ts);
           return ts->GetTimeStamp();
@@ -881,19 +881,19 @@ namespace UWPOpenIGTLink
     try
     {
       bytesRead = readTask.get();
-      if (bytesRead != size)
+      if(bytesRead != size)
       {
         return bytesRead;
       }
 
       auto buffer = m_readStream->ReadBuffer(size);
-      if (dest != nullptr)
+      if(dest != nullptr)
       {
         auto header = GetDataFromIBuffer<byte>(buffer);
         memcpy(dest, header, size);
       }
     }
-    catch (...)
+    catch(...)
     {
       return -1;
     }

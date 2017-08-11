@@ -56,10 +56,11 @@ namespace igtl
   class TrackedFrameMessage : public MessageBase
   {
   public:
-    typedef TrackedFrameMessage             Self;
-    typedef MessageBase                     Superclass;
-    typedef SmartPointer<Self>              Pointer;
-    typedef SmartPointer<const Self>        ConstPointer;
+    typedef TrackedFrameMessage                       Self;
+    typedef MessageBase                               Superclass;
+    typedef SmartPointer<Self>                        Pointer;
+    typedef SmartPointer<const Self>                  ConstPointer;
+    typedef std::vector<UWPOpenIGTLink::Transform^>   FrameTransformList;
 
     igtlTypeMacro(igtl::TrackedFrameMessage, igtl::MessageBase);
     igtlNewMacro(igtl::TrackedFrameMessage);
@@ -107,14 +108,14 @@ namespace igtl
       igtl::Matrix4x4 m_EmbeddedImageTransform; /* matrix representing the IJK to world transformation */
     };
 
-    virtual int  CalculateContentBufferSize();
-    virtual int  PackContent();
-    virtual int  UnpackContent();
+    virtual int                             CalculateContentBufferSize();
+    virtual int                             PackContent();
+    virtual int                             UnpackContent();
 
     TrackedFrameMessage();
     ~TrackedFrameMessage();
 
-    std::vector<UWPOpenIGTLink::Transform^> m_frameTransforms;
+    FrameTransformList                      m_frameTransforms;
     std::shared_ptr<byte>                   m_image = nullptr;
     std::string                             m_trackedFrameXmlData;
     bool                                    m_imageValid = false;

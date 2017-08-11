@@ -47,9 +47,9 @@ namespace UWPOpenIGTLink
     Set the size of the buffer, i.e. the maximum number of
     video frames that it will hold.  The default is 30.
     */
-    bool SetBufferSize(int n);
+    bool SetBufferSize(BufferItemList::size_type n);
     /*! Get the size of the buffer */
-    int GetBufferSize();
+    BufferItemList::size_type GetBufferSize();
 
     /*!
     Add a frame plus a timestamp to the buffer with frame index.
@@ -134,13 +134,13 @@ namespace UWPOpenIGTLink
     bool GetLatestItemHasValidFieldData();
 
     /*! Get the index assigned by the data acquisition system (usually a counter) from the buffer by frame UID. */
-    int GetIndex(BufferItemUidType uid, uint32* outIndex);
+    int GetIndex(BufferItemUidType uid, BufferItemList::size_type* outIndex);
 
     /*!
     Given a timestamp, compute the nearest buffer index
     This assumes that the times moronically increase
     */
-    int GetBufferIndexFromTime(float time, uint32* outBufferIndex);
+    int GetBufferIndexFromTime(float time, BufferItemList::size_type* outBufferIndex);
 
     /*! Get buffer item unique ID */
     BufferItemUidType GetOldestItemUidInBuffer();
@@ -153,7 +153,7 @@ namespace UWPOpenIGTLink
     float GetLocalTimeOffsetSec();
 
     /*! Get the number of items in the buffer */
-    int GetNumberOfItems();
+    BufferItemList::size_type GetNumberOfItems();
 
     /*!
     Get the frame rate from the buffer based on the number of frames in the buffer and the elapsed time.

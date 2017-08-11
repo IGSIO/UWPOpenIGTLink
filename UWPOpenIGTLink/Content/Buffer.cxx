@@ -53,9 +53,9 @@ namespace UWPOpenIGTLink
     std::lock_guard<std::recursive_mutex> guard(this->BufferMutex);
     bool result = true;
 
-    for (uint32 i = 0; i < this->StreamBuffer->GetBufferSize(); ++i)
+    for(uint32 i = 0; i < this->StreamBuffer->GetBufferSize(); ++i)
     {
-      if (this->StreamBuffer->GetBufferItemFromBufferIndex(i)->GetFrame()->AllocateFrame(this->GetFrameSize(), this->GetPixelType(), this->GetNumberOfScalarComponents()) != true)
+      if(this->StreamBuffer->GetBufferItemFromBufferIndex(i)->GetFrame()->AllocateFrame(this->GetFrameSize(), this->GetPixelType(), this->GetNumberOfScalarComponents()) != true)
       {
         OutputDebugStringA((std::string("Failed to allocate memory for frame ") + std::to_string(i)).c_str());
         result = false;
@@ -89,31 +89,31 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  int Buffer::GetBufferSize()
+  BufferItemList::size_type Buffer::GetBufferSize()
   {
     return this->StreamBuffer->GetBufferSize();
   }
 
   //----------------------------------------------------------------------------
-  bool Buffer::SetBufferSize(int bufsize)
+  bool Buffer::SetBufferSize(BufferItemList::size_type bufsize)
   {
-    if (bufsize < 0)
+    if(bufsize < 0)
     {
       OutputDebugStringA((std::string("Invalid buffer size requested: ") + std::to_string(bufsize)).c_str());
       return false;
     }
-    if (this->StreamBuffer->GetBufferSize() == bufsize)
+    if(this->StreamBuffer->GetBufferSize() == bufsize)
     {
       // no change
       return true;
     }
 
     bool result = true;
-    if (this->StreamBuffer->SetBufferSize(bufsize) != true)
+    if(this->StreamBuffer->SetBufferSize(bufsize) != true)
     {
       result = false;
     }
-    if (this->AllocateMemoryForFrames() != true)
+    if(this->AllocateMemoryForFrames() != true)
     {
       return false;
     }
@@ -125,7 +125,7 @@ namespace UWPOpenIGTLink
   bool Buffer::CheckFrameFormat(const std::array<uint16, 3>& frameSize, int pixelType, int imgType, uint16 numberOfScalarComponents)
   {
     // don't add a frame if it doesn't match the buffer frame format
-    if (frameSize[0] != this->GetFrameSize()[0] ||
+    if(frameSize[0] != this->GetFrameSize()[0] ||
         frameSize[1] != this->GetFrameSize()[1] ||
         frameSize[2] != this->GetFrameSize()[2])
     {
@@ -137,19 +137,19 @@ namespace UWPOpenIGTLink
       return false;
     }
 
-    if (pixelType != this->GetPixelType())
+    if(pixelType != this->GetPixelType())
     {
       OutputDebugStringW((L"Frame pixel type (" + VideoFrame::GetStringFromScalarPixelType(pixelType) + L") and buffer pixel type (" + VideoFrame::GetStringFromScalarPixelType(this->GetPixelType()) + L") mismatch")->Data());
       return false;
     }
 
-    if (imgType != this->GetImageType())
+    if(imgType != this->GetImageType())
     {
       OutputDebugStringW((L"Frame image type (" + VideoFrame::GetStringFromUsImageType(imgType) + L") and buffer image type (" + VideoFrame::GetStringFromUsImageType(this->GetImageType()) + L") mismatch")->Data());
       return false;
     }
 
-    if (numberOfScalarComponents != this->GetNumberOfScalarComponents())
+    if(numberOfScalarComponents != this->GetNumberOfScalarComponents())
     {
       OutputDebugStringA((std::string("Frame number of scalar components (") + std::to_string(numberOfScalarComponents) + ") and buffer number of components (" + std::to_string(this->GetNumberOfScalarComponents()) + ") mismatch").c_str());
       return false;
@@ -169,27 +169,27 @@ namespace UWPOpenIGTLink
                        float unfilteredTimestamp,
                        float filteredTimestamp)
   {
-    if (image == nullptr)
+    if(image == nullptr)
     {
       OutputDebugStringA("Buffer: Unable to add NULL frame to video buffer!");
       return false;
     }
 
-    if (unfilteredTimestamp == UNDEFINED_TIMESTAMP)
+    if(unfilteredTimestamp == UNDEFINED_TIMESTAMP)
     {
       Calendar->SetToNow();
       unfilteredTimestamp = 0.001f * Calendar->GetDateTime().UniversalTime;
     }
 
-    if (filteredTimestamp == UNDEFINED_TIMESTAMP)
+    if(filteredTimestamp == UNDEFINED_TIMESTAMP)
     {
       bool filteredTimestampProbablyValid = true;
-      if (this->StreamBuffer->CreateFilteredTimeStampForItem(frameNumber, unfilteredTimestamp, &filteredTimestamp, &filteredTimestampProbablyValid) != true)
+      if(this->StreamBuffer->CreateFilteredTimeStampForItem(frameNumber, unfilteredTimestamp, &filteredTimestamp, &filteredTimestampProbablyValid) != true)
       {
         OutputDebugStringA((std::string("Failed to create filtered timestamp for video buffer item with item index: ") + std::to_string(frameNumber)).c_str());
         return false;
       }
-      if (!filteredTimestampProbablyValid)
+      if(!filteredTimestampProbablyValid)
       {
         OutputDebugStringA((std::string("Filtered timestamp is probably invalid for video buffer item with item index=") + std::to_string(frameNumber) + ", time=" +
                             std::to_string(unfilteredTimestamp) + ". The item may have been tagged with an inaccurate timestamp, therefore it will not be recorded.").c_str());
@@ -198,16 +198,16 @@ namespace UWPOpenIGTLink
     }
 
     auto frameSize = image->GetFrameSize();
-    if (!this->CheckFrameFormat(frameSize, image->ScalarType, imageType, image->NumberOfScalarComponents))
+    if(!this->CheckFrameFormat(frameSize, image->ScalarType, imageType, image->NumberOfScalarComponents))
     {
       OutputDebugStringA("Buffer: Unable to add frame to video buffer - frame format doesn't match!");
       return false;
     }
 
-    int bufferIndex(0);
+    BufferItemList::size_type bufferIndex(0);
     BufferItemUidType itemUid;
     std::lock_guard<std::recursive_mutex> guard(this->BufferMutex);
-    if (this->StreamBuffer->PrepareForNewItem(filteredTimestamp, &itemUid, &bufferIndex) != true)
+    if(this->StreamBuffer->PrepareForNewItem(filteredTimestamp, &itemUid, &bufferIndex) != true)
     {
       // Just a debug message, because we want to avoid unnecessary warning messages if the timestamp is the same as last one
       OutputDebugStringA("Buffer: Failed to prepare for adding new frame to video buffer!");
@@ -216,7 +216,7 @@ namespace UWPOpenIGTLink
 
     // get the pointer to the correct location in the frame buffer, where this data needs to be copied
     StreamBufferItem^ newObjectInBuffer = this->StreamBuffer->GetBufferItemFromBufferIndex(bufferIndex);
-    if (newObjectInBuffer == nullptr)
+    if(newObjectInBuffer == nullptr)
     {
       OutputDebugStringA("Buffer: Failed to get pointer to video buffer object from the video buffer for the new frame!");
       return false;
@@ -224,7 +224,7 @@ namespace UWPOpenIGTLink
 
     const auto& bufferItemFrameSize = newObjectInBuffer->GetFrame()->GetDimensions();
 
-    if (frameSize[0] != bufferItemFrameSize[0] || frameSize[1] != bufferItemFrameSize[1] || frameSize[2] != bufferItemFrameSize[2])
+    if(frameSize[0] != bufferItemFrameSize[0] || frameSize[1] != bufferItemFrameSize[1] || frameSize[2] != bufferItemFrameSize[2])
     {
       std::stringstream ss;
       ss << "Input frame size is different from buffer frame size (input: " << frameSize[0] << "x" << frameSize[1] << "x" << frameSize[2] << ",   buffer: " << bufferItemFrameSize[0] << "x" << bufferItemFrameSize[1] << "x" << bufferItemFrameSize[2] << ")!";
@@ -242,11 +242,11 @@ namespace UWPOpenIGTLink
     newObjectInBuffer->GetFrame()->SetImageType(imageType);
 
     // Add custom fields
-    for (auto field : frameFields)
+    for(auto field : frameFields)
     {
       newObjectInBuffer->SetCustomFrameField(field->Key, field->Value);
       std::wstring name(field->Key->Data());
-      if (name.find(L"Transform") != std::string::npos)
+      if(name.find(L"Transform") != std::string::npos)
       {
         newObjectInBuffer->SetValidTransformData(true);
       }
@@ -264,7 +264,7 @@ namespace UWPOpenIGTLink
                        float unfilteredTimestamp,
                        float filteredTimestamp)
   {
-    if (frame == nullptr)
+    if(frame == nullptr)
     {
       OutputDebugStringA("Buffer: Unable to add NULL frame to video buffer!");
       return false;
@@ -276,25 +276,25 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool Buffer::AddItem(FrameFieldsABI^ frameFields, uint32 frameNumber, float unfilteredTimestamp, float filteredTimestamp)
   {
-    if (frameFields->Size == 0)
+    if(frameFields->Size == 0)
     {
       return true;
     }
 
-    if (unfilteredTimestamp == UNDEFINED_TIMESTAMP)
+    if(unfilteredTimestamp == UNDEFINED_TIMESTAMP)
     {
       Calendar->SetToNow();
       unfilteredTimestamp = 0.001f * Calendar->GetDateTime().UniversalTime;
     }
-    if (filteredTimestamp == UNDEFINED_TIMESTAMP)
+    if(filteredTimestamp == UNDEFINED_TIMESTAMP)
     {
       bool filteredTimestampProbablyValid = true;
-      if (this->StreamBuffer->CreateFilteredTimeStampForItem(frameNumber, unfilteredTimestamp, &filteredTimestamp, &filteredTimestampProbablyValid) != true)
+      if(this->StreamBuffer->CreateFilteredTimeStampForItem(frameNumber, unfilteredTimestamp, &filteredTimestamp, &filteredTimestampProbablyValid) != true)
       {
         OutputDebugStringA((std::string("Failed to create filtered timestamp for tracker buffer item with item index: ") + std::to_string(frameNumber)).c_str());
         return false;
       }
-      if (!filteredTimestampProbablyValid)
+      if(!filteredTimestampProbablyValid)
       {
         std::stringstream ss;
         ss << "Filtered timestamp is probably invalid for tracker buffer item with item index=" << frameNumber << ", time=" << unfilteredTimestamp << ". The item may have been tagged with an inaccurate timestamp, therefore it will not be recorded.";
@@ -303,11 +303,10 @@ namespace UWPOpenIGTLink
       }
     }
 
-    int bufferIndex(0);
+    BufferItemList::size_type bufferIndex(0);
     BufferItemUidType itemUid;
-
     std::lock_guard<std::recursive_mutex> guard(this->BufferMutex);
-    if (this->StreamBuffer->PrepareForNewItem(filteredTimestamp, &itemUid, &bufferIndex) != true)
+    if(this->StreamBuffer->PrepareForNewItem(filteredTimestamp, &itemUid, &bufferIndex) != true)
     {
       // Just a debug message, because we want to avoid unnecessary warning messages if the timestamp is the same as last one
       OutputDebugStringA("Buffer: Failed to prepare for adding new frame to tracker buffer!");
@@ -316,7 +315,7 @@ namespace UWPOpenIGTLink
 
     // get the pointer to the correct location in the tracker buffer, where this data needs to be copied
     StreamBufferItem^ newObjectInBuffer = this->StreamBuffer->GetBufferItemFromBufferIndex(bufferIndex);
-    if (newObjectInBuffer == nullptr)
+    if(newObjectInBuffer == nullptr)
     {
       OutputDebugStringA("Buffer: Failed to get pointer to data buffer object from the tracker buffer for the new frame!");
       return false;
@@ -328,11 +327,11 @@ namespace UWPOpenIGTLink
     newObjectInBuffer->SetUid(itemUid);
 
     // Add custom fields
-    for (auto field : frameFields)
+    for(auto field : frameFields)
     {
       newObjectInBuffer->SetCustomFrameField(field->Key, field->Value);
       std::wstring name(field->Key->Data());
-      if (name.find(L"Transform") != std::string::npos)
+      if(name.find(L"Transform") != std::string::npos)
       {
         newObjectInBuffer->SetValidTransformData(true);
       }
@@ -344,20 +343,20 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool Buffer::AddTimeStampedItem(float4x4 matrix, int toolStatus, uint32 frameNumber, float unfilteredTimestamp, FrameFieldsABI^ customFields, float filteredTimestamp)
   {
-    if (unfilteredTimestamp == UNDEFINED_TIMESTAMP)
+    if(unfilteredTimestamp == UNDEFINED_TIMESTAMP)
     {
       Calendar->SetToNow();
       unfilteredTimestamp = 0.001f * Calendar->GetDateTime().UniversalTime;
     }
-    if (filteredTimestamp == UNDEFINED_TIMESTAMP)
+    if(filteredTimestamp == UNDEFINED_TIMESTAMP)
     {
       bool filteredTimestampProbablyValid = true;
-      if (this->StreamBuffer->CreateFilteredTimeStampForItem(frameNumber, unfilteredTimestamp, &filteredTimestamp, &filteredTimestampProbablyValid) != true)
+      if(this->StreamBuffer->CreateFilteredTimeStampForItem(frameNumber, unfilteredTimestamp, &filteredTimestamp, &filteredTimestampProbablyValid) != true)
       {
         OutputDebugStringA((std::string("Failed to create filtered timestamp for tracker buffer item with item index: ") + std::to_string(frameNumber)).c_str());
         return false;
       }
-      if (!filteredTimestampProbablyValid)
+      if(!filteredTimestampProbablyValid)
       {
         std::stringstream ss;
         ss << "Filtered timestamp is probably invalid for tracker buffer item with item index=" << frameNumber << ", time=" << unfilteredTimestamp << ". The item may have been tagged with an inaccurate timestamp, therefore it will not be recorded.";
@@ -366,11 +365,10 @@ namespace UWPOpenIGTLink
       }
     }
 
-    int bufferIndex(0);
+    BufferItemList::size_type bufferIndex(0);
     BufferItemUidType itemUid;
-
     std::lock_guard<std::recursive_mutex> guard(this->BufferMutex);
-    if (this->StreamBuffer->PrepareForNewItem(filteredTimestamp, &itemUid, &bufferIndex) != true)
+    if(this->StreamBuffer->PrepareForNewItem(filteredTimestamp, &itemUid, &bufferIndex) != true)
     {
       // Just a debug message, because we want to avoid unnecessary warning messages if the timestamp is the same as last one
       OutputDebugStringA("Buffer: Failed to prepare for adding new frame to tracker buffer!");
@@ -379,7 +377,7 @@ namespace UWPOpenIGTLink
 
     // get the pointer to the correct location in the tracker buffer, where this data needs to be copied
     StreamBufferItem^ newObjectInBuffer = this->StreamBuffer->GetBufferItemFromBufferIndex(bufferIndex);
-    if (newObjectInBuffer == nullptr)
+    if(newObjectInBuffer == nullptr)
     {
       OutputDebugStringA("Buffer: Failed to get pointer to data buffer object from the tracker buffer for the new frame!");
       return false;
@@ -393,11 +391,11 @@ namespace UWPOpenIGTLink
     newObjectInBuffer->SetUid(itemUid);
 
     // Add custom fields
-    for (auto field : customFields)
+    for(auto field : customFields)
     {
       newObjectInBuffer->SetCustomFrameField(field->Key, field->Value);
       std::wstring name(field->Key->Data());
-      if (name.find(L"Transform") != std::string::npos)
+      if(name.find(L"Transform") != std::string::npos)
       {
         newObjectInBuffer->SetValidTransformData(true);
       }
@@ -413,11 +411,11 @@ namespace UWPOpenIGTLink
     {
       *latestTimestamp = this->StreamBuffer->GetLatestTimeStamp();
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
     {
       return ITEM_NOT_AVAILABLE_ANYMORE;
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableYetException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableYetException&)
     {
       return ITEM_NOT_AVAILABLE_YET;
     }
@@ -432,11 +430,11 @@ namespace UWPOpenIGTLink
     {
       *oldestTimestamp = this->StreamBuffer->GetOldestTimeStamp();
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
     {
       return ITEM_NOT_AVAILABLE_ANYMORE;
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableYetException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableYetException&)
     {
       return ITEM_NOT_AVAILABLE_YET;
     }
@@ -451,11 +449,11 @@ namespace UWPOpenIGTLink
     {
       *timestamp = this->StreamBuffer->GetTimeStamp(uid);
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
     {
       return ITEM_NOT_AVAILABLE_ANYMORE;
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableYetException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableYetException&)
     {
       return ITEM_NOT_AVAILABLE_YET;
     }
@@ -464,17 +462,17 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  int Buffer::GetIndex(BufferItemUidType uid, uint32* index)
+  int Buffer::GetIndex(BufferItemUidType uid, BufferItemList::size_type* index)
   {
     try
     {
       *index = this->StreamBuffer->GetIndex(uid);
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
     {
       return ITEM_NOT_AVAILABLE_ANYMORE;
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableYetException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableYetException&)
     {
       return ITEM_NOT_AVAILABLE_YET;
     }
@@ -483,17 +481,17 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  int Buffer::GetBufferIndexFromTime(float time, uint32* bufferIndex)
+  int Buffer::GetBufferIndexFromTime(float time, BufferItemList::size_type* bufferIndex)
   {
     try
     {
       *bufferIndex = this->StreamBuffer->GetBufferIndexFromTime(time);
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
     {
       return ITEM_NOT_AVAILABLE_ANYMORE;
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableYetException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableYetException&)
     {
       return ITEM_NOT_AVAILABLE_YET;
     }
@@ -550,7 +548,7 @@ namespace UWPOpenIGTLink
     LOG_TRACE("Buffer::DeepCopy");
 
     this->StreamBuffer->DeepCopy(buffer->StreamBuffer);
-    if (buffer->GetFrameSize()[0] != -1 && buffer->GetFrameSize()[1] != -1 && buffer->GetFrameSize()[2] != -1)
+    if(buffer->GetFrameSize()[0] != -1 && buffer->GetFrameSize()[1] != -1 && buffer->GetFrameSize()[2] != -1)
     {
       this->SetFrameSize(buffer->GetFrameSize());
     }
@@ -570,12 +568,12 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool Buffer::SetFrameSize(uint16 x, uint16 y, uint16 z)
   {
-    if (x != 0 && y != 0 && z == 0)
+    if(x != 0 && y != 0 && z == 0)
     {
       OutputDebugStringA("Single slice images should have a dimension of z=1");
       z = 1;
     }
-    if (this->FrameSize[0] == x && this->FrameSize[1] == y && this->FrameSize[2] == z)
+    if(this->FrameSize[0] == x && this->FrameSize[1] == y && this->FrameSize[2] == z)
     {
       // no change
       return true;
@@ -595,7 +593,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool Buffer::SetPixelType(int pixelType)
   {
-    if (pixelType == this->PixelType)
+    if(pixelType == this->PixelType)
     {
       // no change
       return true;
@@ -607,7 +605,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool Buffer::SetNumberOfScalarComponents(uint16 numberOfScalarComponents)
   {
-    if (numberOfScalarComponents == this->NumberOfScalarComponents)
+    if(numberOfScalarComponents == this->NumberOfScalarComponents)
     {
       // no change
       return true;
@@ -625,7 +623,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool Buffer::SetImageType(int imgType)
   {
-    if (imgType < US_IMG_TYPE_XX || imgType >= US_IMG_TYPE_LAST)
+    if(imgType < US_IMG_TYPE_XX || imgType >= US_IMG_TYPE_LAST)
     {
       OutputDebugStringW((L"Invalid image type attempted to set in the video buffer: " + VideoFrame::GetStringFromUsImageType(imgType))->Data());
       return false;
@@ -637,13 +635,13 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool Buffer::SetImageOrientation(int imgOrientation)
   {
-    if (imgOrientation < US_IMG_ORIENT_XX || imgOrientation >= US_IMG_ORIENT_LAST)
+    if(imgOrientation < US_IMG_ORIENT_XX || imgOrientation >= US_IMG_ORIENT_LAST)
     {
       OutputDebugStringW((L"Invalid image orientation attempted to set in the video buffer: " + VideoFrame::GetStringFromUsImageOrientation(imgOrientation))->Data());
       return false;
     }
     this->ImageOrientation = (US_IMAGE_ORIENTATION)imgOrientation;
-    for (uint32 frameNumber = 0; frameNumber < this->StreamBuffer->GetBufferSize(); frameNumber++)
+    for(uint32 frameNumber = 0; frameNumber < this->StreamBuffer->GetBufferSize(); frameNumber++)
     {
       this->StreamBuffer->GetBufferItemFromBufferIndex(frameNumber)->GetFrame()->SetImageOrientation(imgOrientation);
     }
@@ -686,18 +684,18 @@ namespace UWPOpenIGTLink
     {
       itemAuid = this->StreamBuffer->GetItemUidFromTime(time);
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
     {
       status = ITEM_NOT_AVAILABLE_ANYMORE;
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableYetException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableYetException&)
     {
       status = ITEM_NOT_AVAILABLE_YET;
     }
 
-    if (status != ITEM_OK)
+    if(status != ITEM_OK)
     {
-      switch (status)
+      switch(status)
       {
       case ITEM_NOT_AVAILABLE_YET:
       {
@@ -723,14 +721,14 @@ namespace UWPOpenIGTLink
     {
       itemA = this->GetStreamBufferItem(itemAuid);
     }
-    catch (const std::exception&)
+    catch(const std::exception&)
     {
       OutputDebugStringA((std::string("Buffer: Failed to get data buffer item with id: ") + std::to_string(itemAuid)).c_str());
       return nullptr;
     }
 
     // If tracker is out of view, etc. then we don't have a valid before and after the requested time, so we cannot do interpolation
-    if (itemA->GetStatus() != TOOL_OK)
+    if(itemA->GetStatus() != TOOL_OK)
     {
       // tracker is out of view, ...
       std::stringstream ss;
@@ -744,7 +742,7 @@ namespace UWPOpenIGTLink
     {
       itemAtime = this->StreamBuffer->GetTimeStamp(itemAuid);
     }
-    catch (const std::exception&)
+    catch(const std::exception&)
     {
       std::stringstream ss;
       ss << "Buffer: Failed to get data buffer timestamp (time: " << std::fixed << time << ", uid: " << itemAuid << ")";
@@ -753,7 +751,7 @@ namespace UWPOpenIGTLink
     }
 
     // If the time difference is negligible then don't interpolate, just return the closest item
-    if (fabs(itemAtime - time) < NEGLIGIBLE_TIME_DIFFERENCE)
+    if(fabs(itemAtime - time) < NEGLIGIBLE_TIME_DIFFERENCE)
     {
       //No need for interpolation, it's very close to the closest element
       itemB = itemA;
@@ -763,7 +761,7 @@ namespace UWPOpenIGTLink
     }
 
     // If the closest item is too far, then we don't do interpolation
-    if (fabs(itemAtime - time) > this->GetMaxAllowedTimeDifference())
+    if(fabs(itemAtime - time) > this->GetMaxAllowedTimeDifference())
     {
       std::stringstream ss;
       ss << "Buffer: Cannot perform interpolation, time difference compared to itemA is too big " << std::fixed << fabs(itemAtime - time) << " ( closest item time: " << itemAtime << ", requested time: " << time << ").";
@@ -773,7 +771,7 @@ namespace UWPOpenIGTLink
 
     // Find the closest item on the other side of the timescale (so that time is between itemAtime and itemBtime)
     BufferItemUidType itemBuid(0);
-    if (time < itemAtime)
+    if(time < itemAtime)
     {
       // itemBtime < time <itemAtime
       itemBuid = itemAuid - 1;
@@ -783,7 +781,7 @@ namespace UWPOpenIGTLink
       // itemAtime < time <itemBtime
       itemBuid = itemAuid + 1;
     }
-    if (itemBuid < this->GetOldestItemUidInBuffer() || itemBuid > this->GetLatestItemUidInBuffer())
+    if(itemBuid < this->GetOldestItemUidInBuffer() || itemBuid > this->GetLatestItemUidInBuffer())
     {
       // outItemB is not available
       std::stringstream ss;
@@ -798,12 +796,12 @@ namespace UWPOpenIGTLink
     {
       itemBtime = this->StreamBuffer->GetTimeStamp(itemBuid);
     }
-    catch (const std::exception&)
+    catch(const std::exception&)
     {
       status = ITEM_UNKNOWN_ERROR;
     }
 
-    if (status != ITEM_OK)
+    if(status != ITEM_OK)
     {
       std::stringstream ss;
       ss << "Cannot do interpolation: Failed to get data buffer timestamp with id: " << itemBuid;
@@ -812,7 +810,7 @@ namespace UWPOpenIGTLink
     }
 
     // If the next closest item is too far, then we don't do interpolation
-    if (fabs(itemBtime - time) > this->GetMaxAllowedTimeDifference())
+    if(fabs(itemBtime - time) > this->GetMaxAllowedTimeDifference())
     {
       std::stringstream ss;
       ss << "Buffer: Cannot perform interpolation, time difference compared to outItemB is too big " << std::fixed << fabs(itemBtime - time) << " ( itemBtime: " << itemBtime << ", requested time: " << time << ").";
@@ -825,12 +823,12 @@ namespace UWPOpenIGTLink
     {
       itemB = this->GetStreamBufferItem(itemBuid);
     }
-    catch (const std::exception&)
+    catch(const std::exception&)
     {
       status = ITEM_UNKNOWN_ERROR;
     }
 
-    if (status != ITEM_OK)
+    if(status != ITEM_OK)
     {
       std::stringstream ss;
       ss << "Buffer: Failed to get data buffer item with Uid: " << itemBuid;
@@ -838,7 +836,7 @@ namespace UWPOpenIGTLink
       return nullptr;
     }
     // If there is no valid element on the other side of the requested time, then we cannot do an interpolation
-    if (itemB->GetStatus() != TOOL_OK)
+    if(itemB->GetStatus() != TOOL_OK)
     {
       std::stringstream ss;
       ss << "Buffer: Cannot get a second element (uid=" << itemBuid << ") on the other side of the requested time (" << std::fixed << time << ")";
@@ -854,7 +852,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   StreamBufferItem^ Buffer::GetStreamBufferItemFromTime(float time, int interpolation)
   {
-    switch ((DATA_ITEM_TEMPORAL_INTERPOLATION)interpolation)
+    switch((DATA_ITEM_TEMPORAL_INTERPOLATION)interpolation)
     {
     case EXACT_TIME:
       return GetStreamBufferItemFromExactTime(time);
@@ -878,7 +876,7 @@ namespace UWPOpenIGTLink
       StreamBufferItem^ item = this->StreamBuffer->GetBufferItemFromUid(uid);
       item->SetCustomFrameField(key, value);
     }
-    catch (const std::exception&)
+    catch(const std::exception&)
     {
       std::stringstream ss;
       ss << "Buffer: Failed to get data buffer timestamp (time: " << std::fixed << time << ")";
@@ -899,7 +897,7 @@ namespace UWPOpenIGTLink
 
       // If the time difference is not negligible then return with failure
       float itemTime = item->GetFilteredTimestamp(this->StreamBuffer->GetLocalTimeOffsetSec());
-      if (fabs(itemTime - time) > NEGLIGIBLE_TIME_DIFFERENCE)
+      if(fabs(itemTime - time) > NEGLIGIBLE_TIME_DIFFERENCE)
       {
         std::stringstream ss;
         ss << "Buffer: Cannot find an item exactly at the requested time (requested time: " << std::fixed << time << ", item time: " << itemTime << ")";
@@ -909,7 +907,7 @@ namespace UWPOpenIGTLink
 
       return item;
     }
-    catch (const std::exception&)
+    catch(const std::exception&)
     {
       std::stringstream ss;
       ss << "Buffer: Failed to get data buffer timestamp (time: " << std::fixed << time << ")";
@@ -927,7 +925,7 @@ namespace UWPOpenIGTLink
       BufferItemUidType uid = this->StreamBuffer->GetItemUidFromTime(time);
       return this->GetStreamBufferItem(uid);
     }
-    catch (const std::exception&)
+    catch(const std::exception&)
     {
       std::stringstream ss;
       ss << "Buffer: Failed to get data buffer timestamp (time: " << std::fixed << time << ")";
@@ -949,7 +947,7 @@ namespace UWPOpenIGTLink
     StreamBufferItem^ itemB;
 
     auto vec = GetPrevNextBufferItemFromTime(time);
-    if (vec != nullptr)
+    if(vec != nullptr)
     {
       itemA = vec->GetAt(0);
       itemB = vec->GetAt(1);
@@ -965,7 +963,7 @@ namespace UWPOpenIGTLink
         bufferItem->SetStatus(TOOL_MISSING);   // if we return at any point due to an error then it means that the interpolation is not successful, so the item is missing
         return bufferItem;
       }
-      catch (const std::exception&)
+      catch(const std::exception&)
       {
         std::stringstream ss;
         ss << "Buffer: Failed to get data buffer timestamp (time: " << std::fixed << time << ")";
@@ -974,7 +972,7 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if (itemA->GetUid() == itemB->GetUid())
+    if(itemA->GetUid() == itemB->GetUid())
     {
       // exact match, no need for interpolation
       bufferItem->DeepCopy(itemA);
@@ -988,7 +986,7 @@ namespace UWPOpenIGTLink
     {
       itemAtime = this->StreamBuffer->GetTimeStamp(itemA->GetUid());
     }
-    catch (const std::exception&)
+    catch(const std::exception&)
     {
       std::stringstream ss;
       ss << "Buffer: Failed to get data buffer timestamp (time: " << std::fixed << time << ", uid: " << itemA->GetUid() << ")";
@@ -1001,7 +999,7 @@ namespace UWPOpenIGTLink
     {
       itemBtime = this->StreamBuffer->GetTimeStamp(itemB->GetUid());
     }
-    catch (const std::exception&)
+    catch(const std::exception&)
     {
       std::stringstream ss;
       ss << "Buffer: Failed to get data buffer timestamp (time: " << std::fixed << time << ", uid: " << itemB->GetUid() << ")";
@@ -1009,7 +1007,7 @@ namespace UWPOpenIGTLink
       return nullptr;
     }
 
-    if (fabs(itemAtime - itemBtime) < NEGLIGIBLE_TIME_DIFFERENCE)
+    if(fabs(itemAtime - itemBtime) < NEGLIGIBLE_TIME_DIFFERENCE)
     {
       // exact time match, no need for interpolation
       bufferItem->DeepCopy(itemA);
@@ -1027,7 +1025,7 @@ namespace UWPOpenIGTLink
     {
       itemAmatrix = itemA->GetMatrix();
     }
-    catch (const std::exception&)
+    catch(const std::exception&)
     {
       std::stringstream ss;
       ss << "Failed to get item A matrix";
@@ -1040,7 +1038,7 @@ namespace UWPOpenIGTLink
     {
       itemBmatrix = itemB->GetMatrix();
     }
-    catch (const std::exception&)
+    catch(const std::exception&)
     {
       std::stringstream ss;
       ss << "Failed to get item B matrix";
@@ -1081,7 +1079,7 @@ namespace UWPOpenIGTLink
 
     float angleDiffA = GetOrientationDifference(interpolatedMatrix, itemAmatrix);
     float angleDiffB = GetOrientationDifference(interpolatedMatrix, itemBmatrix);
-    if (fabs(angleDiffA) > ANGLE_INTERPOLATION_WARNING_THRESHOLD_DEG && fabs(angleDiffB) > ANGLE_INTERPOLATION_WARNING_THRESHOLD_DEG)
+    if(fabs(angleDiffA) > ANGLE_INTERPOLATION_WARNING_THRESHOLD_DEG && fabs(angleDiffB) > ANGLE_INTERPOLATION_WARNING_THRESHOLD_DEG)
     {
       InterpolatedAngleExceededThreshold(this, angleDiffA, angleDiffB, ANGLE_INTERPOLATION_WARNING_THRESHOLD_DEG);
     }
@@ -1127,18 +1125,18 @@ namespace UWPOpenIGTLink
       *outUid = this->StreamBuffer->GetItemUidFromTime(time);
       return ITEM_OK;
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableAnymoreException&)
     {
       return ITEM_NOT_AVAILABLE_ANYMORE;
     }
-    catch (const UWPOpenIGTLink::ItemNotAvailableYetException&)
+    catch(const UWPOpenIGTLink::ItemNotAvailableYetException&)
     {
       return ITEM_NOT_AVAILABLE_YET;
     }
   }
 
   //----------------------------------------------------------------------------
-  int Buffer::GetNumberOfItems()
+  BufferItemList::size_type Buffer::GetNumberOfItems()
   {
     return this->StreamBuffer->GetNumberOfItems();
   }

@@ -53,16 +53,16 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  bool TimestampedCircularBuffer::PrepareForNewItem(float timestamp, BufferItemUidType* newFrameUid, int* bufferIndex)
+  bool TimestampedCircularBuffer::PrepareForNewItem(float timestamp, BufferItemUidType* newFrameUid, BufferItemList::size_type* bufferIndex)
   {
-    if (newFrameUid == nullptr || bufferIndex == nullptr)
+    if(newFrameUid == nullptr || bufferIndex == nullptr)
     {
       return false;
     }
 
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
 
-    if (timestamp <= m_currentTimeStamp)
+    if(timestamp <= m_currentTimeStamp)
     {
       OutputDebugStringA((std::string("Need to skip newly added frame - new timestamp (") + std::to_string(timestamp) + ") is not newer than the last one (" + std::to_string(m_currentTimeStamp) + ")!").c_str());
       return false;
@@ -74,13 +74,13 @@ namespace UWPOpenIGTLink
     m_currentTimeStamp = timestamp;
 
     m_numberOfItems++;
-    if (m_numberOfItems > GetBufferSize())
+    if(m_numberOfItems > GetBufferSize())
     {
       m_numberOfItems = GetBufferSize();
     }
 
     // Increase the write pointer
-    if (++m_writePointer >= GetBufferSize())
+    if(++m_writePointer >= GetBufferSize())
     {
       m_writePointer = 0;
     }
@@ -91,23 +91,23 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   // Sets the buffer size, and copies the maximum number of the most current old
   // frames and timestamps
-  bool TimestampedCircularBuffer::SetBufferSize(uint32 newBufferSize)
+  bool TimestampedCircularBuffer::SetBufferSize(BufferItemList::size_type newBufferSize)
   {
-    if (newBufferSize < 0)
+    if(newBufferSize < 0)
     {
       OutputDebugStringA("SetBufferSize: invalid buffer size");
       return false;
     }
 
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
-    if (newBufferSize == GetBufferSize() && newBufferSize != 0)
+    if(newBufferSize == GetBufferSize() && newBufferSize != 0)
     {
       return true;
     }
 
-    if (GetBufferSize() == 0)
+    if(GetBufferSize() == 0)
     {
-      for (uint32 i = 0; i < newBufferSize; i++)
+      for(uint32 i = 0; i < newBufferSize; i++)
       {
         StreamBufferItem^ emptyBufferItem = ref new StreamBufferItem();
         m_bufferItemContainer.push_back(emptyBufferItem);
@@ -117,26 +117,26 @@ namespace UWPOpenIGTLink
       m_currentTimeStamp = 0.0;
     }
     // if the new buffer is bigger than the old buffer
-    else if (GetBufferSize() < newBufferSize)
+    else if(GetBufferSize() < newBufferSize)
     {
       std::deque<StreamBufferItem^>::iterator it = m_bufferItemContainer.begin() + m_writePointer;
-      const int numberOfNewBufferObjects = newBufferSize - GetBufferSize();
-      for (int i = 0; i < numberOfNewBufferObjects; ++i)
+      const BufferItemList::size_type numberOfNewBufferObjects = newBufferSize - GetBufferSize();
+      for(BufferItemList::size_type i = 0; i < numberOfNewBufferObjects; ++i)
       {
         StreamBufferItem^ emptyBufferItem = ref new StreamBufferItem();
         it = m_bufferItemContainer.insert(it, emptyBufferItem);
       }
     }
     // if the new buffer is smaller than the old buffer
-    else if (GetBufferSize() > newBufferSize)
+    else if(GetBufferSize() > newBufferSize)
     {
       // delete the oldest buffer objects
-      int oldBufferSize = GetBufferSize();
-      for (uint32 i = 0; i < oldBufferSize - newBufferSize; ++i)
+      BufferItemList::size_type oldBufferSize = GetBufferSize();
+      for(BufferItemList::size_type i = 0; i < oldBufferSize - newBufferSize; ++i)
       {
         std::deque<StreamBufferItem^>::iterator it = m_bufferItemContainer.begin() + m_writePointer;
         m_bufferItemContainer.erase(it);
-        if (m_writePointer >= GetBufferSize())
+        if(m_writePointer >= GetBufferSize())
         {
           m_writePointer = 0;
         }
@@ -144,7 +144,7 @@ namespace UWPOpenIGTLink
     }
 
     // update the number of items
-    if (m_numberOfItems > GetBufferSize())
+    if(m_numberOfItems > GetBufferSize())
     {
       m_numberOfItems = GetBufferSize();
     }
@@ -157,27 +157,28 @@ namespace UWPOpenIGTLink
   {
     // the caller must have locked the buffer
     BufferItemUidType oldestUid = m_latestItemUid - (m_numberOfItems - 1);
-    if (uid < oldestUid)
+    if(uid < oldestUid)
     {
       throw UWPOpenIGTLink::ItemNotAvailableAnymoreException();
     }
-    else if (uid > m_latestItemUid)
+    else if(uid > m_latestItemUid)
     {
       throw UWPOpenIGTLink::ItemNotAvailableYetException();
     }
-    int bufferIndex = (m_writePointer - 1) - (m_latestItemUid - uid);
-    if (bufferIndex < 0)
+    BufferItemList::size_type bufferIndex = (m_writePointer - 1) - (m_latestItemUid - uid);
+    if(bufferIndex > ((m_latestItemUid - uid) - (m_writePointer - 1)))
     {
-      bufferIndex += m_bufferItemContainer.size();
+      // Underflow
+      bufferIndex = m_bufferItemContainer.size() + (m_writePointer - 1) - (m_latestItemUid - uid);
     }
     return m_bufferItemContainer[bufferIndex];
   }
 
   //----------------------------------------------------------------------------
-  StreamBufferItem^ TimestampedCircularBuffer::GetBufferItemFromBufferIndex(uint32 bufferIndex)
+  StreamBufferItem^ TimestampedCircularBuffer::GetBufferItemFromBufferIndex(BufferItemList::size_type bufferIndex)
   {
     // the caller must have locked the buffer
-    if (GetBufferSize() <= 0 || bufferIndex >= GetBufferSize() || bufferIndex < 0)
+    if(GetBufferSize() <= 0 || bufferIndex >= GetBufferSize() || bufferIndex < 0)
     {
       throw std::out_of_range("Invalid index.");
     }
@@ -204,11 +205,11 @@ namespace UWPOpenIGTLink
   bool TimestampedCircularBuffer::GetLatestItemHasValidVideoData()
   {
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
-    if (m_numberOfItems < 1)
+    if(m_numberOfItems < 1)
     {
       return false;
     }
-    int latestItemBufferIndex = (m_writePointer > 0) ? (m_writePointer - 1) : (m_bufferItemContainer.size() - 1);
+    BufferItemList::size_type latestItemBufferIndex = (m_writePointer > 0) ? (m_writePointer - 1) : (m_bufferItemContainer.size() - 1);
     return m_bufferItemContainer[latestItemBufferIndex]->HasValidVideoData();
   }
 
@@ -216,11 +217,11 @@ namespace UWPOpenIGTLink
   bool TimestampedCircularBuffer::GetLatestItemHasValidTransformData()
   {
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
-    if (m_numberOfItems < 1)
+    if(m_numberOfItems < 1)
     {
       return false;
     }
-    int latestItemBufferIndex = (m_writePointer > 0) ? (m_writePointer - 1) : (m_bufferItemContainer.size() - 1);
+    BufferItemList::size_type latestItemBufferIndex = (m_writePointer > 0) ? (m_writePointer - 1) : (m_bufferItemContainer.size() - 1);
     return m_bufferItemContainer[latestItemBufferIndex]->HasValidTransformData();
   }
 
@@ -228,20 +229,20 @@ namespace UWPOpenIGTLink
   bool TimestampedCircularBuffer::GetLatestItemHasValidFieldData()
   {
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
-    if (m_numberOfItems < 1)
+    if(m_numberOfItems < 1)
     {
       return false;
     }
-    int latestItemBufferIndex = (m_writePointer > 0) ? (m_writePointer - 1) : (m_bufferItemContainer.size() - 1);
+    BufferItemList::size_type latestItemBufferIndex = (m_writePointer > 0) ? (m_writePointer - 1) : (m_bufferItemContainer.size() - 1);
     return m_bufferItemContainer[latestItemBufferIndex]->HasValidFieldData();
   }
 
   //----------------------------------------------------------------------------
-  uint32 TimestampedCircularBuffer::GetIndex(BufferItemUidType uid)
+  BufferItemList::size_type TimestampedCircularBuffer::GetIndex(BufferItemUidType uid)
   {
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
     StreamBufferItem^ itemPtr = GetBufferItemFromUid(uid);
-    if (itemPtr == nullptr)
+    if(itemPtr == nullptr)
     {
       return 0;
     }
@@ -249,16 +250,17 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  uint32 TimestampedCircularBuffer::GetBufferIndexFromTime(float time)
+  BufferItemList::size_type TimestampedCircularBuffer::GetBufferIndexFromTime(float time)
   {
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
 
     BufferItemUidType itemUid = GetItemUidFromTime(time);
 
-    int bufferIndex = (m_writePointer - 1) - (m_latestItemUid - itemUid);
-    if (bufferIndex < 0)
+    BufferItemList::size_type bufferIndex = (m_writePointer - 1) - (m_latestItemUid - itemUid);
+    if(bufferIndex > ((m_latestItemUid - itemUid) - (m_writePointer - 1)))
     {
-      bufferIndex += m_bufferItemContainer.size();
+      // Underflow
+      bufferIndex = m_bufferItemContainer.size() + (m_writePointer - 1) - (m_latestItemUid - itemUid);
     }
     return bufferIndex;
   }
@@ -270,7 +272,7 @@ namespace UWPOpenIGTLink
   {
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
 
-    if (m_numberOfItems == 1)
+    if(m_numberOfItems == 1)
     {
       // There is only one item, it's the closest one to any timestamp
       return m_latestItemUid;
@@ -281,37 +283,37 @@ namespace UWPOpenIGTLink
 
     // minimum time
     // This method is called often, therefore instead of calling GetTimeStamp(lo, tlo) we perform low-level operations to get the timestamp
-    int loBufferIndex = (m_writePointer - 1) - (m_latestItemUid - lo);
-    if (loBufferIndex < 0)
+    BufferItemList::size_type loBufferIndex = (m_writePointer - 1) - (m_latestItemUid - lo);
+    if(loBufferIndex > ((m_latestItemUid - lo) - (m_writePointer - 1)))
     {
-      loBufferIndex += m_bufferItemContainer.size();
+      loBufferIndex = m_bufferItemContainer.size() + (m_writePointer - 1) - (m_latestItemUid - lo);
     }
     float tlo = m_bufferItemContainer[loBufferIndex]->GetFilteredTimestamp(m_localTimeOffsetSec);
 
     // This method is called often, therefore instead of calling GetTimeStamp(hi, thi) we perform low-level operations to get the timestamp
-    int hiBufferIndex = (m_writePointer - 1) - (m_latestItemUid - hi);
-    if (hiBufferIndex < 0)
+    BufferItemList::size_type hiBufferIndex = (m_writePointer - 1) - (m_latestItemUid - hi);
+    if(hiBufferIndex > ((m_latestItemUid - hi) - (m_writePointer - 1)))
     {
-      hiBufferIndex += m_bufferItemContainer.size();
+      hiBufferIndex = m_bufferItemContainer.size() + (m_writePointer - 1) - (m_latestItemUid - hi);
     }
     float thi = m_bufferItemContainer[hiBufferIndex]->GetFilteredTimestamp(m_localTimeOffsetSec);
 
     // If the timestamp is slightly out of range then still accept it
     // (due to errors in conversions there could be slight differences)
-    if (time < tlo - m_negligibleTimeDifferenceSec)
+    if(time < tlo - m_negligibleTimeDifferenceSec)
     {
       throw UWPOpenIGTLink::ItemNotAvailableAnymoreException();
     }
-    else if (time > thi + m_negligibleTimeDifferenceSec)
+    else if(time > thi + m_negligibleTimeDifferenceSec)
     {
       throw UWPOpenIGTLink::ItemNotAvailableYetException();
     }
 
-    for (;;)
+    for(;;)
     {
-      if (hi - lo <= 1)
+      if(hi - lo <= 1)
       {
-        if (time - tlo > thi - time)
+        if(time - tlo > thi - time)
         {
           return hi;
         }
@@ -321,17 +323,17 @@ namespace UWPOpenIGTLink
         }
       }
 
-      int mid = (lo + hi) / 2;
+      BufferItemList::size_type mid = (lo + hi) / 2;
 
       // This is a hot loop, therefore instead of calling GetTimeStamp(mid, tmid) we perform low-level operations to get the timestamp
-      int midBufferIndex = (m_writePointer - 1) - (m_latestItemUid - mid);
-      if (midBufferIndex < 0)
+      BufferItemList::size_type midBufferIndex = (m_writePointer - 1) - (m_latestItemUid - mid);
+      if(midBufferIndex > ((m_latestItemUid - mid) - (m_writePointer - 1)))
       {
-        midBufferIndex += m_bufferItemContainer.size();
+        midBufferIndex = m_bufferItemContainer.size() + (m_writePointer - 1) - (m_latestItemUid - mid);
       }
       float tmid = m_bufferItemContainer[midBufferIndex]->GetFilteredTimestamp(m_localTimeOffsetSec);
 
-      if (time < tmid)
+      if(time < tmid)
       {
         hi = mid;
         thi = tmid;
@@ -425,24 +427,24 @@ namespace UWPOpenIGTLink
     bool cannotComputeIdealFrameRateDueToInvalidFrameNumbers = false;
 
     std::vector<float> framePeriods;
-    for (BufferItemUidType frame = GetLatestItemUidInBuffer(); frame > GetOldestItemUidInBuffer(); --frame)
+    for(BufferItemUidType frame = GetLatestItemUidInBuffer(); frame > GetOldestItemUidInBuffer(); --frame)
     {
       float time(0);
       try
       {
         time = GetTimeStamp(frame);
       }
-      catch (const std::exception&)
+      catch(const std::exception&)
       {
         continue;
       }
 
-      unsigned long framenum(0);
+      BufferItemList::size_type framenum(0);
       try
       {
         framenum = GetIndex(frame);
       }
-      catch (const std::exception&)
+      catch(const std::exception&)
       {
         continue;
       }
@@ -452,27 +454,27 @@ namespace UWPOpenIGTLink
       {
         prevtime = GetTimeStamp(frame - 1);
       }
-      catch (const std::exception&)
+      catch(const std::exception&)
       {
         continue;
       }
 
-      unsigned long prevframenum(0);
+      BufferItemList::size_type prevframenum(0);
       try
       {
         prevframenum = GetIndex(frame - 1);
       }
-      catch (const std::exception&)
+      catch(const std::exception&)
       {
         continue;
       }
 
       float frameperiod = (time - prevtime);
-      int frameDiff = framenum - prevframenum;
+      BufferItemList::size_type frameDiff = framenum - prevframenum;
 
-      if (ideal)
+      if(ideal)
       {
-        if (frameDiff > 0)
+        if(frameDiff > 0)
         {
           frameperiod /= (1.f * frameDiff);
         }
@@ -483,43 +485,43 @@ namespace UWPOpenIGTLink
         }
       }
 
-      if (frameperiod > 0)
+      if(frameperiod > 0)
       {
         framePeriods.push_back(frameperiod);
       }
     }
 
-    if (cannotComputeIdealFrameRateDueToInvalidFrameNumbers)
+    if(cannotComputeIdealFrameRateDueToInvalidFrameNumbers)
     {
       OutputDebugStringA("Cannot compute ideal frame rate accurately, as frame numbers are invalid or missing");
     }
 
-    const int numberOfFramePeriods = framePeriods.size();
-    if (numberOfFramePeriods < 1)
+    const BufferItemList::size_type numberOfFramePeriods = framePeriods.size();
+    if(numberOfFramePeriods < 1)
     {
       OutputDebugStringA("Failed to compute frame rate. Not enough samples.");
       return 0;
     }
 
     float samplingPeriod(0);
-    for (int i = 0; i < numberOfFramePeriods; i++)
+    for(BufferItemList::size_type i = 0; i < numberOfFramePeriods; i++)
     {
       samplingPeriod += framePeriods[i];
     }
     samplingPeriod /= 1.f * numberOfFramePeriods;
 
     float frameRate(0);
-    if (samplingPeriod != 0)
+    if(samplingPeriod != 0)
     {
       frameRate = 1.f / samplingPeriod;
     }
 
-    if (framePeriodStdevSec != nullptr)
+    if(framePeriodStdevSec != nullptr)
     {
       // Standard deviation of sampling period
       // stdev = sqrt ( 1/N * sum[ (xi-mean)^2 ] ) = sqrt ( 1/N * sumOfXiMeanDiffSquare )
       float sumOfXiMeanDiffSquare = 0;
-      for (int i = 0; i < numberOfFramePeriods; i++)
+      for(BufferItemList::size_type i = 0; i < numberOfFramePeriods; i++)
       {
         sumOfXiMeanDiffSquare += (framePeriods[i] - samplingPeriod) * (framePeriods[i] - samplingPeriod);
       }
@@ -535,7 +537,7 @@ namespace UWPOpenIGTLink
   // is computed to smooth out the jitter in the times that are returned by the system clock:
   bool TimestampedCircularBuffer::CreateFilteredTimeStampForItem(uint32 itemIndex, float inUnfilteredTimestamp, float* outFilteredTimestamp, bool* filteredTimestampProbablyValid)
   {
-    if (outFilteredTimestamp == nullptr || filteredTimestampProbablyValid == nullptr)
+    if(outFilteredTimestamp == nullptr || filteredTimestampProbablyValid == nullptr)
     {
       return false;
     }
@@ -543,7 +545,7 @@ namespace UWPOpenIGTLink
     std::lock_guard<std::recursive_mutex> bufferGuardedLock(m_mutex);
     *filteredTimestampProbablyValid = true;
 
-    if (m_filterContainerIndexVector.size() != m_averagedItemsForFiltering || m_filterContainerTimestampVector.size() != m_averagedItemsForFiltering)
+    if(m_filterContainerIndexVector.size() != m_averagedItemsForFiltering || m_filterContainerTimestampVector.size() != m_averagedItemsForFiltering)
     {
       // this call set elements to null
       m_filterContainerIndexVector.reserve(m_averagedItemsForFiltering);
@@ -553,26 +555,26 @@ namespace UWPOpenIGTLink
     }
 
     // We store the last AveragedItemsForFiltering unfiltered timestamp and item indexes, because these are used for computing the filtered timestamp.
-    if (m_averagedItemsForFiltering > 1)
+    if(m_averagedItemsForFiltering > 1)
     {
       m_filterContainerIndexVector[m_filterContainersOldestIndex] = itemIndex;
       m_filterContainerTimestampVector[m_filterContainersOldestIndex] = inUnfilteredTimestamp;
       m_filterContainersNumberOfValidElements++;
       m_filterContainersOldestIndex++;
 
-      if (m_filterContainersNumberOfValidElements > m_averagedItemsForFiltering)
+      if(m_filterContainersNumberOfValidElements > m_averagedItemsForFiltering)
       {
         m_filterContainersNumberOfValidElements = m_averagedItemsForFiltering;
       }
 
-      if (m_filterContainersOldestIndex >= m_averagedItemsForFiltering)
+      if(m_filterContainersOldestIndex >= m_averagedItemsForFiltering)
       {
         m_filterContainersOldestIndex = 0;
       }
     }
 
     // If we don't have enough unfiltered timestamps or we don't want to use filtering then just use the unfiltered timestamps
-    if (m_averagedItemsForFiltering < 2 || m_filterContainersNumberOfValidElements < m_averagedItemsForFiltering)
+    if(m_averagedItemsForFiltering < 2 || m_filterContainersNumberOfValidElements < m_averagedItemsForFiltering)
     {
       *outFilteredTimestamp = inUnfilteredTimestamp;
       return true;
@@ -604,7 +606,7 @@ namespace UWPOpenIGTLink
     float yMean = VectorMean<float>(m_filterContainerTimestampVector, 0.f);
     float covarianceXY = 0;
     float varianceX = 0;
-    for (int i = m_filterContainerTimestampVector.size() - 1; i >= 0; i--)
+    for(BufferItemList::size_type i = m_filterContainerTimestampVector.size() - 1; i >= 0; i--)
     {
       float xiMinusXmean = m_filterContainerIndexVector[i] - xMean;
       covarianceXY += xiMinusXmean * (m_filterContainerTimestampVector[i] - yMean);
@@ -615,7 +617,7 @@ namespace UWPOpenIGTLink
 
     *outFilteredTimestamp = a * itemIndex + b;
 
-    if (fabs(*outFilteredTimestamp - inUnfilteredTimestamp) > m_maxAllowedFilteringTimeDifference)
+    if(fabs(*outFilteredTimestamp - inUnfilteredTimestamp) > m_maxAllowedFilteringTimeDifference)
     {
       // Write current timestamps and frame indexes to the log to allow investigation of the problem
       filteredTimestampProbablyValid = false;
@@ -631,13 +633,13 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  uint32 TimestampedCircularBuffer::GetBufferSize()
+  BufferItemList::size_type TimestampedCircularBuffer::GetBufferSize()
   {
     return m_bufferItemContainer.size();
   }
 
   //----------------------------------------------------------------------------
-  uint32 TimestampedCircularBuffer::GetNumberOfItems()
+  BufferItemList::size_type TimestampedCircularBuffer::GetNumberOfItems()
   {
     return m_numberOfItems;
   }
