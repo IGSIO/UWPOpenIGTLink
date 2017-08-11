@@ -83,6 +83,7 @@
   <ItemGroup>
     <ClInclude Include="Content\Buffer.h" />
     <ClInclude Include="Content\Data\Command.h" />
+    <ClInclude Include="Content\Data\Polydata.h" />
     <ClInclude Include="Content\Data\TrackedFrame.h" />
     <ClInclude Include="Content\IGTClient.h" />
     <ClInclude Include="Content\Image.h" />
@@ -99,6 +100,7 @@
   <ItemGroup>
     <ClCompile Include="Content\Buffer.cxx" />
     <ClCompile Include="Content\Data\Command.cpp" />
+    <ClCompile Include="Content\Data\Polydata.cpp" />
     <ClCompile Include="Content\Data\TrackedFrame.cpp" />
     <ClCompile Include="Content\IGTClient.cxx" />
     <ClCompile Include="Content\Image.cxx" />

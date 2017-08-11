@@ -32,6 +32,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <igtlCommon.h>
 #include <igtlMessageHeader.h>
 #include <igtlOSUtil.h>
+#include <igtlPolyDataMessage.h>
 #include <igtlStatusMessage.h>
 
 // STL includes
@@ -351,13 +352,186 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  task<bool> IGTClient::SendMessageAsync(igtl::MessageBase::Pointer packedMessage)
+  Command^ IGTClient::GetCommandResult(uint32 commandId)
   {
-    if (packedMessage->GetMessageType() == "COMMAND")
+    // Scan received messages, link by command id
+    igtl::RTSCommandMessage::Pointer rtsCommandMsg(nullptr);
     {
-      // Keep track of requested message
-      // TODO : implement OpenIGTLink v2 query mechanism or PLUS command mechanism?
-      packedMessage->SetDeviceName()
+      // Retrieve the next available TDATA message
+      std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
+      if (m_receiveMessages.size() == 0)
+      {
+        return nullptr;
+      }
+      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
+      {
+        rtsCommandMsg = dynamic_cast<igtl::RTSCommandMessage*>(riter->GetPointer());
+        if (rtsCommandMsg != nullptr && rtsCommandMsg->GetCommandId() == commandId)
+        {
+          break;
+        }
+      }
+    }
+
+    if (rtsCommandMsg == nullptr)
+    {
+      return nullptr;
+    }
+
+    // Extract result
+    auto command = ref new Command();
+    std::string result;
+    if (!rtsCommandMsg->GetMetaDataElement("Result", result))
+    {
+      // Message was not sent with metadata, abort
+      OutputDebugStringA("Command response was not sent using v3 style metadata. Cannot process.");
+      return nullptr;
+    }
+
+    command->Result = (result == "true" ? true : false);
+    auto cmdName = rtsCommandMsg->GetCommandName();
+    command->CommandName = ref new Platform::String(std::wstring(begin(cmdName), end(cmdName)).c_str());
+    auto cmdContent = rtsCommandMsg->GetCommandContent();
+    command->CommandContent = ref new Platform::String(std::wstring(begin(cmdContent), end(cmdContent)).c_str());
+    command->OriginalCommandId = rtsCommandMsg->GetCommandId();
+    if (!command->Result)
+    {
+      std::string cmdError;
+      if (!rtsCommandMsg->GetMetaDataElement("Error", cmdError))
+      {
+        cmdError = "Unknown error. Not sent in metadata.";
+      }
+      command->ErrorString = ref new Platform::String(std::wstring(begin(cmdError), end(cmdError)).c_str());
+    }
+    auto map = ref new Platform::Collections::Map<Platform::String^, Platform::String^>();
+    for (auto& pair : rtsCommandMsg->GetMetaData())
+    {
+      map->Insert(ref new Platform::String(std::wstring(begin(pair.first), end(pair.first)).c_str()),
+                  ref new Platform::String(std::wstring(begin(pair.second.second), end(pair.second.second)).c_str()));
+    }
+    command->Parameters = map;
+
+    auto ts = igtl::TimeStamp::New();
+    rtsCommandMsg->GetTimeStamp(ts);
+    command->Timestamp = ts->GetTimeStamp();
+
+    return command;
+  }
+
+  //----------------------------------------------------------------------------
+  UWPOpenIGTLink::Polydata^ IGTClient::GetPolydata(Platform::String^ name)
+  {
+    std::wstring wname(name->Data());
+    std::string nameStr(begin(wname), end(wname));
+
+    igtl::PolyDataMessage::Pointer polyMessage(nullptr);
+    {
+      // Retrieve the next available TDATA message
+      std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
+      if (m_receiveMessages.size() == 0)
+      {
+        return nullptr;
+      }
+      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
+      {
+        std::string fileName;
+        if (!(*riter)->GetMetaDataElement("fileName", fileName))
+        {
+          continue;
+        }
+
+        if (std::string((*riter)->GetDeviceType()).compare("POLYDATA") == 0 && nameStr.compare(fileName) == 0)
+        {
+          polyMessage = dynamic_cast<igtl::PolyDataMessage*>(riter->GetPointer());
+          break;
+        }
+      }
+    }
+
+    if (polyMessage == nullptr)
+    {
+      return nullptr;
+    }
+
+    auto polydata = ref new Polydata();
+
+    auto ts = igtl::TimeStamp::New();
+    polyMessage->GetTimeStamp(ts);
+    polydata->Timestamp = ts->GetTimeStamp();
+
+    // If scalars are present
+    if (polyMessage->GetPoints() != nullptr)
+    {
+      auto posList = ref new Platform::Collections::Vector<float3>();
+      auto& points = *polyMessage->GetPoints();
+      for (auto& point : points)
+      {
+        assert(point.size() == 3);
+        posList->Append(float3(point[0], point[1], point[2]));
+      }
+      polydata->Positions = posList;
+    }
+
+    // If normals are present
+    if (polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_NORMAL) != nullptr)
+    {
+      auto normList = ref new Platform::Collections::Vector<float3>();
+      auto& entries = *polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_NORMAL);
+      for (uint32 i = 0; i < entries.GetSize(); ++i)
+      {
+        std::vector<float> normal;
+        entries.GetNthData(i, normal);
+        assert(normal.size() == 3);
+        normList->Append(float3(normal[0], normal[1], normal[2]));
+      }
+      polydata->Normals = normList;
+    }
+
+    // If texture coordinates are present
+    if (polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_TCOORDS) != nullptr)
+    {
+      auto tcoordList = ref new Platform::Collections::Vector<float3>();
+      auto& entries = *polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_TCOORDS);
+      for (uint32 i = 0; i < entries.GetSize(); ++i)
+      {
+        std::vector<float> tcoords;
+        entries.GetNthData(i, tcoords);
+        assert(tcoords.size() == 3);
+        tcoordList->Append(float3(tcoords[0], tcoords[1], tcoords[2]));
+      }
+      polydata->TextureCoords = tcoordList;
+    }
+
+    // TODO: for now, only support polygons? triangle strips?
+    if (polyMessage->GetPolygons() != nullptr)
+    {
+      auto indexList = ref new Platform::Collections::Vector<uint16>();
+      auto& indices = *polyMessage->GetPolygons();
+      for (uint32 i = 0; i < indices.GetNumberOfCells(); ++i)
+      {
+        igtl::PolyDataCellArray::Cell cell;
+        if (indices.GetCell(i, cell) == 1)
+        {
+          assert(cell.size() == 3);
+          auto iter = cell.begin();
+          indexList->Append(*iter++);
+          indexList->Append(*iter++);
+          indexList->Append(*iter);
+        }
+      }
+      polydata->Indices = indexList;
+    }
+
+    return polydata;
+  }
+
+  //----------------------------------------------------------------------------
+  task<bool> IGTClient::SendMessageAsyncInternal(igtl::MessageBase::Pointer packedMessage)
+  {
+    if (typeid(*packedMessage) == typeid(igtl::CommandMessage))
+    {
+      OutputDebugStringA("Do not send a command as a message. Use SendCommandAsync instead.");
+      return task_from_result(false);
     }
 
     std::lock_guard<std::mutex> guard(m_socketMutex);
@@ -378,12 +552,58 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  Concurrency::task<CommandData> IGTClient::SendCommandAsyncInternal(igtl::MessageBase::Pointer packedMessage)
+  {
+    if (typeid(*packedMessage) != typeid(igtl::CommandMessage))
+    {
+      OutputDebugStringA("Non command message sent to SendCommandAsync. Aborting.");
+      return task_from_result(CommandData() = {0, false});
+    }
+
+    // Keep track of requested message
+    igtl::CommandMessage* cmdMsg = dynamic_cast<igtl::CommandMessage*>(packedMessage.GetPointer());
+    cmdMsg->SetCommandId(m_nextQueryId);
+
+    std::lock_guard<std::mutex> guard(m_socketMutex);
+    m_sendStream->WriteBytes(Platform::ArrayReference<byte>((byte*)packedMessage->GetBufferPointer(), packedMessage->GetBufferSize()));
+    return create_task(m_sendStream->StoreAsync()).then([this, size = packedMessage->GetBufferSize()](task<uint32> writeTask)
+    {
+      uint32 bytesWritten;
+      try
+      {
+        bytesWritten = writeTask.get();
+        bool success = (bytesWritten == size);
+
+        std::lock_guard<std::mutex> guard(m_queriesMutex);
+        m_outstandingQueries.push_back(m_nextQueryId++);
+        CommandData command = { m_nextQueryId - 1, success };
+        return command;
+      }
+      catch (Platform::Exception^ exception)
+      {
+        CommandData command = { 0, false };
+        return command;
+      }
+    });
+  }
+
+  //----------------------------------------------------------------------------
   IAsyncOperation<bool>^ IGTClient::SendMessageAsync(MessageBasePointerPtr messageBasePointerPtr)
   {
     return create_async([this, messageBasePointerPtr]()
     {
       igtl::MessageBase::Pointer* messageBasePointer = (igtl::MessageBase::Pointer*)(messageBasePointerPtr);
-      return SendMessageAsync(*messageBasePointer);
+      return SendMessageAsyncInternal(*messageBasePointer);
+    });
+  }
+
+  //----------------------------------------------------------------------------
+  Windows::Foundation::IAsyncOperation<CommandData>^ IGTClient::SendCommandAsync(MessageBasePointerPtr messageBasePointerPtr)
+  {
+    return create_async([this, messageBasePointerPtr]()
+    {
+      igtl::MessageBase::Pointer* messageBasePointer = (igtl::MessageBase::Pointer*)(messageBasePointerPtr);
+      return SendCommandAsyncInternal(*messageBasePointer);
     });
   }
 
@@ -513,6 +733,46 @@ namespace UWPOpenIGTLink
         // Save reply
         std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
         m_receiveMessages.push_back(bodyMsg);
+      }
+      else if (typeid(*bodyMsg) == typeid(igtl::PolyDataMessage))
+      {
+        // We got ourselves a live one! 3D model sent over the network
+        SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+
+        c = bodyMsg->Unpack(1);
+        if (!(c & igtl::MessageHeader::UNPACK_BODY))
+        {
+          LOG_TRACE("Failed to receive reply (invalid body)");
+          continue;
+        }
+
+        // Save reply
+        std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
+        m_receiveMessages.push_back(bodyMsg);
+      }
+      else if (typeid(*bodyMsg) == typeid(igtl::RTSCommandMessage))
+      {
+        SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+
+        c = bodyMsg->Unpack(1);
+        if (!(c & igtl::MessageHeader::UNPACK_BODY))
+        {
+          LOG_TRACE("Failed to receive reply (invalid body)");
+          continue;
+        }
+
+        auto rtsCmdMsg = (igtl::RTSCommandMessage*)bodyMsg.GetPointer();
+
+        // Clear from outstanding queries
+        std::lock_guard<std::mutex> guard(m_queriesMutex);
+        for (auto iter = begin(m_outstandingQueries); iter != end(m_outstandingQueries); ++iter)
+        {
+          if ((*iter) == rtsCmdMsg->GetCommandId())
+          {
+            m_outstandingQueries.erase(iter);
+            break;
+          }
+        }
       }
       else
       {

@@ -25,32 +25,28 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #include <stdint.h>
 
-using namespace Platform;
-using namespace Windows::Foundation;
-using namespace Windows::Foundation::Collections;
-using namespace Windows::UI::Xaml::Controls;
-using namespace Windows::UI::Xaml::Media;
-
 namespace UWPOpenIGTLink
 {
-  public ref class Command sealed
+  public ref class Polydata sealed
   {
   public:
-    property bool Result {bool get(); void set(bool arg); }
-    property IMap<String^, String^>^ Parameters {IMap<String^, String^>^ get(); void set(IMap<String^, String^>^ arg); }
-    property uint32_t OriginalCommandId {uint32_t get(); void set(uint32_t arg); }
-    property String^ ErrorString {String ^ get(); void set(String ^ arg); }
-    property String^ CommandContent {String ^ get(); void set(String ^ arg); }
-    property String^ CommandName {String ^ get(); void set(String ^ arg); }
-    property double Timestamp {double get(); void set(double arg); }
+    typedef Windows::Foundation::Collections::IVector<Windows::Foundation::Numerics::float3> Float3List;
+    typedef Windows::Foundation::Collections::IVector<uint16> IndexList;
+
+    property double       Timestamp {double get(); void set(double arg); }
+    property Float3List^  Positions {Float3List ^ get(); void set(Float3List ^ arg);}
+    property Float3List^  Normals {Float3List ^ get(); void set(Float3List ^ arg);}
+    property Float3List^  TextureCoords {Float3List ^ get(); void set(Float3List ^ arg);}
+    property IndexList^   Indices {IndexList ^ get(); void set(IndexList ^ arg);}
 
   protected private:
-    bool                        m_Result;
-    IMap<String^, String^>^     m_Parameters;
-    uint32_t                    m_OriginalCommandId;
-    String^                     m_ErrorString;
-    String^                     m_CommandContent;
-    String^                     m_CommandName;
-    double                      m_timestamp;
+    typedef Platform::Collections::Vector<Windows::Foundation::Numerics::float3>  Float3ListInternal;
+    typedef Platform::Collections::Vector<uint16>                                 IndexListInternal;
+
+    double                      m_timestamp = 0.0;
+    Float3ListInternal^         m_positions = ref new Float3ListInternal;
+    Float3ListInternal^         m_normals = ref new Float3ListInternal;
+    Float3ListInternal^         m_textureCoords = ref new Float3ListInternal;
+    IndexListInternal^          m_indicies = ref new IndexListInternal;
   };
 }

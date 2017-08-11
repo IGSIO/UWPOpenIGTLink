@@ -61,7 +61,6 @@ namespace UWPOpenIGTLink
     Tracker: coordinate system of the tracker, unit is mm
     World: world coordinate system, orientation is usually patient RAS, unit is mm
   */
-  [Windows::Foundation::Metadata::WebHostHiddenAttribute]
   public ref class TransformRepository sealed
   {
   protected private:
@@ -103,6 +102,7 @@ namespace UWPOpenIGTLink
       set transform is allowed. The transform is computed even if one or more of the used transforms
       have non valid statuses.
     */
+    [Windows::Foundation::Metadata::DefaultOverloadAttribute]
     bool SetTransforms(TrackedFrame^ trackedFrame);
     bool SetTransforms(TransformListABI^ transforms);
 

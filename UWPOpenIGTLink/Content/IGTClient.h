@@ -26,6 +26,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 // Local includes
 #include "Command.h"
 #include "IGTCommon.h"
+#include "Polydata.h"
 #include "TrackedFrame.h"
 #include "TrackedFrameMessage.h"
 
@@ -47,6 +48,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 namespace UWPOpenIGTLink
 {
+  public value struct CommandData sealed
+  {
+  public:
+    uint32  CommandId;
+    bool    SentSuccessfully;
+  };
+
   ///
   /// \class IGTLinkClient
   /// \brief This class provides an OpenIGTLink client. It has basic functionality for sending and receiving messages
@@ -81,12 +89,24 @@ namespace UWPOpenIGTLink
     /// Retrieve the latest transform
     Transform^ GetTransform(TransformName^ name, double lastKnownTimestamp);
 
+    /// Retrieve the requested command result
+    Command^ GetCommandResult(uint32 commandId);
+
+    /// Retrieve the requested polydata result
+    Polydata^ GetPolydata(Platform::String^ name);
+
     /// Send a message to the connected server
     Windows::Foundation::IAsyncOperation<bool>^ SendMessageAsync(MessageBasePointerPtr messageBasePointerAsIntPtr);
 
+    /// Send a command to the connected server
+    Windows::Foundation::IAsyncOperation<CommandData>^ SendCommandAsync(MessageBasePointerPtr messageBasePointerAsIntPtr);
+
   internal:
     /// Send a packed message to the connected server
-    Concurrency::task<bool> SendMessageAsync(igtl::MessageBase::Pointer packedMessage);
+    Concurrency::task<bool> SendMessageAsyncInternal(igtl::MessageBase::Pointer packedMessage);
+
+    /// Send a packed message to the connected server
+    Concurrency::task<CommandData> SendCommandAsyncInternal(igtl::MessageBase::Pointer packedMessage);
 
     /// Threaded function to receive data from the connected server
     void DataReceiverPump();
@@ -132,8 +152,9 @@ namespace UWPOpenIGTLink
     std::vector<igtl::MessageBase::Pointer>           m_sendMessages;
 
     // Handle the OpenIGTLink query mechanism
-    uint64                                            m_nextQueryId = 1; // No reason not to use 0, reserving it just in case
-    std::vector<uint64>                               m_outstandingQueries;
+    uint32                                            m_nextQueryId = 1; // No reason not to use 0, reserving it just in case
+    std::vector<uint32>                               m_outstandingQueries;
+    mutable std::mutex                                m_queriesMutex;
 
     /// Server information
     float                                             m_trackerUnitScale = 0.001f; // Scales translation component of incoming transformations by the given factor

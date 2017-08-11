@@ -43,6 +43,9 @@
     <ClCompile Include="Content\IGTClient.cxx">
       <Filter>Network</Filter>
     </ClCompile>
+    <ClCompile Include="Content\Data\Polydata.cpp">
+      <Filter>Data</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Content\Data\TrackedFrame.h">
@@ -86,6 +89,9 @@
     </ClInclude>
     <ClInclude Include="Content\IGTClient.h">
       <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Content\Data\Polydata.h">
+      <Filter>Data</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
