@@ -545,7 +545,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void Buffer::DeepCopy(Buffer^ buffer)
   {
-    LOG_TRACE("Buffer::DeepCopy");
+    IGT_LOG_TRACE("Buffer::DeepCopy");
 
     this->StreamBuffer->DeepCopy(buffer->StreamBuffer);
     if(buffer->GetFrameSize()[0] != -1 && buffer->GetFrameSize()[1] != -1 && buffer->GetFrameSize()[2] != -1)

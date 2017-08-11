@@ -598,11 +598,36 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  Windows::Foundation::IAsyncOperation<CommandData>^ IGTClient::SendCommandAsync(MessageBasePointerPtr messageBasePointerPtr)
+  IAsyncOperation<CommandData>^ IGTClient::SendCommandAsync(Platform::String^ commandName, IMap<Platform::String^, Platform::String^>^ attributes)
   {
-    return create_async([this, messageBasePointerPtr]()
+    return create_async([this, commandName, attributes]()
     {
-      igtl::MessageBase::Pointer* messageBasePointer = (igtl::MessageBase::Pointer*)(messageBasePointerPtr);
+      // Construct XML from parameters
+      auto doc = ref new XmlDocument();
+
+      // Add root node
+      auto elem = doc->CreateElement(L"Command");
+      doc->AppendChild(elem);
+
+      auto docElem = doc->DocumentElement;
+      docElem->SetAttribute(L"Name", commandName);
+      for(auto& pair : attributes)
+      {
+        docElem->SetAttribute(pair->Key, pair->Value);
+      }
+
+      auto message = m_igtlMessageFactory->CreateSendMessage("COMMAND", IGTL_HEADER_VERSION_2);
+      auto commandMessage = dynamic_cast<igtl::CommandMessage*>(message.GetPointer());
+      commandMessage->SetContentEncoding(IANA_TYPE_US_ASCII);
+      std::wstring wCmdName(commandName->Data());
+      std::string cmdName(begin(wCmdName), end(wCmdName));
+      commandMessage->SetCommandName(cmdName);
+
+      std::wstring wCmdContent(docElem->GetXml()->Data());
+      std::string cmdContent(begin(wCmdContent), end(wCmdContent));
+      commandMessage->SetCommandContent(cmdContent);
+
+      igtl::MessageBase::Pointer* messageBasePointer = (igtl::MessageBase::Pointer*)(commandMessage);
       return SendCommandAsyncInternal(*messageBasePointer);
     });
   }
@@ -610,7 +635,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void IGTClient::DataReceiverPump()
   {
-    LOG_TRACE(L"IGTLinkClient::DataReceiverPump");
+    IGT_LOG_TRACE(L"IGTLinkClient::DataReceiverPump");
 
     auto headerMsg = m_igtlMessageFactory->CreateHeaderMessage(IGTL_HEADER_VERSION_1);
     auto token = m_receiverPumpTokenSource.get_token();
@@ -646,13 +671,13 @@ namespace UWPOpenIGTLink
         // Message header was not correct, skip this message
         // Will be impossible to tell if the body of this message is in the socket... this is a pretty bad corruption.
         // Force re-connect?
-        LOG_TRACE("Corruption in the message header. Serious error.");
+        IGT_LOG_TRACE("Corruption in the message header. Serious error.");
         continue;
       }
 
       if(bodyMsg.IsNull())
       {
-        LOG_TRACE("Unable to create message of type: " << headerMsg->GetMessageType());
+        IGT_LOG_TRACE("Unable to create message of type: " << headerMsg->GetMessageType());
         continue;
       }
 
@@ -664,7 +689,7 @@ namespace UWPOpenIGTLink
         c = bodyMsg->Unpack(1);
         if(!(c & igtl::MessageHeader::UNPACK_BODY))
         {
-          LOG_TRACE("Failed to receive reply (invalid body)");
+          IGT_LOG_TRACE("Failed to receive reply (invalid body)");
           continue;
         }
 
@@ -688,7 +713,7 @@ namespace UWPOpenIGTLink
         c = bodyMsg->Unpack(1);
         if(!(c & igtl::MessageHeader::UNPACK_BODY))
         {
-          LOG_TRACE("Failed to receive reply (invalid body)");
+          IGT_LOG_TRACE("Failed to receive reply (invalid body)");
           continue;
         }
 
@@ -718,7 +743,7 @@ namespace UWPOpenIGTLink
         c = bodyMsg->Unpack(1);
         if(!(c & igtl::MessageHeader::UNPACK_BODY))
         {
-          LOG_TRACE("Failed to receive reply (invalid body)");
+          IGT_LOG_TRACE("Failed to receive reply (invalid body)");
           continue;
         }
 
@@ -742,7 +767,7 @@ namespace UWPOpenIGTLink
         c = bodyMsg->Unpack(1);
         if(!(c & igtl::MessageHeader::UNPACK_BODY))
         {
-          LOG_TRACE("Failed to receive reply (invalid body)");
+          IGT_LOG_TRACE("Failed to receive reply (invalid body)");
           continue;
         }
 
@@ -757,7 +782,7 @@ namespace UWPOpenIGTLink
         c = bodyMsg->Unpack(1);
         if(!(c & igtl::MessageHeader::UNPACK_BODY))
         {
-          LOG_TRACE("Failed to receive reply (invalid body)");
+          IGT_LOG_TRACE("Failed to receive reply (invalid body)");
           continue;
         }
 
@@ -778,7 +803,7 @@ namespace UWPOpenIGTLink
       {
         // if the incoming message is not a reply to a command, we discard it and continue
         std::lock_guard<std::mutex> socketGuard(m_socketMutex);
-        LOG_TRACE("Received message: " << bodyMsg->GetMessageType() << " (not processed)");
+        IGT_LOG_TRACE("Received message: " << bodyMsg->GetMessageType() << " (not processed)");
         SocketReceive(nullptr, bodyMsg->GetBodySizeToRead());
       }
 

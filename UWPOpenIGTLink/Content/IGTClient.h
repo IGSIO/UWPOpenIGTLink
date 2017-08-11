@@ -101,7 +101,7 @@ namespace UWPOpenIGTLink
     Windows::Foundation::IAsyncOperation<bool>^ SendMessageAsync(MessageBasePointerPtr messageBasePointerAsIntPtr);
 
     /// Send a command to the connected server
-    Windows::Foundation::IAsyncOperation<CommandData>^ SendCommandAsync(MessageBasePointerPtr messageBasePointerAsIntPtr);
+    Windows::Foundation::IAsyncOperation<CommandData>^ SendCommandAsync(Platform::String^ commandName, Windows::Foundation::Collections::IMap<Platform::String^, Platform::String^>^ attributes);
 
   internal:
     /// Send a packed message to the connected server

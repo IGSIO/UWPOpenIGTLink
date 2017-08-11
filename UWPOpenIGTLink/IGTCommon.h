@@ -264,7 +264,7 @@ namespace UWPOpenIGTLink
 }
 
 #if defined(ENABLE_LOG_TRACE)
-#define LOG_TRACE(msg) LogMessage(msg, __FILE__, __LINE__);
+#define IGT_LOG_TRACE(msg) LogMessage(msg, __FILE__, __LINE__);
 #else
-#define LOG_TRACE(x) do {} while (0)
+#define IGT_LOG_TRACE(x) do {} while (0)
 #endif
