@@ -103,6 +103,9 @@ namespace UWPOpenIGTLink
     /// Send a command to the connected server
     Windows::Foundation::IAsyncOperation<CommandData>^ SendCommandAsync(Platform::String^ commandName, Windows::Foundation::Collections::IMap<Platform::String^, Platform::String^>^ attributes);
 
+    /// Answer if a command has been completed and result returned
+    bool IsCommandComplete(uint32 commandId);
+
   internal:
     /// Send a packed message to the connected server
     Concurrency::task<bool> SendMessageAsyncInternal(igtl::MessageBase::Pointer packedMessage);

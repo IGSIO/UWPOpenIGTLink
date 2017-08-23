@@ -633,6 +633,12 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  bool IGTClient::IsCommandComplete(uint32 commandId)
+  {
+    return std::find(begin(m_outstandingQueries), end(m_outstandingQueries), commandId) == end(m_outstandingQueries);
+  }
+
+  //----------------------------------------------------------------------------
   void IGTClient::DataReceiverPump()
   {
     IGT_LOG_TRACE(L"IGTLinkClient::DataReceiverPump");
