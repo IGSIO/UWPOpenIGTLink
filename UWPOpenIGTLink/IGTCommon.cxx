@@ -32,9 +32,15 @@ using namespace Windows::Foundation::Numerics;
 namespace
 {
   //----------------------------------------------------------------------------
-  bool icompare_pred(unsigned char a, unsigned char b)
+  bool compare_pred(std::string::value_type a, std::string::value_type b)
   {
     return ::tolower(a) == ::tolower(b);
+  }
+
+  //----------------------------------------------------------------------------
+  bool wcompare_pred(std::wstring::value_type a, std::wstring::value_type b)
+  {
+    return ::towlower(a) == ::towlower(b);
   }
 }
 
@@ -45,7 +51,62 @@ namespace UWPOpenIGTLink
   {
     if (a.length() == b.length())
     {
-      return std::equal(b.begin(), b.end(), a.begin(), icompare_pred);
+      return std::equal(begin(b), end(b), begin(a), compare_pred);
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  bool IsEqualInsensitive(std::wstring const& a, std::wstring const& b)
+  {
+    if (a.length() == b.length())
+    {
+      return std::equal(begin(b), end(b), begin(a), wcompare_pred);
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  bool IsEqualInsensitive(std::wstring const& a, Platform::String^ b)
+  {
+    if (a.length() == b->Length())
+    {
+      return std::equal(begin(b), end(b), begin(a), wcompare_pred);
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  bool IsEqualInsensitive(Platform::String^ a, std::wstring const& b)
+  {
+    std::wstring awStr(a->Data());
+    if (awStr.length() == b.length())
+    {
+      return std::equal(begin(b), end(b), begin(awStr), wcompare_pred);
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  bool IsEqualInsensitive(Platform::String^ a, Platform::String^ b)
+  {
+    std::wstring awStr(a->Data());
+    std::wstring bwStr(b->Data());
+    if (awStr.length() == bwStr.length())
+    {
+      return std::equal(begin(bwStr), end(bwStr), begin(awStr), wcompare_pred);
     }
     else
     {
