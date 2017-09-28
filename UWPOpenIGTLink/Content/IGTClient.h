@@ -66,15 +66,16 @@ namespace UWPOpenIGTLink
     typedef std::deque<igtl::MessageBase::Pointer> MessageList;
 
   public:
-    IGTClient();
-    virtual ~IGTClient();
-
     property Platform::String^ ServerPort {Platform::String ^ get(); void set(Platform::String^); }
     property Windows::Networking::HostName^ ServerHost { Windows::Networking::HostName ^ get(); void set(Windows::Networking::HostName^); }
     property int ServerIGTLVersion { int get(); void set(int); }
     property bool Connected { bool get(); }
     property float TrackerUnitScale { float get(); void set(float); }
     property TransformName^ EmbeddedImageTransformName { TransformName ^ get(); void set(TransformName^); }
+
+  public:
+    IGTClient();
+    virtual ~IGTClient();
 
     /// If timeoutSec > 0 then connection will be attempted multiple times until successfully connected or the timeout elapse
     Windows::Foundation::IAsyncOperation<bool>^ ConnectAsync(double timeoutSec);

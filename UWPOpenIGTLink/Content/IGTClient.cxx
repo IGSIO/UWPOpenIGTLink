@@ -653,7 +653,13 @@ namespace UWPOpenIGTLink
       // Receive generic header from the socket
       int numOfBytesReceived = 0;
       {
-        if(SocketReceive(headerMsg->GetBufferPointer(), headerMsg->GetBufferSize()) != headerMsg->GetBufferSize())
+        numOfBytesReceived = SocketReceive(headerMsg->GetBufferPointer(), headerMsg->GetBufferSize());
+        if (numOfBytesReceived == 0)
+        {
+          // Graceful disconnect, other end closes the connection
+          break;
+        }
+        if (numOfBytesReceived != headerMsg->GetBufferSize())
         {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
           continue;
