@@ -1,5 +1,5 @@
 /*====================================================================
-Copyright(c) 2016 Adam Rankin
+Copyright(c) 2017 Adam Rankin
 
 
 Permission is hereby granted, free of charge, to any person obtaining a
@@ -37,10 +37,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec)
 {
-  for(uint32 i = 0; i < vec.size(); ++i)
+  for (uint32 i = 0; i < vec.size(); ++i)
   {
     os << vec[i];
-    if(i != vec.size() - 1)
+    if (i != vec.size() - 1)
     {
       os << " ";
     }
@@ -183,6 +183,10 @@ namespace UWPOpenIGTLink
 
   //----------------------------------------------------------------------------
   bool IsEqualInsensitive(std::string const& a, std::string const& b);
+  bool IsEqualInsensitive(std::wstring const& a, std::wstring const& b);
+  bool IsEqualInsensitive(std::wstring const& a, Platform::String^ b);
+  bool IsEqualInsensitive(Platform::String^ a, std::wstring const& b);
+  bool IsEqualInsensitive(Platform::String^ a, Platform::String^ b);
 
   //--------------------------------------------------------
   void LogMessage(const std::string& msg, const char* fileName, int lineNumber);
@@ -201,7 +205,7 @@ namespace UWPOpenIGTLink
   float VectorMean(const std::vector<T>& vec, T initialValue)
   {
     float output = static_cast<float>(initialValue);
-    for(auto entry : vec)
+    for (auto entry : vec)
     {
       output += entry;
     }
@@ -214,14 +218,14 @@ namespace UWPOpenIGTLink
   template <typename t = byte>
   t * GetDataFromIBuffer(Windows::Storage::Streams::IBuffer^ container)
   {
-    if(container == nullptr)
+    if (container == nullptr)
     {
       return nullptr;
     }
 
     unsigned int bufferLength = container->Length;
 
-    if(!(bufferLength > 0))
+    if (!(bufferLength > 0))
     {
       return nullptr;
     }
@@ -231,14 +235,14 @@ namespace UWPOpenIGTLink
     Microsoft::WRL::ComPtr<IUnknown> pUnknown = reinterpret_cast<IUnknown*>(container);
     Microsoft::WRL::ComPtr<Windows::Storage::Streams::IBufferByteAccess> spByteAccess;
     hr = pUnknown.As(&spByteAccess);
-    if(FAILED(hr))
+    if (FAILED(hr))
     {
       return nullptr;
     }
 
     byte* pRawData = nullptr;
     hr = spByteAccess->Buffer(&pRawData);
-    if(FAILED(hr))
+    if (FAILED(hr))
     {
       return nullptr;
     }
@@ -264,7 +268,7 @@ namespace UWPOpenIGTLink
 }
 
 #if defined(ENABLE_LOG_TRACE)
-#define IGT_LOG_TRACE(msg) LogMessage(msg, __FILE__, __LINE__);
+  #define IGT_LOG_TRACE(msg) LogMessage(msg, __FILE__, __LINE__);
 #else
-#define IGT_LOG_TRACE(x) do {} while (0)
+  #define IGT_LOG_TRACE(x) do {} while (0)
 #endif
