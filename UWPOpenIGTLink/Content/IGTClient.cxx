@@ -650,18 +650,20 @@ namespace UWPOpenIGTLink
     {
       headerMsg->InitBuffer();
 
-      // Receive header from the socket
-      int32 numOfBytesReceived = 0;
-      HRESULT res = SocketReceive(headerMsg->GetBufferPointer(), headerMsg->GetBufferSize(), numOfBytesReceived);
-      if (res == WSAECONNRESET)
+      // Receive generic header from the socket
+      int numOfBytesReceived = 0;
       {
-        // Handle server side disconnects
-        break;
-      }
-      else if (res != S_OK || numOfBytesReceived == 0)
-      {
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
-        continue;
+        numOfBytesReceived = SocketReceive(headerMsg->GetBufferPointer(), headerMsg->GetBufferSize());
+        if (numOfBytesReceived == 0)
+        {
+          // Graceful disconnect, other end closes the connection
+          break;
+        }
+        if (numOfBytesReceived != headerMsg->GetBufferSize())
+        {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          continue;
+        }
       }
 
       int c = headerMsg->Unpack(1);
@@ -691,22 +693,11 @@ namespace UWPOpenIGTLink
         continue;
       }
 
-      // Receive rest of message attached to previously acquired header
-      res = SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize(), numOfBytesReceived);
-      if (res == WSAECONNRESET)
-      {
-        // Handle server side disconnects
-        break;
-      }
-      else if (res != S_OK || numOfBytesReceived == 0)
-      {
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
-        continue;
-      }
-
       // Accept all messages but status messages, they are used as a keep alive mechanism
       if (typeid(*bodyMsg) == typeid(igtl::TrackedFrameMessage))
       {
+        SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+
         c = bodyMsg->Unpack(1);
         if (!(c & igtl::MessageHeader::UNPACK_BODY))
         {
@@ -727,9 +718,9 @@ namespace UWPOpenIGTLink
       {
         if (bodyMsg->GetBufferBodySize() == 0)
         {
-          // No transforms packed into the body, skip
           continue;
         }
+        SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
 
         c = bodyMsg->Unpack(1);
         if (!(c & igtl::MessageHeader::UNPACK_BODY))
@@ -759,6 +750,8 @@ namespace UWPOpenIGTLink
       }
       else if (typeid(*bodyMsg) == typeid(igtl::TransformMessage))
       {
+        SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+
         c = bodyMsg->Unpack(1);
         if (!(c & igtl::MessageHeader::UNPACK_BODY))
         {
@@ -781,6 +774,8 @@ namespace UWPOpenIGTLink
       else if (typeid(*bodyMsg) == typeid(igtl::PolyDataMessage))
       {
         // We got ourselves a live one! 3D model sent over the network
+        SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+
         c = bodyMsg->Unpack(1);
         if (!(c & igtl::MessageHeader::UNPACK_BODY))
         {
@@ -794,6 +789,8 @@ namespace UWPOpenIGTLink
       }
       else if (typeid(*bodyMsg) == typeid(igtl::RTSCommandMessage))
       {
+        SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+
         c = bodyMsg->Unpack(1);
         if (!(c & igtl::MessageHeader::UNPACK_BODY))
         {
@@ -817,7 +814,9 @@ namespace UWPOpenIGTLink
       else
       {
         // if the incoming message is not a reply to a command, we discard it and continue
+        std::lock_guard<std::mutex> socketGuard(m_socketMutex);
         IGT_LOG_TRACE("Received message: " << bodyMsg->GetMessageType() << " (not processed)");
+        SocketReceive(nullptr, bodyMsg->GetBodySizeToRead());
       }
 
       PruneIGTMessages();
@@ -911,46 +910,32 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  HRESULT IGTClient::SocketReceive(void* dest, int32 size, int32& bytesRead)
+  int32 IGTClient::SocketReceive(void* dest, int size)
   {
     std::lock_guard<std::mutex> guard(m_socketMutex);
-    bytesRead = 0;
-    m_readStreamTimeoutSource = cancellation_token_source();
-    auto loadTask = create_task(m_readStream->LoadAsync(size), m_readStreamTimeoutSource.get_token());
+    auto readTask = create_task(m_readStream->LoadAsync(size));
+    int bytesRead(-1);
     try
     {
-      bytesRead = loadTask.get();
-    }
-    catch (const concurrency::task_canceled& e)
-    {
-      return S_OK;
-    }
+      bytesRead = readTask.get();
+      if (bytesRead != size)
+      {
+        return bytesRead;
+      }
 
-    if (bytesRead == 0)
-    {
-      return WSAECONNRESET;
-    }
-
-    try
-    {
-      auto buffer = m_readStream->ReadBuffer(bytesRead);
+      auto buffer = m_readStream->ReadBuffer(size);
       if (dest != nullptr)
       {
         auto header = GetDataFromIBuffer<byte>(buffer);
-        memcpy(dest, header, bytesRead);
+        memcpy(dest, header, size);
       }
     }
     catch (...)
     {
-      return E_FAIL;
+      return -1;
     }
 
-    if (bytesRead != size)
-    {
-      return E_FAIL;
-    }
-
-    return S_OK;
+    return bytesRead;
   }
 
   //----------------------------------------------------------------------------
