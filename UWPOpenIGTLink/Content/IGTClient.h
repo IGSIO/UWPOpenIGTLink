@@ -132,7 +132,7 @@ namespace UWPOpenIGTLink
     template<typename MessageTypePointer> double GetLatestTimestamp() const;
     template<typename MessageTypePointer> double GetOldestTimestamp() const;
 
-    int32 SocketReceive(void* dest, int size);
+    HRESULT SocketReceive(void* dest, int32 size, int32& bytesRead);
 
   protected private:
     /// igtl Factory for message sending
@@ -146,6 +146,7 @@ namespace UWPOpenIGTLink
     Windows::Networking::Sockets::StreamSocket^       m_clientSocket = ref new Windows::Networking::Sockets::StreamSocket();
     Windows::Storage::Streams::DataWriter^            m_sendStream = nullptr;
     Windows::Storage::Streams::DataReader^            m_readStream = nullptr;
+    Concurrency::cancellation_token_source            m_readStreamTimeoutSource;
     Windows::Networking::HostName^                    m_hostName = nullptr;
     std::atomic_bool                                  m_connected = false;
 
