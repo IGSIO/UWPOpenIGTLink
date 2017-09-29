@@ -91,8 +91,6 @@ namespace UWPOpenIGTLink
       return create_async([]() {return true;});
     }
 
-    m_receiverPumpTokenSource = cancellation_token_source();
-
     // Connect to the server (by default, the listener we created in the previous step).
     return create_async([this, timeoutSec]() -> task<bool>
     {
@@ -643,6 +641,8 @@ namespace UWPOpenIGTLink
   {
     IGT_LOG_TRACE(L"IGTLinkClient::DataReceiverPump");
 
+    m_receiverPumpTokenSource = cancellation_token_source();
+
     auto headerMsg = m_igtlMessageFactory->CreateHeaderMessage(IGTL_HEADER_VERSION_1);
     auto token = m_receiverPumpTokenSource.get_token();
 
@@ -814,7 +814,6 @@ namespace UWPOpenIGTLink
       else
       {
         // if the incoming message is not a reply to a command, we discard it and continue
-        std::lock_guard<std::mutex> socketGuard(m_socketMutex);
         IGT_LOG_TRACE("Received message: " << bodyMsg->GetMessageType() << " (not processed)");
         SocketReceive(nullptr, bodyMsg->GetBodySizeToRead());
       }
@@ -913,14 +912,14 @@ namespace UWPOpenIGTLink
   int32 IGTClient::SocketReceive(void* dest, int size)
   {
     std::lock_guard<std::mutex> guard(m_socketMutex);
-    auto readTask = create_task(m_readStream->LoadAsync(size));
-    int bytesRead(-1);
+    auto loadTask = create_task(m_readStream->LoadAsync(size));
+    int bytesLoaded(-1);
     try
     {
-      bytesRead = readTask.get();
-      if (bytesRead != size)
+      bytesLoaded = loadTask.get();
+      if (bytesLoaded != size)
       {
-        return bytesRead;
+        return bytesLoaded;
       }
 
       auto buffer = m_readStream->ReadBuffer(size);
@@ -935,7 +934,7 @@ namespace UWPOpenIGTLink
       return -1;
     }
 
-    return bytesRead;
+    return bytesLoaded;
   }
 
   //----------------------------------------------------------------------------
