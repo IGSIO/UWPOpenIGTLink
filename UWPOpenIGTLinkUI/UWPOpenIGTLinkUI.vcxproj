@@ -90,7 +90,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <PackageCertificateKeyFile>UWPOpenIGTLinkUI_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <PackageCertificateThumbprint>7361D9A683659E6D3A46AE4A705801ADEAB963E1</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>584F08EC72A1E05DE41BA57C68A94DAFBF5DF68B</PackageCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>

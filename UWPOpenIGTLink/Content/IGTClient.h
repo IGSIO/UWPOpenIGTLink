@@ -32,6 +32,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 // IGT includes
 #include <igtlClientSocket.h>
+#include <igtlCommandMessage.h>
 #include <igtlMessageFactory.h>
 #include <igtlTrackingDataMessage.h>
 #include <igtlTransformMessage.h>
@@ -112,7 +113,7 @@ namespace UWPOpenIGTLink
     Concurrency::task<bool> SendMessageAsyncInternal(igtl::MessageBase::Pointer packedMessage);
 
     /// Send a packed message to the connected server
-    Concurrency::task<CommandData> SendCommandAsyncInternal(igtl::MessageBase::Pointer packedMessage);
+    Concurrency::task<CommandData> SendCommandAsyncInternal(igtl::CommandMessage::Pointer packedMessage);
 
     /// Threaded function to receive data from the connected server
     void DataReceiverPump();

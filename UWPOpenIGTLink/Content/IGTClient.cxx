@@ -550,17 +550,10 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  Concurrency::task<CommandData> IGTClient::SendCommandAsyncInternal(igtl::MessageBase::Pointer packedMessage)
+  Concurrency::task<CommandData> IGTClient::SendCommandAsyncInternal(igtl::CommandMessage::Pointer packedMessage)
   {
-    if (typeid(*packedMessage) != typeid(igtl::CommandMessage))
-    {
-      OutputDebugStringA("Non command message sent to SendCommandAsync. Aborting.");
-      return task_from_result(CommandData() = {0, false});
-    }
-
     // Keep track of requested message
-    igtl::CommandMessage* cmdMsg = dynamic_cast<igtl::CommandMessage*>(packedMessage.GetPointer());
-    cmdMsg->SetCommandId(m_nextQueryId);
+    packedMessage->SetCommandId(m_nextQueryId);
 
     std::lock_guard<std::mutex> guard(m_socketMutex);
     m_sendStream->WriteBytes(Platform::ArrayReference<byte>((byte*)packedMessage->GetBufferPointer(), packedMessage->GetBufferSize()));
@@ -625,8 +618,7 @@ namespace UWPOpenIGTLink
       std::string cmdContent(begin(wCmdContent), end(wCmdContent));
       commandMessage->SetCommandContent(cmdContent);
 
-      igtl::MessageBase::Pointer* messageBasePointer = (igtl::MessageBase::Pointer*)(commandMessage);
-      return SendCommandAsyncInternal(*messageBasePointer);
+      return SendCommandAsyncInternal(commandMessage);
     });
   }
 

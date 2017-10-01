@@ -27,7 +27,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 // WinRT includes
 #include <collection.h>
-#include <ppl.h>
 #include <robuffer.h>
 
 // STL includes
@@ -82,8 +81,8 @@ namespace UWPOpenIGTLinkUI
   {
     InitializeComponent();
 
-    m_IGTClient->ServerHost = ref new HostName(L"192.168.0.103");
-    ServerHostnameTextBox->Text = L"192.168.0.103";
+    m_IGTClient->ServerHost = ref new HostName(L"192.168.0.26");
+    ServerHostnameTextBox->Text = L"192.168.0.26";
   }
 
   //----------------------------------------------------------------------------
@@ -164,9 +163,17 @@ namespace UWPOpenIGTLinkUI
     else
     {
       ConnectButton->Content = L"Connecting...";
-      create_task(m_IGTClient->ConnectAsync(2.0)).then([this](bool result)
+      create_task(m_IGTClient->ConnectAsync(2.0)).then([this](task<bool> connectTask)
       {
-        ProcessConnectionResult(result);
+        try
+        {
+          bool result = connectTask.get();
+          ProcessConnectionResult(result);
+        }
+        catch (...)
+        {
+          return;
+        }
       });
     }
   }
