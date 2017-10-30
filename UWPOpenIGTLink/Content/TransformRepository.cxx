@@ -14,9 +14,6 @@
 #include <sstream>
 #include <iomanip>
 
-// boost includes
-#include <boost/tokenizer.hpp>
-
 using namespace Platform::Collections::Details;
 using namespace Windows::Data::Xml::Dom;
 using namespace Windows::Foundation::Collections;
@@ -569,37 +566,36 @@ namespace UWPOpenIGTLink
       else
       {
         std::wstring matrixStr(matrixString->Data());
-
-        boost::char_separator<wchar_t> sep(L", ");
-        boost::tokenizer<boost::char_separator<wchar_t>, std::wstring::const_iterator, std::wstring> tokens(matrixStr, sep);
-
-        std::vector<float> vectorMatrix;
-        int i = 0;
-        for(const auto& t : tokens)
+        std::wstringstream wss;
+        wss << matrixStr;
+        float mat[16];
+        try
         {
-          vectorMatrix.push_back(stof(t));
+          for (int i = 0; i < 16; ++i)
+          {
+            wss >> mat[i];
+          }
+          matrix.m11 = mat[0];
+          matrix.m12 = mat[1];
+          matrix.m13 = mat[2];
+          matrix.m14 = mat[3];
+          matrix.m21 = mat[4];
+          matrix.m22 = mat[5];
+          matrix.m23 = mat[6];
+          matrix.m24 = mat[7];
+          matrix.m31 = mat[8];
+          matrix.m32 = mat[9];
+          matrix.m33 = mat[10];
+          matrix.m34 = mat[11];
+          matrix.m41 = mat[12];
+          matrix.m42 = mat[13];
+          matrix.m43 = mat[14];
+          matrix.m44 = mat[15];
         }
-        if(vectorMatrix.size() != 16)
+        catch (...)
         {
           numberOfErrors++;
-          continue;
         }
-        matrix.m11 = vectorMatrix[0];
-        matrix.m12 = vectorMatrix[1];
-        matrix.m13 = vectorMatrix[2];
-        matrix.m14 = vectorMatrix[3];
-        matrix.m21 = vectorMatrix[4];
-        matrix.m22 = vectorMatrix[5];
-        matrix.m23 = vectorMatrix[6];
-        matrix.m24 = vectorMatrix[7];
-        matrix.m31 = vectorMatrix[8];
-        matrix.m32 = vectorMatrix[9];
-        matrix.m33 = vectorMatrix[10];
-        matrix.m34 = vectorMatrix[11];
-        matrix.m41 = vectorMatrix[12];
-        matrix.m42 = vectorMatrix[13];
-        matrix.m43 = vectorMatrix[14];
-        matrix.m44 = vectorMatrix[15];
 
         try
         {
