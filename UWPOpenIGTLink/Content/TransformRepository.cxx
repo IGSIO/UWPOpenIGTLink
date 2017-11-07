@@ -78,7 +78,7 @@ namespace UWPOpenIGTLink
 
     // Check if the transform already exist
     CoordFrameToTransformMapType::iterator fromToTransformInfoIt = fromCoordFrame.find(toStr);
-    if(fromToTransformInfoIt != fromCoordFrame.end())
+    if (fromToTransformInfoIt != fromCoordFrame.end())
     {
       // transform is found
       return &(fromToTransformInfoIt->second);
@@ -92,7 +92,7 @@ namespace UWPOpenIGTLink
   {
     auto transforms = trackedFrame->GetFrameTransformsInternal();
     bool result(true);
-    for(auto& entry : transforms)
+    for (auto& entry : transforms)
     {
       result &= SetTransform(entry->Name, entry->Matrix, entry->Valid);
     }
@@ -104,7 +104,7 @@ namespace UWPOpenIGTLink
   bool TransformRepository::SetTransforms(TransformListABI^ transforms)
   {
     bool result(true);
-    for(auto entry : transforms)
+    for (auto entry : transforms)
     {
       result &= SetTransform(entry->Name, entry->Matrix, entry->Valid);
     }
@@ -115,12 +115,12 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool TransformRepository::SetTransform(TransformName^ aTransformName, float4x4 matrix, bool isValid)
   {
-    if(!aTransformName->IsValid())
+    if (!aTransformName->IsValid())
     {
       return false;
     }
 
-    if(aTransformName->From() == aTransformName->To())
+    if (aTransformName->From() == aTransformName->To())
     {
       return false;
     }
@@ -129,10 +129,10 @@ namespace UWPOpenIGTLink
 
     // Check if the transform already exist
     TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
-    if(fromToTransformInfo != NULL)
+    if (fromToTransformInfo != NULL)
     {
       // Transform already exists
-      if(fromToTransformInfo->m_IsComputed)
+      if (fromToTransformInfo->m_IsComputed)
       {
         // The transform already exists and it is computed (not original), so reject the transformation update
         return false;
@@ -147,7 +147,7 @@ namespace UWPOpenIGTLink
       // Set the same status for the computed inverse transform
       TransformName^ toFromTransformName = ref new TransformName(aTransformName->To(), aTransformName->From());
       TransformInfo* toFromTransformInfo = GetOriginalTransform(toFromTransformName);
-      if(toFromTransformInfo == NULL)
+      if (toFromTransformInfo == NULL)
       {
         return false;
       }
@@ -157,7 +157,7 @@ namespace UWPOpenIGTLink
     // The transform does not exist yet, add it now
 
     TransformInfoListType transformInfoList;
-    if(FindPath(aTransformName, transformInfoList, NULL, true /*silent*/))
+    if (FindPath(aTransformName, transformInfoList, NULL, true /*silent*/))
     {
       // a path already exist between the two coordinate frames
       // adding a new transform between these would result in a circle
@@ -185,12 +185,12 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool TransformRepository::SetTransformValid(TransformName^ aTransformName, bool isValid)
   {
-    if(!aTransformName->IsValid())
+    if (!aTransformName->IsValid())
     {
       return false;
     }
 
-    if(aTransformName->From() == aTransformName->To())
+    if (aTransformName->From() == aTransformName->To())
     {
       return false;
     }
@@ -199,7 +199,7 @@ namespace UWPOpenIGTLink
 
     // Check if the transform already exist
     TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
-    if(fromToTransformInfo != NULL)
+    if (fromToTransformInfo != NULL)
     {
       fromToTransformInfo->m_IsValid = isValid;
       return true;
@@ -213,7 +213,7 @@ namespace UWPOpenIGTLink
   {
     KeyValuePair<bool, float4x4>^ result = ref new KeyValuePair<bool, float4x4>(false, float4x4::identity());
 
-    if(aTransformName == nullptr || !aTransformName->IsValid() || aTransformName->From() == aTransformName->To())
+    if (aTransformName == nullptr || !aTransformName->IsValid() || aTransformName->From() == aTransformName->To())
     {
       return result;
     }
@@ -223,7 +223,7 @@ namespace UWPOpenIGTLink
     // Check if we can find the transform by combining the input transforms
     // To improve performance the already found paths could be stored in a map of transform name -> transformInfoList
     TransformInfoListType transformInfoList;
-    if(!FindPath(aTransformName, transformInfoList))
+    if (!FindPath(aTransformName, transformInfoList))
     {
       // the transform cannot be computed, error has been already logged by FindPath
       return result;
@@ -232,10 +232,10 @@ namespace UWPOpenIGTLink
     // Create transform chain and compute transform status
     float4x4 combinedTransform = float4x4::identity();
     bool combinedTransformValid(true);
-    for(auto& transformInfo : transformInfoList)
+    for (auto& transformInfo : transformInfoList)
     {
       combinedTransform = combinedTransform * transformInfo->m_Transform; // even though this operator shows m_transform on the right, this is actually premultiplication
-      if(!transformInfo->m_IsValid)
+      if (!transformInfo->m_IsValid)
       {
         combinedTransformValid = false;
       }
@@ -257,13 +257,13 @@ namespace UWPOpenIGTLink
   {
     std::lock_guard<std::mutex> guard(m_CriticalSection);
 
-    if(aTransformName->From() == aTransformName->To())
+    if (aTransformName->From() == aTransformName->To())
     {
       throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
     }
 
     TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
-    if(fromToTransformInfo != NULL)
+    if (fromToTransformInfo != NULL)
     {
       fromToTransformInfo->m_IsPersistent = isPersistent;
       return;
@@ -278,13 +278,13 @@ namespace UWPOpenIGTLink
   {
     std::lock_guard<std::mutex> guard(m_CriticalSection);
 
-    if(aTransformName->From() == aTransformName->To())
+    if (aTransformName->From() == aTransformName->To())
     {
       return false;
     }
 
     TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
-    if(fromToTransformInfo != NULL)
+    if (fromToTransformInfo != NULL)
     {
       return fromToTransformInfo->m_IsPersistent;
     }
@@ -298,13 +298,13 @@ namespace UWPOpenIGTLink
   {
     std::lock_guard<std::mutex> guard(m_CriticalSection);
 
-    if(aTransformName->From() == aTransformName->To())
+    if (aTransformName->From() == aTransformName->To())
     {
       throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
     }
 
     TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
-    if(fromToTransformInfo != NULL)
+    if (fromToTransformInfo != NULL)
     {
       fromToTransformInfo->m_Error = aError;
       return;
@@ -317,7 +317,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   double TransformRepository::GetTransformError(TransformName^ aTransformName)
   {
-    if(aTransformName->From() == aTransformName->To())
+    if (aTransformName->From() == aTransformName->To())
     {
       return 0.0;
     }
@@ -325,7 +325,7 @@ namespace UWPOpenIGTLink
     std::lock_guard<std::mutex> guard(m_CriticalSection);
 
     TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
-    if(fromToTransformInfo != NULL)
+    if (fromToTransformInfo != NULL)
     {
       return fromToTransformInfo->m_Error;
     }
@@ -337,7 +337,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void TransformRepository::SetTransformDate(TransformName^ aTransformName, Platform::String^ aDate)
   {
-    if(aTransformName->From() == aTransformName->To())
+    if (aTransformName->From() == aTransformName->To())
     {
       throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
     }
@@ -345,7 +345,7 @@ namespace UWPOpenIGTLink
     std::lock_guard<std::mutex> guard(m_CriticalSection);
 
     TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
-    if(fromToTransformInfo != NULL)
+    if (fromToTransformInfo != NULL)
     {
       fromToTransformInfo->m_Date = std::wstring(aDate->Data());
       return;
@@ -358,7 +358,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   Platform::String^ TransformRepository::GetTransformDate(TransformName^ aTransformName)
   {
-    if(aTransformName->From() == aTransformName->To())
+    if (aTransformName->From() == aTransformName->To())
     {
       return L"";
     }
@@ -366,7 +366,7 @@ namespace UWPOpenIGTLink
     std::lock_guard<std::mutex> guard(m_CriticalSection);
 
     TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
-    if(fromToTransformInfo != NULL)
+    if (fromToTransformInfo != NULL)
     {
       return ref new Platform::String(fromToTransformInfo->m_Date.c_str());
     }
@@ -378,13 +378,13 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool TransformRepository::FindPath(TransformName^ aTransformName, TransformInfoListType& transformInfoList, const wchar_t* skipCoordFrameName /*=NULL*/, bool silent /*=false*/)
   {
-    if(aTransformName->FromInternal() == aTransformName->ToInternal())
+    if (aTransformName->FromInternal() == aTransformName->ToInternal())
     {
       return false;
     }
 
     TransformInfo* fromToTransformInfo = GetOriginalTransform(aTransformName);
-    if(fromToTransformInfo != NULL)
+    if (fromToTransformInfo != NULL)
     {
       // found a transform
       transformInfoList.push_back(fromToTransformInfo);
@@ -392,37 +392,37 @@ namespace UWPOpenIGTLink
     }
     // not found, so try to find a path through all the connected coordinate frames
     CoordFrameToTransformMapType& fromCoordFrame = this->m_CoordinateFrames[aTransformName->FromInternal()];
-    for(CoordFrameToTransformMapType::iterator transformInfoIt = fromCoordFrame.begin(); transformInfoIt != fromCoordFrame.end(); ++transformInfoIt)
+    for (CoordFrameToTransformMapType::iterator transformInfoIt = fromCoordFrame.begin(); transformInfoIt != fromCoordFrame.end(); ++transformInfoIt)
     {
-      if(skipCoordFrameName != NULL && transformInfoIt->first.compare(std::wstring(skipCoordFrameName)) == 0)
+      if (skipCoordFrameName != NULL && transformInfoIt->first.compare(std::wstring(skipCoordFrameName)) == 0)
       {
         // coordinate frame shall be ignored
         // (probably it would just go back to the previous coordinate frame where we come from)
         continue;
       }
       TransformName^ newTransformName = ref new TransformName(transformInfoIt->first, aTransformName->ToInternal());
-      if(FindPath(newTransformName, transformInfoList, aTransformName->FromInternal().c_str(), true /*silent*/))
+      if (FindPath(newTransformName, transformInfoList, aTransformName->FromInternal().c_str(), true /*silent*/))
       {
         transformInfoList.push_back(&(transformInfoIt->second));
         return true;
       }
     }
-    if(!silent)
+    if (!silent)
     {
       // Print available transforms into a string, for troubleshooting information
       std::wostringstream osAvailableTransforms;
       bool firstPrintedTransform = true;
-      for(auto& coordFrame : m_CoordinateFrames)
+      for (auto& coordFrame : m_CoordinateFrames)
       {
-        for(auto& transformInfo : coordFrame.second)
+        for (auto& transformInfo : coordFrame.second)
         {
-          if(transformInfo.second.m_IsComputed)
+          if (transformInfo.second.m_IsComputed)
           {
             // only print original transforms
             continue;
           }
           // don't print separator before the first transform
-          if(firstPrintedTransform)
+          if (firstPrintedTransform)
           {
             firstPrintedTransform = false;
           }
@@ -450,7 +450,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   bool TransformRepository::IsExistingTransform(TransformName^ aTransformName, bool aSilent/* = true*/)
   {
-    if(aTransformName->From() == aTransformName->To())
+    if (aTransformName->From() == aTransformName->To())
     {
       return true;
     }
@@ -464,7 +464,7 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void TransformRepository::DeleteTransform(TransformName^ aTransformName)
   {
-    if(aTransformName->From() == aTransformName->To())
+    if (aTransformName->From() == aTransformName->To())
     {
       throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
     }
@@ -477,10 +477,10 @@ namespace UWPOpenIGTLink
     CoordFrameToTransformMapType& fromCoordFrame = this->m_CoordinateFrames[fromStr];
     CoordFrameToTransformMapType::iterator fromToTransformInfoIt = fromCoordFrame.find(toStr);
 
-    if(fromToTransformInfoIt != fromCoordFrame.end())
+    if (fromToTransformInfoIt != fromCoordFrame.end())
     {
       // from->to transform is found
-      if(fromToTransformInfoIt->second.m_IsComputed)
+      if (fromToTransformInfoIt->second.m_IsComputed)
       {
         // this is not an original transform (has not been set by the user)
         throw ref new Platform::Exception(E_FAIL, L"The " + aTransformName->From() + L" to " + aTransformName->To()
@@ -496,7 +496,7 @@ namespace UWPOpenIGTLink
 
     CoordFrameToTransformMapType& toCoordFrame = this->m_CoordinateFrames[toStr];
     CoordFrameToTransformMapType::iterator toFromTransformInfoIt = toCoordFrame.find(fromStr);
-    if(toFromTransformInfoIt != toCoordFrame.end())
+    if (toFromTransformInfoIt != toCoordFrame.end())
     {
       // to->from transform is found
       toCoordFrame.erase(toFromTransformInfoIt);
@@ -517,7 +517,7 @@ namespace UWPOpenIGTLink
   bool TransformRepository::ReadConfiguration(XmlDocument^ doc)
   {
     auto xpath = ref new Platform::String(L"/HoloIntervention/CoordinateDefinitions");
-    if(doc->SelectNodes(xpath)->Length != 1)
+    if (doc->SelectNodes(xpath)->Length != 1)
     {
       throw ref new Platform::Exception(E_INVALIDARG, L"TransformRepository::ReadConfiguration: no CoordinateDefinitions element was found");
     }
@@ -528,9 +528,9 @@ namespace UWPOpenIGTLink
     Clear();
 
     int numberOfErrors(0);
-    for(IXmlNode^ nestedElement : coordinateDefinitions->ChildNodes)
+    for (IXmlNode^ nestedElement : coordinateDefinitions->ChildNodes)
     {
-      if(nestedElement->NodeName != L"Transform")
+      if (nestedElement->NodeName != L"Transform")
       {
         continue;
       }
@@ -538,27 +538,27 @@ namespace UWPOpenIGTLink
       Platform::String^ fromAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"From")->NodeValue);
       Platform::String^ toAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"To")->NodeValue);
 
-      if(fromAttribute->IsEmpty() || toAttribute->IsEmpty())
+      if (fromAttribute->IsEmpty() || toAttribute->IsEmpty())
       {
         numberOfErrors++;
         continue;
       }
 
       TransformName^ transformName = ref new TransformName(fromAttribute, toAttribute);
-      if(!transformName->IsValid())
+      if (!transformName->IsValid())
       {
         numberOfErrors++;
         continue;
       }
 
       float4x4 matrix;
-      if(nestedElement->Attributes->GetNamedItem(L"Matrix") == nullptr)
+      if (nestedElement->Attributes->GetNamedItem(L"Matrix") == nullptr)
       {
         numberOfErrors++;
         continue;
       }
       Platform::String^ matrixString = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Matrix")->NodeValue);
-      if(matrixString->IsEmpty())
+      if (matrixString->IsEmpty())
       {
         numberOfErrors++;
         continue;
@@ -602,25 +602,25 @@ namespace UWPOpenIGTLink
           SetTransform(transformName, matrix, true);
           SetTransformPersistent(transformName, true);
 
-          if(nestedElement->Attributes->GetNamedItem(L"Error") != nullptr)
+          if (nestedElement->Attributes->GetNamedItem(L"Error") != nullptr)
           {
             Platform::String^ errorAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Error")->NodeValue);
-            if(!errorAttribute->IsEmpty())
+            if (!errorAttribute->IsEmpty())
             {
               SetTransformError(transformName, stod(std::wstring(errorAttribute->Data())));
             }
           }
 
-          if(nestedElement->Attributes->GetNamedItem(L"Date") != nullptr)
+          if (nestedElement->Attributes->GetNamedItem(L"Date") != nullptr)
           {
             Platform::String^ dateAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Date")->NodeValue);
-            if(!dateAttribute->IsEmpty())
+            if (!dateAttribute->IsEmpty())
             {
               SetTransformDate(transformName, dateAttribute);
             }
           }
         }
-        catch(...)
+        catch (...)
         {
           numberOfErrors++;
           continue;
@@ -628,7 +628,7 @@ namespace UWPOpenIGTLink
       }
     }
 
-    if(numberOfErrors > 0)
+    if (numberOfErrors > 0)
     {
       return false;
     }
@@ -643,10 +643,10 @@ namespace UWPOpenIGTLink
   {
     auto xpath = ref new Platform::String(L"/HoloIntervention/CoordinateDefinitions");
     XmlElement^ coordinateDefinitionsElement(nullptr);
-    if(doc->SelectNodes(xpath)->Length == 0)
+    if (doc->SelectNodes(xpath)->Length == 0)
     {
       auto rootXpath = ref new Platform::String(L"/HoloIntervention");
-      if(doc->SelectNodes(rootXpath)->Length == 0)
+      if (doc->SelectNodes(rootXpath)->Length == 0)
       {
         XmlElement^ rootElem = doc->CreateElement(L"HoloIntervention");
         doc->AppendChild(rootElem);
@@ -659,17 +659,17 @@ namespace UWPOpenIGTLink
       coordinateDefinitionsElement = dynamic_cast<XmlElement^>(doc->SelectNodes(xpath)->Item(0));
     }
 
-    if(coordinateDefinitionsElement == nullptr)
+    if (coordinateDefinitionsElement == nullptr)
     {
       return false;
     }
 
-    for(auto& coordFrame : m_CoordinateFrames)
+    for (auto& coordFrame : m_CoordinateFrames)
     {
-      for(auto& transformInfo : coordFrame.second)
+      for (auto& transformInfo : coordFrame.second)
       {
         // if copyAllTransforms is true => copy non persistent and persistent. if false => copy only persistent
-        if((transformInfo.second.m_IsPersistent || copyAllTransforms) && !transformInfo.second.m_IsComputed)
+        if ((transformInfo.second.m_IsPersistent || copyAllTransforms) && !transformInfo.second.m_IsComputed)
         {
           const std::wstring& fromCoordinateFrame = coordFrame.first;
           const std::wstring& toCoordinateFrame = transformInfo.first;
@@ -680,11 +680,11 @@ namespace UWPOpenIGTLink
           XmlElement^ newTransformElement = doc->CreateElement(L"Transform");
           newTransformElement->SetAttribute(L"From", ref new Platform::String(fromCoordinateFrame.c_str()));
           newTransformElement->SetAttribute(L"To", ref new Platform::String(toCoordinateFrame.c_str()));
-          if(persistent.compare(L"false") == 0)
+          if (persistent.compare(L"false") == 0)
           {
             newTransformElement->SetAttribute("Persistent", L"false");
           }
-          if(valid.compare(L"false") == 0)
+          if (valid.compare(L"false") == 0)
           {
             newTransformElement->SetAttribute("Valid", L"false");
           }
@@ -696,12 +696,12 @@ namespace UWPOpenIGTLink
 
           newTransformElement->SetAttribute("Matrix", ref new Platform::String(woss.str().c_str()));
 
-          if(transformInfo.second.m_Error > 0)
+          if (transformInfo.second.m_Error > 0)
           {
             newTransformElement->SetAttribute("Error", transformInfo.second.m_Error.ToString());
           }
 
-          if(!transformInfo.second.m_Date.empty())
+          if (!transformInfo.second.m_Date.empty())
           {
             newTransformElement->SetAttribute("Date", ref new Platform::String(transformInfo.second.m_Date.c_str()));
           }
@@ -718,8 +718,7 @@ namespace UWPOpenIGTLink
             woss << st.wMonth
                  << L"." << st.wDay
                  << L" " << st.wHour
-                 << L":" << st.wMinute
-                 << L"." << std::endl;
+                 << L":" << st.wMinute;
             newTransformElement->SetAttribute("Date", ref new Platform::String(woss.str().c_str()));
           }
 
