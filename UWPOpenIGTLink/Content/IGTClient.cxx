@@ -581,6 +581,14 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   IAsyncOperation<bool>^ IGTClient::SendMessageAsync(MessageBasePointerPtr messageBasePointerPtr)
   {
+    if (!Connected)
+    {
+      return create_async([this]()
+      {
+        return false;
+      });
+    }
+
     return create_async([this, messageBasePointerPtr]()
     {
       igtl::MessageBase::Pointer* messageBasePointer = (igtl::MessageBase::Pointer*)(messageBasePointerPtr);
@@ -591,6 +599,16 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   IAsyncOperation<CommandData>^ IGTClient::SendCommandAsync(Platform::String^ commandName, IMap<Platform::String^, Platform::String^>^ attributes)
   {
+    if (!this->Connected)
+    {
+      return create_async([this]()
+      {
+        CommandData data;
+        data.SentSuccessfully = false;
+        return data;
+      });
+    }
+
     return create_async([this, commandName, attributes]()
     {
       // Construct XML from parameters
