@@ -2,7 +2,7 @@
 Program: Plus
 Copyright (c) Laboratory for Percutaneous Surgery. All rights reserved.
 
-Modified by Adam Rankin, Robarts Research Institute, 2016
+Modified by Adam Rankin, Robarts Research Institute, 2017
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files(the "Software"),
@@ -29,7 +29,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 // Local includes
 #include "TransformName.h"
 
-// stl includes
+// STL includes
 #include <list>
 #include <map>
 #include <mutex>
@@ -37,6 +37,28 @@ OTHER DEALINGS IN THE SOFTWARE.
 namespace UWPOpenIGTLink
 {
   ref class TrackedFrame;
+
+  public ref class TransformInfo sealed
+  {
+  public:
+    TransformInfo();
+    virtual ~TransformInfo();
+
+    property Windows::Foundation::Numerics::float4x4 Matrix {Windows::Foundation::Numerics::float4x4 get(); void set(Windows::Foundation::Numerics::float4x4); }
+    property bool Valid {bool get(); void set(bool); }
+    property bool Computed {bool get(); void set(bool); }
+    property bool Persistent {bool get(); void set(bool); }
+    property Platform::String^ Date {Platform::String ^ get(); void set(Platform::String^); }
+    property float Error {float get(); void set(float); }
+
+  protected private:
+    Windows::Foundation::Numerics::float4x4   m_matrix;
+    bool                                      m_isValid;
+    bool                                      m_isComputed;
+    bool                                      m_isPersistent;
+    Platform::String^                         m_date = nullptr;
+    float                                     m_error;
+  };
 
   /*!
   TransformRepository
@@ -64,24 +86,9 @@ namespace UWPOpenIGTLink
   public ref class TransformRepository sealed
   {
   protected private:
-    class TransformInfo
-    {
-    public:
-      TransformInfo();
-      virtual ~TransformInfo();
-      TransformInfo(const TransformInfo& obj);
-      TransformInfo& operator=(const TransformInfo& obj);
-
-      Windows::Foundation::Numerics::float4x4   m_Transform;
-      bool                                      m_IsValid;
-      bool                                      m_IsComputed;
-      bool                                      m_IsPersistent;
-      std::wstring                              m_Date;
-      double                                    m_Error;
-    };
-    typedef std::map<std::wstring, TransformInfo>                 CoordFrameToTransformMapType;
+    typedef std::map<std::wstring, TransformInfo^>                 CoordFrameToTransformMapType;
     typedef std::map<std::wstring, CoordFrameToTransformMapType>  CoordFrameToCoordFrameToTransformMapType;
-    typedef std::list<TransformInfo*>                             TransformInfoListType;
+    typedef std::list<TransformInfo^>                             TransformInfoListType;
 
   public:
     TransformRepository();
@@ -119,7 +126,7 @@ namespace UWPOpenIGTLink
     void SetTransformPersistent(TransformName^ aTransformName, bool isPersistent);
 
     /*! Set the computation error of the transform matrix between two coordinate frames. */
-    void SetTransformError(TransformName^ aTransformName, double aError);
+    void SetTransformError(TransformName^ aTransformName, float aError);
 
     /*! Get the computation error of the transform matrix between two coordinate frames. */
     double GetTransformError(TransformName^ aTransformName);
@@ -182,7 +189,7 @@ namespace UWPOpenIGTLink
 
   protected private:
     /*! Get a user-defined original input transform (or its inverse). Does not combine user-defined input transforms. */
-    TransformInfo* GetOriginalTransform(TransformName^ aTransformName);
+    TransformInfo^ GetOriginalTransform(TransformName^ aTransformName);
 
     /*!
     Find a transform path between the specified coordinate frames.
