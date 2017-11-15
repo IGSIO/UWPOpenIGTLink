@@ -43,13 +43,29 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  Polydata::Float3List^ Polydata::Positions::get()
+  Polydata::Float4List^ Polydata::Colours::get()
+  {
+    return m_colours;
+  }
+
+  //----------------------------------------------------------------------------
+  void Polydata::Colours::set(Polydata::Float4List^ arg)
+  {
+    m_colours->Clear();
+    for (auto& entry : arg)
+    {
+      m_colours->Append(entry);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  Polydata::Float3List^ Polydata::Points::get()
   {
     return m_positions;
   }
 
   //----------------------------------------------------------------------------
-  void Polydata::Positions::set(Polydata::Float3List^ arg)
+  void Polydata::Points::set(Polydata::Float3List^ arg)
   {
     m_positions->Clear();
     for (auto& entry : arg)

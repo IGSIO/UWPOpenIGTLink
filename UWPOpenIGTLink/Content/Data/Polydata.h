@@ -33,22 +33,26 @@ namespace UWPOpenIGTLink
   public ref class Polydata sealed
   {
   public:
+    typedef Windows::Foundation::Collections::IVector<Windows::Foundation::Numerics::float4> Float4List;
     typedef Windows::Foundation::Collections::IVector<Windows::Foundation::Numerics::float3> Float3List;
     typedef Windows::Foundation::Collections::IVector<uint16> IndexList;
 
-    property double       Timestamp {double get(); void set(double arg); }
-    property Float3List^  Positions {Float3List ^ get(); void set(Float3List ^ arg);}
+    property double       Timestamp {double get(); void set(double arg);}
+    property Float3List^  Points {Float3List ^ get(); void set(Float3List ^ arg);}
     property Float3List^  Normals {Float3List ^ get(); void set(Float3List ^ arg);}
     property Float3List^  TextureCoords {Float3List ^ get(); void set(Float3List ^ arg);}
+    property Float4List^  Colours {Float4List ^ get(); void set(Float4List ^ arg);}
     property IndexList^   Indices {IndexList ^ get(); void set(IndexList ^ arg);}
 
   protected private:
+    typedef Platform::Collections::Vector<Windows::Foundation::Numerics::float4>  Float4ListInternal;
     typedef Platform::Collections::Vector<Windows::Foundation::Numerics::float3>  Float3ListInternal;
     typedef Platform::Collections::Vector<uint16>                                 IndexListInternal;
 
     double                      m_timestamp = 0.0;
     Float3ListInternal^         m_positions = ref new Float3ListInternal;
     Float3ListInternal^         m_normals = ref new Float3ListInternal;
+    Float4ListInternal^         m_colours = ref new Float4ListInternal;
     Float3ListInternal^         m_textureCoords = ref new Float3ListInternal;
     IndexListInternal^          m_indicies = ref new IndexListInternal;
   };
