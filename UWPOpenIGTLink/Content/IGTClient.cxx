@@ -470,7 +470,7 @@ namespace UWPOpenIGTLink
         assert(point.size() == 3);
         posList->Append(float3(point[0], point[1], point[2]));
       }
-      polydata->Positions = posList;
+      polydata->Points = posList;
     }
 
     // If normals are present
@@ -486,6 +486,21 @@ namespace UWPOpenIGTLink
         normList->Append(float3(normal[0], normal[1], normal[2]));
       }
       polydata->Normals = normList;
+    }
+
+    // If colours are present
+    if (polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_RGBA) != nullptr)
+    {
+      auto colourList = ref new Platform::Collections::Vector<float4>();
+      auto& entries = *polyMessage->GetAttribute(igtl::PolyDataAttribute::POINT_RGBA);
+      for (uint32 i = 0; i < entries.GetSize(); ++i)
+      {
+        std::vector<float> rgba;
+        entries.GetNthData(i, rgba);
+        assert(rgba.size() == 4);
+        colourList->Append(float4(rgba[0], rgba[1], rgba[2], rgba[3]));
+      }
+      polydata->Colours = colourList;
     }
 
     // If texture coordinates are present
@@ -521,6 +536,61 @@ namespace UWPOpenIGTLink
         }
       }
       polydata->Indices = indexList;
+    }
+
+    for (auto keyEncPair : polyMessage->GetMetaData())
+    {
+      auto key = keyEncPair.first;
+      auto val = keyEncPair.second.second;
+      if (IsEqualInsensitive(key, "Ka"))
+      {
+        float4 amb(0.f, 0.f, 0.f, 1.f);
+        std::istringstream ss(val);
+        ss >> amb.x >> amb.y >> amb.z;
+        polydata->Mat->Ambient = amb;
+      }
+      else if (IsEqualInsensitive(key, "Kd"))
+      {
+        float4 diffuse(0.f, 0.f, 0.f, 1.f);
+        std::istringstream ss(val);
+        ss >> diffuse.x >> diffuse.y >> diffuse.z;
+        polydata->Mat->Diffuse = diffuse;
+      }
+      else if (IsEqualInsensitive(key, "Ks"))
+      {
+        float4 spec(0.f, 0.f, 0.f, 1.f);
+        std::istringstream ss(val);
+        ss >> spec.x >> spec.y >> spec.z;
+        polydata->Mat->Specular = spec;
+      }
+      else if (IsEqualInsensitive(key, "Ke"))
+      {
+        float4 emissive(0.f, 0.f, 0.f, 1.f);
+        std::istringstream ss(val);
+        ss >> emissive.x >> emissive.y >> emissive.z;
+        polydata->Mat->Emissive = emissive;
+      }
+      else if (IsEqualInsensitive(key, "Tr"))
+      {
+        float transparency;
+        std::istringstream ss(val);
+        ss >> transparency;
+        polydata->Mat->Transparency = transparency;
+      }
+      else if (IsEqualInsensitive(key, "illum"))
+      {
+        int32 model;
+        std::istringstream ss(val);
+        ss >> model;
+        polydata->Mat->Model = static_cast<IlluminationModel>(model);
+      }
+      else if (IsEqualInsensitive(key, "Ns"))
+      {
+        float specExp;
+        std::istringstream ss(val);
+        ss >> specExp;
+        polydata->Mat->SpecularExponent = specExp;
+      }
     }
 
     return polydata;
