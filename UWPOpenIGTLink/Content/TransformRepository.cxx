@@ -238,12 +238,14 @@ namespace UWPOpenIGTLink
     std::wstring fromStr(aTransformName->From()->Data());
     std::wstring toStr(aTransformName->To()->Data());
     CoordFrameToTransformMapType& fromCoordFrame = this->m_CoordinateFrames[fromStr];
+    fromCoordFrame[toStr] = ref new TransformInfo();
     fromCoordFrame[toStr]->Computed = false;
     fromCoordFrame[toStr]->Matrix = matrix;
     fromCoordFrame[toStr]->Valid = isValid;
 
     // Create the to->from inverse transform
     CoordFrameToTransformMapType& toCoordFrame = this->m_CoordinateFrames[toStr];
+    toCoordFrame[fromStr] = ref new TransformInfo();
     toCoordFrame[fromStr]->Computed = true;
     invert(matrix, &matrix);
     toCoordFrame[fromStr]->Matrix = matrix;
