@@ -132,7 +132,7 @@ namespace UWPOpenIGTLink
     double GetTransformError(TransformName^ aTransformName);
 
     /*! Set the computation date of the transform matrix between two coordinate frames. */
-    void SetTransformDate(TransformName^ aTransformName, Platform::String^ aDate);
+    bool SetTransformDate(TransformName^ aTransformName, Platform::String^ aDate);
 
     /*! Get the computation date of the transform matrix between two coordinate frames. */
     Platform::String^ GetTransformDate(TransformName^ aTransformName);
@@ -176,7 +176,7 @@ namespace UWPOpenIGTLink
     bool GetTransformPersistent(TransformName^ aTransformName);
 
     /// Removes a transform from the repository
-    void DeleteTransform(TransformName^ aTransformName);
+    bool DeleteTransform(TransformName^ aTransformName);
 
     /// Removes all the transforms from the repository
     void Clear();

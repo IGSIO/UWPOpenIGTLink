@@ -399,8 +399,7 @@ namespace UWPOpenIGTLink
       return fromToTransformInfo->Error;
     }
 
-    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
-                                      + L" transform is missing. Cannot get computation error value.");
+    return 0.0;
   }
 
   //----------------------------------------------------------------------------
@@ -428,7 +427,7 @@ namespace UWPOpenIGTLink
   {
     if (aTransformName->From() == aTransformName->To())
     {
-      return L"";
+      return nullptr;
     }
 
     std::lock_guard<std::mutex> guard(m_CriticalSection);
@@ -439,8 +438,7 @@ namespace UWPOpenIGTLink
       return fromToTransformInfo->Date;
     }
 
-    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
-                                      + L" transform is missing. Cannot get computation date.");
+    return nullptr;
   }
 
   //----------------------------------------------------------------------------
@@ -530,11 +528,11 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::DeleteTransform(TransformName^ aTransformName)
+  bool TransformRepository::DeleteTransform(TransformName^ aTransformName)
   {
     if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
+      return false;
     }
 
     std::lock_guard<std::mutex> guard(m_CriticalSection);
@@ -551,15 +549,13 @@ namespace UWPOpenIGTLink
       if (fromToTransformInfoIt->second->Computed)
       {
         // this is not an original transform (has not been set by the user)
-        throw ref new Platform::Exception(E_FAIL, L"The " + aTransformName->From() + L" to " + aTransformName->To()
-                                          + L" transform cannot be deleted, only the inverse of the transform has been set in the repository ("
-                                          + aTransformName->From() + L" to " + aTransformName->To() + L")");
+        return false;
       }
       fromCoordFrame.erase(fromToTransformInfoIt);
     }
     else
     {
-      throw ref new Platform::Exception(E_FAIL, L"Delete transform failed: could not find the " + aTransformName->From() + L" to " + aTransformName->To() + L" transform");
+      return false;
     }
 
     CoordFrameToTransformMapType& toCoordFrame = this->m_CoordinateFrames[toStr];
@@ -571,8 +567,10 @@ namespace UWPOpenIGTLink
     }
     else
     {
-      throw ref new Platform::Exception(E_FAIL, L"Delete transform failed: could not find the " + aTransformName->To() + L" to " + aTransformName->From() + L" transform");
+      return false;
     }
+
+    return true;
   }
 
   //----------------------------------------------------------------------------
@@ -587,7 +585,7 @@ namespace UWPOpenIGTLink
     auto xpath = ref new Platform::String(L"/HoloIntervention/CoordinateDefinitions");
     if (doc->SelectNodes(xpath)->Length != 1)
     {
-      throw ref new Platform::Exception(E_INVALIDARG, L"TransformRepository::ReadConfiguration: no CoordinateDefinitions element was found");
+      return false;
     }
 
     IXmlNode^ coordinateDefinitions = doc->SelectNodes(xpath)->Item(0);
