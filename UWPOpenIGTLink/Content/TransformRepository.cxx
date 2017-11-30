@@ -404,11 +404,11 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransformDate(TransformName^ aTransformName, Platform::String^ aDate)
+  bool TransformRepository::SetTransformDate(TransformName^ aTransformName, Platform::String^ aDate)
   {
     if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
+      return false;
     }
 
     std::lock_guard<std::mutex> guard(m_CriticalSection);
@@ -417,11 +417,10 @@ namespace UWPOpenIGTLink
     if (fromToTransformInfo != nullptr)
     {
       fromToTransformInfo->Date = aDate;
-      return;
+      return true;
     }
 
-    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
-                                      + L" transform is missing. Cannot set computation date.");
+    return false;
   }
 
   //----------------------------------------------------------------------------
@@ -666,33 +665,41 @@ namespace UWPOpenIGTLink
           numberOfErrors++;
         }
 
-        try
-        {
-          SetTransform(transformName, matrix, true);
-          SetTransformPersistent(transformName, true);
-
-          if (nestedElement->Attributes->GetNamedItem(L"Error") != nullptr)
-          {
-            Platform::String^ errorAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Error")->NodeValue);
-            if (!errorAttribute->IsEmpty())
-            {
-              SetTransformError(transformName, stod(std::wstring(errorAttribute->Data())));
-            }
-          }
-
-          if (nestedElement->Attributes->GetNamedItem(L"Date") != nullptr)
-          {
-            Platform::String^ dateAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Date")->NodeValue);
-            if (!dateAttribute->IsEmpty())
-            {
-              SetTransformDate(transformName, dateAttribute);
-            }
-          }
-        }
-        catch (...)
+        if (!SetTransform(transformName, matrix, true))
         {
           numberOfErrors++;
           continue;
+        }
+        if (!SetTransformPersistent(transformName, true))
+        {
+          numberOfErrors++;
+          continue;
+        }
+
+        if (nestedElement->Attributes->GetNamedItem(L"Error") != nullptr)
+        {
+          Platform::String^ errorAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Error")->NodeValue);
+          if (!errorAttribute->IsEmpty())
+          {
+            if (!SetTransformError(transformName, stof(std::wstring(errorAttribute->Data()))))
+            {
+              numberOfErrors++;
+              continue;
+            }
+          }
+        }
+
+        if (nestedElement->Attributes->GetNamedItem(L"Date") != nullptr)
+        {
+          Platform::String^ dateAttribute = dynamic_cast<Platform::String^>(nestedElement->Attributes->GetNamedItem(L"Date")->NodeValue);
+          if (!dateAttribute->IsEmpty())
+          {
+            if (!SetTransformDate(transformName, dateAttribute))
+            {
+              numberOfErrors++;
+              continue;
+            }
+          }
         }
       }
     }
