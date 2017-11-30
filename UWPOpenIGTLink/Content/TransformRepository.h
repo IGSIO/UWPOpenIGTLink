@@ -86,7 +86,7 @@ namespace UWPOpenIGTLink
   public ref class TransformRepository sealed
   {
   protected private:
-    typedef std::map<std::wstring, TransformInfo^>                 CoordFrameToTransformMapType;
+    typedef std::map<std::wstring, TransformInfo^>                CoordFrameToTransformMapType;
     typedef std::map<std::wstring, CoordFrameToTransformMapType>  CoordFrameToCoordFrameToTransformMapType;
     typedef std::list<TransformInfo^>                             TransformInfoListType;
 

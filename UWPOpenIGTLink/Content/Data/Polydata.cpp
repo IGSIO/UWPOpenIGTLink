@@ -28,8 +28,118 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "pch.h"
 #include "Polydata.h"
 
+using namespace Windows::Foundation::Numerics;
+
 namespace UWPOpenIGTLink
 {
+  //----------------------------------------------------------------------------
+  Platform::String^ Material::Name::get()
+  {
+    return m_name;
+  }
+
+  //----------------------------------------------------------------------------
+  void Material::Name::set(Platform::String^ arg)
+  {
+    m_name = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  float4 Material::Emissive::get()
+  {
+    return m_emissive;
+  }
+
+  //----------------------------------------------------------------------------
+  void Material::Emissive::set(float4 arg)
+  {
+    m_emissive = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  float4 Material::Specular::get()
+  {
+    return m_specular;
+  }
+
+  //----------------------------------------------------------------------------
+  void Material::Specular::set(float4 arg)
+  {
+    m_specular = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  float4 Material::Diffuse::get()
+  {
+    return m_diffuse;
+  }
+
+  //----------------------------------------------------------------------------
+  void Material::Diffuse::set(float4 arg)
+  {
+    m_diffuse = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  float4 Material::Ambient::get()
+  {
+    return m_ambient;
+  }
+
+  //----------------------------------------------------------------------------
+  void Material::Ambient::set(float4 arg)
+  {
+    m_ambient = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  float Material::Transparency::get()
+  {
+    return m_transparency;
+  }
+
+  //----------------------------------------------------------------------------
+  void Material::Transparency::set(float arg)
+  {
+    m_transparency = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  float Material::SpecularExponent::get()
+  {
+    return m_specularExponent;
+  }
+
+  //----------------------------------------------------------------------------
+  void Material::Model::set(IlluminationModel arg)
+  {
+    m_model = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  IlluminationModel Material::Model::get()
+  {
+    return m_model;
+  }
+
+  //----------------------------------------------------------------------------
+  void Material::SpecularExponent::set(float arg)
+  {
+    m_specularExponent = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  Material^ Polydata::Mat::get()
+  {
+    return m_material;
+  }
+
+  //----------------------------------------------------------------------------
+  void Polydata::Mat::set(Material^ arg)
+  {
+    m_material = arg;
+  }
+
   //----------------------------------------------------------------------------
   double Polydata::Timestamp::get()
   {
