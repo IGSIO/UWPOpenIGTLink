@@ -123,10 +123,10 @@ namespace UWPOpenIGTLink
       Set the persistent status of a transform matrix between two coordinate frames. A transform is non persistent by default.
       Transforms with status persistent will be written into config file on WriteConfiguration call.
     */
-    void SetTransformPersistent(TransformName^ aTransformName, bool isPersistent);
+    bool SetTransformPersistent(TransformName^ aTransformName, bool isPersistent);
 
     /*! Set the computation error of the transform matrix between two coordinate frames. */
-    void SetTransformError(TransformName^ aTransformName, float aError);
+    bool SetTransformError(TransformName^ aTransformName, float aError);
 
     /*! Get the computation error of the transform matrix between two coordinate frames. */
     double GetTransformError(TransformName^ aTransformName);

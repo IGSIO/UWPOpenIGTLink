@@ -323,24 +323,23 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransformPersistent(TransformName^ aTransformName, bool isPersistent)
+  bool TransformRepository::SetTransformPersistent(TransformName^ aTransformName, bool isPersistent)
   {
     std::lock_guard<std::mutex> guard(m_CriticalSection);
 
     if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
+      return false;
     }
 
     TransformInfo^ fromToTransformInfo = GetOriginalTransform(aTransformName);
     if (fromToTransformInfo != nullptr)
     {
       fromToTransformInfo->Persistent = isPersistent;
-      return;
+      return true;
     }
 
-    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To() +
-                                      L" transform is missing. Cannot set its persistent status");
+    return false;
   }
 
   //----------------------------------------------------------------------------
@@ -359,29 +358,27 @@ namespace UWPOpenIGTLink
       return fromToTransformInfo->Persistent;
     }
 
-    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To() +
-                                      L" transform is missing. Cannot set its persistent status");
+    return false;
   }
 
   //----------------------------------------------------------------------------
-  void TransformRepository::SetTransformError(TransformName^ aTransformName, float aError)
+  bool TransformRepository::SetTransformError(TransformName^ aTransformName, float aError)
   {
     std::lock_guard<std::mutex> guard(m_CriticalSection);
 
     if (aTransformName->From() == aTransformName->To())
     {
-      throw ref new Platform::Exception(E_INVALIDARG, L"Setting a transform to itself is not allowed: " + aTransformName->GetTransformName());
+      return false;
     }
 
     TransformInfo^ fromToTransformInfo = GetOriginalTransform(aTransformName);
     if (fromToTransformInfo != nullptr)
     {
       fromToTransformInfo->Error = aError;
-      return;
+      return true;
     }
 
-    throw ref new Platform::Exception(E_INVALIDARG, L"The original " + aTransformName->From() + L"To" + aTransformName->To()
-                                      + L" transform is missing. Cannot set computation error value.");
+    return false;
   }
 
   //----------------------------------------------------------------------------
