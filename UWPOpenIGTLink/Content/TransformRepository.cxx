@@ -183,6 +183,18 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  bool TransformRepository::SetImageTransform(VideoFrame^ videoFrame)
+  {
+    if (videoFrame->EmbeddedImageTransformName != nullptr)
+    {
+      this->SetTransform(videoFrame->EmbeddedImageTransformName, videoFrame->EmbeddedImageTransform, true);
+      return true;
+    }
+
+    return false;
+  }
+
+  //----------------------------------------------------------------------------
   bool TransformRepository::SetTransform(TransformName^ aTransformName, float4x4 matrix, bool isValid)
   {
     if (!aTransformName->IsValid())

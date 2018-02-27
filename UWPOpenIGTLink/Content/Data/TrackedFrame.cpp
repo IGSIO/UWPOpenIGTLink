@@ -93,25 +93,33 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   double TrackedFrame::Timestamp::get()
   {
-    return m_timestamp;
+    // TrackedFrame timestamp is the image timestamp by definition, other values are interpolated around it
+    if (m_frame->Image == nullptr)
+    {
+      // However, if there is no image, we grab a transform timestamp
+      if (m_frameTransforms.size() > 0)
+      {
+        return (*m_frameTransforms.end())->Timestamp;
+      }
+    }
+
+    return m_frame->Timestamp;
   }
 
   //----------------------------------------------------------------------------
   void TrackedFrame::Timestamp::set(double arg)
   {
-    m_timestamp = arg;
+    m_frame->Timestamp = arg;
   }
 
   //----------------------------------------------------------------------------
   TrackedFrame::TrackedFrame()
   {
-
   }
 
   //----------------------------------------------------------------------------
   TrackedFrame::~TrackedFrame()
   {
-
   }
 
   //----------------------------------------------------------------------------

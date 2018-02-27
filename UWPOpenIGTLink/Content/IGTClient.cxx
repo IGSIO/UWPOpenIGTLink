@@ -33,6 +33,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 // IGT includes
 #include <igtlCommandMessage.h>
 #include <igtlCommon.h>
+#include <igtlImageMessage.h>
 #include <igtlMessageHeader.h>
 #include <igtlOSUtil.h>
 #include <igtlPolyDataMessage.h>
@@ -67,7 +68,13 @@ namespace UWPOpenIGTLink
     static const double NEGLIGIBLE_DIFFERENCE = 0.0001;
   }
   const int IGTClient::CLIENT_SOCKET_TIMEOUT_MSEC = 500;
-  const BufferItemList::size_type IGTClient::MESSAGE_LIST_MAX_SIZE = 200;
+  // TODO tune
+  const BufferItemList::size_type IGTClient::MESSAGE_LIST_IMAGE_MAX_SIZE = 200;
+  const BufferItemList::size_type IGTClient::MESSAGE_LIST_TRACKEDFRAME_MAX_SIZE = 200;
+  const BufferItemList::size_type IGTClient::MESSAGE_LIST_COMMANDREPLY_MAX_SIZE = 200;
+  const BufferItemList::size_type IGTClient::MESSAGE_LIST_TRANSFORM_MAX_SIZE = 200;
+  const BufferItemList::size_type IGTClient::MESSAGE_LIST_POLYDATA_MAX_SIZE = 200;
+  const BufferItemList::size_type IGTClient::MESSAGE_LIST_TDATA_MAX_SIZE = 200;
 
   //----------------------------------------------------------------------------
   IGTClient::IGTClient()
@@ -164,24 +171,12 @@ namespace UWPOpenIGTLink
     igtl::TrackedFrameMessage::Pointer trackedFrameMsg = nullptr;
     {
       // Retrieve the next available tracked frame message
-      std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-      if (m_receiveMessages.size() == 0)
+      std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+      if (m_receivedTrackedFrameMessages.size() == 0)
       {
         return nullptr;
       }
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
-      {
-        if (std::string((*riter)->GetDeviceType()).compare("TRACKEDFRAME") == 0)
-        {
-          trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>(riter->GetPointer());
-          break;
-        }
-      }
-    }
-
-    if (trackedFrameMsg == nullptr)
-    {
-      return nullptr;
+      trackedFrameMsg = dynamic_cast<igtl::TrackedFrameMessage*>(m_receivedTrackedFrameMessages.rbegin()->GetPointer());
     }
 
     auto ts = igtl::TimeStamp::New();
@@ -222,29 +217,131 @@ namespace UWPOpenIGTLink
   }
 
   //----------------------------------------------------------------------------
+  UWPOpenIGTLink::VideoFrame^ IGTClient::GetImage(double lastKnownTimestamp)
+  {
+    igtl::ImageMessage::Pointer imgMsg = nullptr;
+    {
+      // Retrieve the next available tracked frame message
+      std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+      if (m_receivedImageMessages.size() == 0)
+      {
+        return nullptr;
+      }
+      imgMsg = dynamic_cast<igtl::ImageMessage*>(m_receivedImageMessages.rbegin()->GetPointer());
+    }
+
+    auto ts = igtl::TimeStamp::New();
+    imgMsg->GetTimeStamp(ts);
+
+    if (ts->GetTimeStamp() <= lastKnownTimestamp)
+    {
+      return nullptr;
+    }
+
+    auto frame = ref new VideoFrame();
+
+    // Image
+    std::array<int32, 3> frameSize;
+    imgMsg->GetDimensions(frameSize[0], frameSize[1], frameSize[2]);
+    std::array<uint16, 3> frameSizeUint;
+    frameSizeUint[0] = static_cast<uint16>(frameSize[0]); // We are guaranteed that these will fit as the underlying image message stores image size as uint16 (interface shouldn't use int32)
+    frameSizeUint[1] = static_cast<uint16>(frameSize[1]);
+    frameSizeUint[2] = static_cast<uint16>(frameSize[2]);
+    std::shared_ptr<byte> imgData = std::shared_ptr<byte>(new byte[imgMsg->GetImageSize()], [](byte * p) {delete[] p; });
+    memcpy((void*)imgData.get(), imgMsg->GetScalarPointer(), imgMsg->GetImageSize());
+
+    frame->SetImageData(imgData, static_cast<uint16>(imgMsg->GetNumComponents()), (IGTL_SCALAR_TYPE)imgMsg->GetScalarType(), frameSizeUint);
+    frame->Type = US_IMG_BRIGHTNESS; // Not perfect, but this data isn't transmitted with an image message, could check metadata?
+    frame->Orientation = US_IMG_ORIENT_MF;
+
+    frame->EmbeddedImageTransformName = m_embeddedImageTransformName;
+    frame->EmbeddedImageTransform = float4x4::identity();
+
+    int   size[3];          // image dimension
+    float spacing[3];       // spacing (mm/pixel)
+    igtl::Matrix4x4 matrix;
+    imgMsg->GetDimensions(size);
+    imgMsg->GetSpacing(spacing);
+    imgMsg->GetMatrix(matrix);
+
+    float tx = matrix[0][0];
+    float ty = matrix[1][0];
+    float tz = matrix[2][0];
+    float sx = matrix[0][1];
+    float sy = matrix[1][1];
+    float sz = matrix[2][1];
+    float nx = matrix[0][2];
+    float ny = matrix[1][2];
+    float nz = matrix[2][2];
+    float px = matrix[0][3];
+    float py = matrix[1][3];
+    float pz = matrix[2][3];
+
+    // normalize
+    float psi = sqrt(tx * tx + ty * ty + tz * tz);
+    float psj = sqrt(sx * sx + sy * sy + sz * sz);
+    float psk = sqrt(nx * nx + ny * ny + nz * nz);
+    float ntx = tx / psi;
+    float nty = ty / psi;
+    float ntz = tz / psi;
+    float nsx = sx / psj;
+    float nsy = sy / psj;
+    float nsz = sz / psj;
+    float nnx = nx / psk;
+    float nny = ny / psk;
+    float nnz = nz / psk;
+
+    // Shift the center
+    // NOTE: The center of the image should be shifted due to different
+    // definitions of image origin between VTK (Slicer) and OpenIGTLink;
+    // OpenIGTLink image has its origin at the center, while VTK image
+    // has one at the corner.
+    float hfovi = spacing[0] * psi * (size[0] - 1) / 2.0;
+    float hfovj = spacing[1] * psj * (size[1] - 1) / 2.0;
+    float hfovk = spacing[2] * psk * (size[2] - 1) / 2.0;
+
+    float cx = ntx * hfovi + nsx * hfovj + nnx * hfovk;
+    float cy = nty * hfovi + nsy * hfovj + nny * hfovk;
+    float cz = ntz * hfovi + nsz * hfovj + nnz * hfovk;
+    px = px - cx;
+    py = py - cy;
+    pz = pz - cz;
+
+    // set volume orientation
+    float4x4 ijk2ras(float4x4::identity());
+    ijk2ras.m11 = ntx * spacing[0];
+    ijk2ras.m21 = nty * spacing[0];
+    ijk2ras.m31 = ntz * spacing[0];
+    ijk2ras.m12 = nsx * spacing[1];
+    ijk2ras.m22 = nsy * spacing[1];
+    ijk2ras.m32 = nsz * spacing[1];
+    ijk2ras.m13 = nnx * spacing[2];
+    ijk2ras.m23 = nny * spacing[2];
+    ijk2ras.m33 = nnz * spacing[2];
+    ijk2ras.m14 = px * m_trackerUnitScale;
+    ijk2ras.m24 = py * m_trackerUnitScale;
+    ijk2ras.m34 = pz * m_trackerUnitScale;
+
+    frame->EmbeddedImageTransform = ijk2ras;
+
+    // Timestamp
+    frame->Timestamp = ts->GetTimeStamp();
+
+    return frame;
+  }
+
+  //----------------------------------------------------------------------------
   TransformListABI^ IGTClient::GetTDataFrame(double lastKnownTimestamp)
   {
     igtl::TrackingDataMessage::Pointer tdataMsg(nullptr);
     {
       // Retrieve the next available TDATA message
-      std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-      if (m_receiveMessages.size() == 0)
+      std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+      if (m_receivedTDataMessages.size() == 0)
       {
         return nullptr;
       }
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
-      {
-        if (std::string((*riter)->GetDeviceType()).compare("TDATA") == 0)
-        {
-          tdataMsg = dynamic_cast<igtl::TrackingDataMessage*>(riter->GetPointer());
-          break;
-        }
-      }
-    }
-
-    if (tdataMsg == nullptr)
-    {
-      return nullptr;
+      tdataMsg = dynamic_cast<igtl::TrackingDataMessage*>(m_receivedTDataMessages.rbegin()->GetPointer());
     }
 
     auto ts = igtl::TimeStamp::New();
@@ -298,14 +395,14 @@ namespace UWPOpenIGTLink
     igtl::TransformMessage::Pointer transformMessage(nullptr);
     {
       // Retrieve the next available TDATA message
-      std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-      if (m_receiveMessages.size() == 0)
+      std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+      if (m_receivedTransformMessages.size() == 0)
       {
         return nullptr;
       }
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
+      for (auto riter = m_receivedTransformMessages.rbegin(); riter != m_receivedTransformMessages.rend(); ++riter)
       {
-        if (std::string((*riter)->GetDeviceType()).compare("TRANSFORM") == 0 && nameStr.compare((*riter)->GetDeviceName()) == 0)
+        if (nameStr.compare((*riter)->GetDeviceName()) == 0)
         {
           transformMessage = dynamic_cast<igtl::TransformMessage*>(riter->GetPointer());
           break;
@@ -359,15 +456,15 @@ namespace UWPOpenIGTLink
     igtl::RTSCommandMessage::Pointer rtsCommandMsg(nullptr);
     {
       // Retrieve the next available TDATA message
-      std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-      if (m_receiveMessages.size() == 0)
+      std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+      if (m_receivedCommandReplyMessages.size() == 0)
       {
         return nullptr;
       }
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
+      for (auto riter = m_receivedCommandReplyMessages.rbegin(); riter != m_receivedCommandReplyMessages.rend(); ++riter)
       {
         rtsCommandMsg = dynamic_cast<igtl::RTSCommandMessage*>(riter->GetPointer());
-        if (rtsCommandMsg != nullptr && rtsCommandMsg->GetCommandId() == commandId)
+        if (rtsCommandMsg->GetCommandId() == commandId)
         {
           break;
         }
@@ -427,13 +524,13 @@ namespace UWPOpenIGTLink
 
     igtl::PolyDataMessage::Pointer polyMessage(nullptr);
     {
-      // Retrieve the next available TDATA message
-      std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-      if (m_receiveMessages.size() == 0)
+      // Retrieve the next available polydata message
+      std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+      if (m_receivedPolydataMessages.size() == 0)
       {
         return nullptr;
       }
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); ++riter)
+      for (auto riter = m_receivedPolydataMessages.rbegin(); riter != m_receivedPolydataMessages.rend(); ++riter)
       {
         std::string fileName;
         if (!(*riter)->GetMetaDataElement("fileName", fileName))
@@ -441,7 +538,7 @@ namespace UWPOpenIGTLink
           continue;
         }
 
-        if (std::string((*riter)->GetDeviceType()).compare("POLYDATA") == 0 && IsEqualInsensitive(wname, name) == 0)
+        if (IsEqualInsensitive(wname, name) == 0)
         {
           polyMessage = dynamic_cast<igtl::PolyDataMessage*>(riter->GetPointer());
           break;
@@ -794,8 +891,8 @@ namespace UWPOpenIGTLink
         trackedFrameMessage->ApplyTransformUnitScaling(m_trackerUnitScale);
 
         // Save reply
-        std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-        m_receiveMessages.push_back(bodyMsg);
+        std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+        m_receivedTrackedFrameMessages.push_back(bodyMsg);
       }
       else if (typeid(*bodyMsg) == typeid(igtl::TrackingDataMessage))
       {
@@ -828,8 +925,8 @@ namespace UWPOpenIGTLink
         }
 
         // Save reply
-        std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-        m_receiveMessages.push_back(bodyMsg);
+        std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+        m_receivedTDataMessages.push_back(bodyMsg);
       }
       else if (typeid(*bodyMsg) == typeid(igtl::TransformMessage))
       {
@@ -851,8 +948,8 @@ namespace UWPOpenIGTLink
         transformMessage->SetMatrix(mat);
 
         // Save reply
-        std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-        m_receiveMessages.push_back(bodyMsg);
+        std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+        m_receivedTransformMessages.push_back(bodyMsg);
       }
       else if (typeid(*bodyMsg) == typeid(igtl::PolyDataMessage))
       {
@@ -867,8 +964,8 @@ namespace UWPOpenIGTLink
         }
 
         // Save reply
-        std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-        m_receiveMessages.push_back(bodyMsg);
+        std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+        m_receivedPolydataMessages.push_back(bodyMsg);
       }
       else if (typeid(*bodyMsg) == typeid(igtl::RTSCommandMessage))
       {
@@ -883,16 +980,39 @@ namespace UWPOpenIGTLink
 
         auto rtsCmdMsg = (igtl::RTSCommandMessage*)bodyMsg.GetPointer();
 
-        // Clear from outstanding queries
-        std::lock_guard<std::mutex> guard(m_queriesMutex);
-        for (auto iter = begin(m_outstandingQueries); iter != end(m_outstandingQueries); ++iter)
         {
-          if ((*iter) == rtsCmdMsg->GetCommandId())
+          // Clear from outstanding queries
+          std::lock_guard<std::mutex> guard(m_queriesMutex);
+          for (auto iter = begin(m_outstandingQueries); iter != end(m_outstandingQueries); ++iter)
           {
-            m_outstandingQueries.erase(iter);
-            break;
+            if ((*iter) == rtsCmdMsg->GetCommandId())
+            {
+              m_outstandingQueries.erase(iter);
+              break;
+            }
           }
         }
+
+        // Save reply
+        std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+        m_receivedCommandReplyMessages.push_back(bodyMsg);
+      }
+      else if (typeid(*bodyMsg) == typeid(igtl::ImageMessage))
+      {
+        SocketReceive(bodyMsg->GetBufferBodyPointer(), bodyMsg->GetBufferBodySize());
+
+        c = bodyMsg->Unpack(1);
+        if (!(c & igtl::MessageHeader::UNPACK_BODY))
+        {
+          IGT_LOG_TRACE("Failed to receive reply (invalid body)");
+          continue;
+        }
+
+        auto imgMsg = (igtl::ImageMessage*)bodyMsg.GetPointer();
+
+        // Save reply
+        std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+        m_receivedImageMessages.push_back(bodyMsg);
       }
       else
       {
@@ -910,43 +1030,198 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void IGTClient::PruneIGTMessages()
   {
-    std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-    if (m_receiveMessages.size() > MESSAGE_LIST_MAX_SIZE + 50)
+    std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+    if (m_receivedImageMessages.size() > MESSAGE_LIST_IMAGE_MAX_SIZE + 4)
     {
       // erase the front N results
-      MessageList::size_type toErase = m_receiveMessages.size() - MESSAGE_LIST_MAX_SIZE;
-      m_receiveMessages.erase(begin(m_receiveMessages), begin(m_receiveMessages) + toErase);
+      MessageList::size_type toErase = m_receivedImageMessages.size() - MESSAGE_LIST_IMAGE_MAX_SIZE;
+      m_receivedImageMessages.erase(begin(m_receivedImageMessages), begin(m_receivedImageMessages) + toErase);
+    }
+
+    if (m_receivedTrackedFrameMessages.size() > MESSAGE_LIST_TRACKEDFRAME_MAX_SIZE + 4)
+    {
+      // erase the front N results
+      MessageList::size_type toErase = m_receivedTrackedFrameMessages.size() - MESSAGE_LIST_TRACKEDFRAME_MAX_SIZE;
+      m_receivedTrackedFrameMessages.erase(begin(m_receivedTrackedFrameMessages), begin(m_receivedTrackedFrameMessages) + toErase);
+    }
+
+    if (m_receivedCommandReplyMessages.size() > MESSAGE_LIST_COMMANDREPLY_MAX_SIZE)
+    {
+      // erase the front N results
+      MessageList::size_type toErase = m_receivedCommandReplyMessages.size() - MESSAGE_LIST_COMMANDREPLY_MAX_SIZE;
+      m_receivedCommandReplyMessages.erase(begin(m_receivedCommandReplyMessages), begin(m_receivedCommandReplyMessages) + toErase);
+    }
+
+    if (m_receivedTransformMessages.size() > MESSAGE_LIST_TRANSFORM_MAX_SIZE + 30)
+    {
+      // erase the front N results
+      MessageList::size_type toErase = m_receivedTransformMessages.size() - MESSAGE_LIST_TRANSFORM_MAX_SIZE;
+      m_receivedTransformMessages.erase(begin(m_receivedTransformMessages), begin(m_receivedTransformMessages) + toErase);
+    }
+
+    if (m_receivedPolydataMessages.size() > MESSAGE_LIST_POLYDATA_MAX_SIZE + 2)
+    {
+      // erase the front N results
+      MessageList::size_type toErase = m_receivedPolydataMessages.size() - MESSAGE_LIST_POLYDATA_MAX_SIZE;
+      m_receivedPolydataMessages.erase(begin(m_receivedPolydataMessages), begin(m_receivedPolydataMessages) + toErase);
+    }
+
+    if (m_receivedTDataMessages.size() > MESSAGE_LIST_TDATA_MAX_SIZE + 15)
+    {
+      // erase the front N results
+      MessageList::size_type toErase = m_receivedTDataMessages.size() - MESSAGE_LIST_TDATA_MAX_SIZE;
+      m_receivedTDataMessages.erase(begin(m_receivedTDataMessages), begin(m_receivedTDataMessages) + toErase);
     }
   }
 
   //----------------------------------------------------------------------------
   double IGTClient::GetLatestTrackedFrameTimestamp() const
   {
-    // Retrieve the next available tracked frame reply
-    std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-    return GetLatestTimestamp<igtl::TrackedFrameMessage>();
+    std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+    if (m_receivedTrackedFrameMessages.size() == 0)
+    {
+      return -1;
+    }
+
+    igtl::TrackedFrameMessage* img = dynamic_cast<igtl::TrackedFrameMessage*>((*m_receivedTrackedFrameMessages.end()).GetPointer());
+    auto ts = igtl::TimeStamp::New();
+    img->GetTimeStamp(ts);
+    return ts->GetTimeStamp();
   }
 
   //----------------------------------------------------------------------------
   double IGTClient::GetOldestTrackedFrameTimestamp() const
   {
-    // Retrieve the next available tracked frame reply
-    std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-    return GetOldestTimestamp<igtl::TrackedFrameMessage>();
+    std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+    if (m_receivedTrackedFrameMessages.size() == 0)
+    {
+      return -1;
+    }
+
+    igtl::TrackedFrameMessage* img = dynamic_cast<igtl::TrackedFrameMessage*>((*m_receivedTrackedFrameMessages.begin()).GetPointer());
+    auto ts = igtl::TimeStamp::New();
+    img->GetTimeStamp(ts);
+    return ts->GetTimeStamp();
   }
 
   //----------------------------------------------------------------------------
   double IGTClient::GetLatestTDataTimestamp() const
   {
-    std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-    return GetLatestTimestamp<igtl::TrackingDataMessage>();
+    std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+    if (m_receivedTDataMessages.size() == 0)
+    {
+      return -1;
+    }
+
+    igtl::TrackingDataMessage* img = dynamic_cast<igtl::TrackingDataMessage*>((*m_receivedTDataMessages.end()).GetPointer());
+    auto ts = igtl::TimeStamp::New();
+    img->GetTimeStamp(ts);
+    return ts->GetTimeStamp();
   }
 
   //----------------------------------------------------------------------------
   double IGTClient::GetOldestTDataTimestamp() const
   {
-    std::lock_guard<std::mutex> guard(m_receiveMessagesMutex);
-    return GetOldestTimestamp<igtl::TrackingDataMessage>();
+    std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+    if (m_receivedTDataMessages.size() == 0)
+    {
+      return -1;
+    }
+
+    igtl::TrackingDataMessage* img = dynamic_cast<igtl::TrackingDataMessage*>((*m_receivedTDataMessages.begin()).GetPointer());
+    auto ts = igtl::TimeStamp::New();
+    img->GetTimeStamp(ts);
+    return ts->GetTimeStamp();
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTClient::GetLatestPolydataTimestamp() const
+  {
+    std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+    if (m_receivedPolydataMessages.size() == 0)
+    {
+      return -1;
+    }
+
+    igtl::PolyDataMessage* img = dynamic_cast<igtl::PolyDataMessage*>((*m_receivedPolydataMessages.end()).GetPointer());
+    auto ts = igtl::TimeStamp::New();
+    img->GetTimeStamp(ts);
+    return ts->GetTimeStamp();
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTClient::GetOldestPolydataTimestamp() const
+  {
+    std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+    if (m_receivedPolydataMessages.size() == 0)
+    {
+      return -1;
+    }
+
+    igtl::PolyDataMessage* img = dynamic_cast<igtl::PolyDataMessage*>((*m_receivedPolydataMessages.begin()).GetPointer());
+    auto ts = igtl::TimeStamp::New();
+    img->GetTimeStamp(ts);
+    return ts->GetTimeStamp();
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTClient::GetLatestImageTimestamp() const
+  {
+    std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+    if (m_receivedImageMessages.size() == 0)
+    {
+      return -1;
+    }
+
+    igtl::ImageMessage* img = dynamic_cast<igtl::ImageMessage*>((*m_receivedImageMessages.end()).GetPointer());
+    auto ts = igtl::TimeStamp::New();
+    img->GetTimeStamp(ts);
+    return ts->GetTimeStamp();
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTClient::GetOldestImageTimestamp() const
+  {
+    std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+    if (m_receivedImageMessages.size() == 0)
+    {
+      return -1;
+    }
+
+    igtl::ImageMessage* img = dynamic_cast<igtl::ImageMessage*>((*m_receivedImageMessages.begin()).GetPointer());
+    auto ts = igtl::TimeStamp::New();
+    img->GetTimeStamp(ts);
+    return ts->GetTimeStamp();
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTClient::GetLatestCommandReplyTimestamp() const
+  {
+    std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+    if (m_receivedCommandReplyMessages.size() == 0)
+    {
+      return -1;
+    }
+
+    igtl::RTSCommandMessage* img = dynamic_cast<igtl::RTSCommandMessage*>((*m_receivedCommandReplyMessages.end()).GetPointer());
+    auto ts = igtl::TimeStamp::New();
+    img->GetTimeStamp(ts);
+    return ts->GetTimeStamp();
+  }
+
+  //----------------------------------------------------------------------------
+  double IGTClient::GetOldestCommandReplyTimestamp() const
+  {
+    std::lock_guard<std::mutex> guard(m_receivedMessagesMutex);
+    if (m_receivedCommandReplyMessages.size() == 0)
+    {
+      return -1;
+    }
+
+    igtl::RTSCommandMessage* img = dynamic_cast<igtl::RTSCommandMessage*>((*m_receivedCommandReplyMessages.begin()).GetPointer());
+    auto ts = igtl::TimeStamp::New();
+    img->GetTimeStamp(ts);
+    return ts->GetTimeStamp();
   }
 
   //----------------------------------------------------------------------------
@@ -955,10 +1230,10 @@ namespace UWPOpenIGTLink
     auto str = std::string(begin(name), end(name));
 
     // Retrieve the next available tracked frame reply
-    if (m_receiveMessages.size() > 0)
+    if (m_receivedTransformMessages.size() > 0)
     {
       igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-      for (auto riter = m_receiveMessages.rbegin(); riter != m_receiveMessages.rend(); riter++)
+      for (auto riter = m_receivedTransformMessages.rbegin(); riter != m_receivedTransformMessages.rend(); riter++)
       {
         if (dynamic_cast<igtl::TransformMessage*>(riter->GetPointer()) != nullptr && std::string((*riter)->GetDeviceName()).compare(str) == 0)
         {
@@ -976,10 +1251,10 @@ namespace UWPOpenIGTLink
     auto str = std::string(begin(name), end(name));
 
     // Retrieve the next available tracked frame reply
-    if (m_receiveMessages.size() > 0)
+    if (m_receivedTransformMessages.size() > 0)
     {
       igtl::TimeStamp::Pointer ts = igtl::TimeStamp::New();
-      for (auto iter = m_receiveMessages.begin(); iter != m_receiveMessages.end(); iter++)
+      for (auto iter = m_receivedTransformMessages.begin(); iter != m_receivedTransformMessages.end(); iter++)
       {
         if (dynamic_cast<igtl::TransformMessage*>(iter->GetPointer()) != nullptr && std::string((*iter)->GetDeviceName()).compare(str) == 0)
         {

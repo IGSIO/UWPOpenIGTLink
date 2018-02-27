@@ -114,6 +114,11 @@ namespace UWPOpenIGTLink
     bool SetTransforms(TransformListABI^ transforms);
 
     /*!
+      Set a single transform extracted from the embedded info of a video frame
+    */
+    bool SetImageTransform(VideoFrame^ videoFrame);
+
+    /*!
       Set the valid status of a transform matrix between two coordinate frames. A transform is normally valid,
       but temporarily it can be set to non valid (e.g., when a tracked tool gets out of view).
     */

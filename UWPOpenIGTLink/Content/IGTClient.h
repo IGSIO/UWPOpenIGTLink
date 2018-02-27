@@ -87,13 +87,16 @@ namespace UWPOpenIGTLink
     /// Disconnect from the connected server
     void Disconnect();
 
-    /// Retrieve the latest tracked frame
+    /// Retrieve the latest tracked frame since lastKnownTimestamp
     TrackedFrame^ GetTrackedFrame(double lastKnownTimestamp);
 
-    /// Retrieve the latest TData
+    /// Retrieve the latest image since lastKnownTimestamp
+    VideoFrame^ GetImage(double lastKnownTimestamp);
+
+    /// Retrieve the latest TData since lastKnownTimestamp
     TransformListABI^ GetTDataFrame(double lastKnownTimestamp);
 
-    /// Retrieve the latest transform
+    /// Retrieve the latest transform since lastKnownTimestamp
     Transform^ GetTransform(TransformName^ name, double lastKnownTimestamp);
 
     /// Retrieve the requested command result
@@ -130,6 +133,15 @@ namespace UWPOpenIGTLink
     double GetLatestTDataTimestamp() const;
     double GetOldestTDataTimestamp() const;
 
+    double GetLatestPolydataTimestamp() const;
+    double GetOldestPolydataTimestamp() const;
+
+    double GetLatestImageTimestamp() const;
+    double GetOldestImageTimestamp() const;
+
+    double GetLatestCommandReplyTimestamp() const;
+    double GetOldestCommandReplyTimestamp() const;
+
     double GetLatestTransformTimestamp(const std::wstring& name) const;
     double GetOldestTransformTimestamp(const std::wstring& name) const;
 
@@ -154,8 +166,13 @@ namespace UWPOpenIGTLink
     std::atomic_bool                                  m_connected = false;
 
     /// Lists of messages received through the socket, transformed to igtl messages
-    mutable std::mutex                                m_receiveMessagesMutex;
-    MessageList                                       m_receiveMessages;
+    mutable std::mutex                                m_receivedMessagesMutex;
+    MessageList                                       m_receivedImageMessages;
+    MessageList                                       m_receivedTrackedFrameMessages;
+    MessageList                                       m_receivedCommandReplyMessages;
+    MessageList                                       m_receivedTransformMessages;
+    MessageList                                       m_receivedPolydataMessages;
+    MessageList                                       m_receivedTDataMessages;
 
     /// List of messages to be sent to the IGT server
     mutable std::mutex                                m_sendMessagesMutex;
@@ -173,7 +190,12 @@ namespace UWPOpenIGTLink
     int                                               m_serverIGTLVersion = IGTL_HEADER_VERSION_2;
 
     static const int                                  CLIENT_SOCKET_TIMEOUT_MSEC;
-    static const MessageList::size_type               MESSAGE_LIST_MAX_SIZE;
+    static const MessageList::size_type               MESSAGE_LIST_IMAGE_MAX_SIZE;
+    static const MessageList::size_type               MESSAGE_LIST_TRACKEDFRAME_MAX_SIZE;
+    static const MessageList::size_type               MESSAGE_LIST_COMMANDREPLY_MAX_SIZE;
+    static const MessageList::size_type               MESSAGE_LIST_TRANSFORM_MAX_SIZE;
+    static const MessageList::size_type               MESSAGE_LIST_POLYDATA_MAX_SIZE;
+    static const MessageList::size_type               MESSAGE_LIST_TDATA_MAX_SIZE;
 
   private:
     IGTClient(IGTClient^) {}

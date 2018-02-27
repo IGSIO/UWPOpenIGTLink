@@ -1,8 +1,6 @@
-/*=Plus=header=begin======================================================
-Program: Plus
-Copyright (c) Laboratory for Percutaneous Surgery. All rights reserved.
+/*====================================================================
+Copyright(c) 2018 Adam Rankin
 
-Modified by Adam Rankin, Robarts Research Institute, 2017
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files(the "Software"),
@@ -21,14 +19,14 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
 OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
-
-=========================================================Plus=header=end*/
+====================================================================*/
 
 #pragma once
 
 // Local includes
 #include "IGTCommon.h"
 #include "Image.h"
+#include "TransformName.h"
 
 namespace UWPOpenIGTLink
 {
@@ -40,11 +38,13 @@ namespace UWPOpenIGTLink
 
     property FrameSizeABI^ Dimensions { FrameSizeABI ^ get(); }
     property UWPOpenIGTLink::Image^ Image { UWPOpenIGTLink::Image ^ get();  }
-    property Windows::Storage::Streams::IBuffer^ ImageData { Windows::Storage::Streams::IBuffer ^ get(); }
     property uint16 NumberOfScalarComponents { uint16 get(); }
     property int ScalarType { int get(); }
     property uint16 Type { uint16 get(); void set(uint16 arg); }
     property uint16 Orientation { uint16 get(); void set(uint16 arg); }
+    property double Timestamp { double get(); void set(double arg); }
+    property Windows::Foundation::Numerics::float4x4 EmbeddedImageTransform {Windows::Foundation::Numerics::float4x4 get(); void set(Windows::Foundation::Numerics::float4x4 arg); }
+    property UWPOpenIGTLink::TransformName^ EmbeddedImageTransformName {UWPOpenIGTLink::TransformName ^ get(); void set(UWPOpenIGTLink::TransformName ^ arg); }
 
     // Memory based operations
     bool DeepCopy(VideoFrame^ DataBufferItem);
@@ -91,8 +91,11 @@ namespace UWPOpenIGTLink
     bool IsImageValidInternal() const;
     FrameSize GetDimensions() const;
 
-    UWPOpenIGTLink::Image^  m_image;
-    US_IMAGE_TYPE           m_imageType;
-    US_IMAGE_ORIENTATION    m_imageOrientation;
+    Windows::Foundation::Numerics::float4x4 m_embeddedImageTransform = Windows::Foundation::Numerics::float4x4::identity();
+    UWPOpenIGTLink::TransformName^          m_embeddedImageTransformName = nullptr;
+
+    UWPOpenIGTLink::Image^                  m_image;
+    US_IMAGE_TYPE                           m_imageType;
+    US_IMAGE_ORIENTATION                    m_imageOrientation;
   };
 }

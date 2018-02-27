@@ -1,8 +1,6 @@
-/*=Plus=header=begin======================================================
-Program: Plus
-Copyright (c) Laboratory for Percutaneous Surgery. All rights reserved.
+/*====================================================================
+Copyright(c) 2018 Adam Rankin
 
-Modified by Adam Rankin, Robarts Research Institute, 2017
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files(the "Software"),
@@ -21,8 +19,7 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
 OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
-
-=========================================================Plus=header=end*/
+====================================================================*/
 
 // Local includes
 #include "pch.h"
@@ -340,34 +337,34 @@ namespace UWPOpenIGTLink
   {
     switch ((US_IMAGE_ORIENTATION)imgOrientation)
     {
-    case US_IMG_ORIENT_FM:
-      return L"FM";
-    case US_IMG_ORIENT_NM:
-      return L"NM";
-    case US_IMG_ORIENT_FU:
-      return L"FU";
-    case US_IMG_ORIENT_NU:
-      return L"NU";
-    case US_IMG_ORIENT_UFA:
-      return L"UFA";
-    case US_IMG_ORIENT_UNA:
-      return L"UNA";
-    case US_IMG_ORIENT_MFA:
-      return L"MFA";
-    case US_IMG_ORIENT_MNA:
-      return L"MNA";
-    case US_IMG_ORIENT_AMF:
-      return L"AMF";
-    case US_IMG_ORIENT_UFD:
-      return L"UFD";
-    case US_IMG_ORIENT_UND:
-      return L"UND";
-    case US_IMG_ORIENT_MFD:
-      return L"MFD";
-    case US_IMG_ORIENT_MND:
-      return L"MND";
-    default:
-      return L"XX";
+      case US_IMG_ORIENT_FM:
+        return L"FM";
+      case US_IMG_ORIENT_NM:
+        return L"NM";
+      case US_IMG_ORIENT_FU:
+        return L"FU";
+      case US_IMG_ORIENT_NU:
+        return L"NU";
+      case US_IMG_ORIENT_UFA:
+        return L"UFA";
+      case US_IMG_ORIENT_UNA:
+        return L"UNA";
+      case US_IMG_ORIENT_MFA:
+        return L"MFA";
+      case US_IMG_ORIENT_MNA:
+        return L"MNA";
+      case US_IMG_ORIENT_AMF:
+        return L"AMF";
+      case US_IMG_ORIENT_UFD:
+        return L"UFD";
+      case US_IMG_ORIENT_UND:
+        return L"UND";
+      case US_IMG_ORIENT_MFD:
+        return L"MFD";
+      case US_IMG_ORIENT_MND:
+        return L"MND";
+      default:
+        return L"XX";
     }
   }
 
@@ -406,18 +403,18 @@ namespace UWPOpenIGTLink
   {
     switch ((US_IMAGE_TYPE)imgType)
     {
-    case US_IMG_BRIGHTNESS:
-      return L"BRIGHTNESS";
-    case US_IMG_RF_REAL:
-      return L"RF_REAL";
-    case US_IMG_RF_IQ_LINE:
-      return L"RF_IQ_LINE";
-    case US_IMG_RF_I_LINE_Q_LINE:
-      return L"RF_I_LINE_Q_LINE";
-    case US_IMG_RGB_COLOR:
-      return L"RGB_COLOR";
-    default:
-      return L"XX";
+      case US_IMG_BRIGHTNESS:
+        return L"BRIGHTNESS";
+      case US_IMG_RF_REAL:
+        return L"RF_REAL";
+      case US_IMG_RF_IQ_LINE:
+        return L"RF_IQ_LINE";
+      case US_IMG_RF_I_LINE_Q_LINE:
+        return L"RF_I_LINE_Q_LINE";
+      case US_IMG_RGB_COLOR:
+        return L"RGB_COLOR";
+      default:
+        return L"XX";
     }
   }
 
@@ -466,21 +463,40 @@ namespace UWPOpenIGTLink
   {
     switch ((IGTL_SCALAR_TYPE)pixelType)
     {
-      PIXEL_TO_STRING(IGTL_SCALARTYPE_UNKNOWN);
-      PIXEL_TO_STRING(IGTL_SCALARTYPE_INT8);
-      PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT8);
-      PIXEL_TO_STRING(IGTL_SCALARTYPE_INT16);
-      PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT16);
-      PIXEL_TO_STRING(IGTL_SCALARTYPE_INT32);
-      PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT32);
-      PIXEL_TO_STRING(IGTL_SCALARTYPE_FLOAT32);
-      PIXEL_TO_STRING(IGTL_SCALARTYPE_FLOAT64);
-      PIXEL_TO_STRING(IGTL_SCALARTYPE_COMPLEX);
-    default:
-      return L"IGTL_SCALARTYPE_UNKNOWN";
+        PIXEL_TO_STRING(IGTL_SCALARTYPE_UNKNOWN);
+        PIXEL_TO_STRING(IGTL_SCALARTYPE_INT8);
+        PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT8);
+        PIXEL_TO_STRING(IGTL_SCALARTYPE_INT16);
+        PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT16);
+        PIXEL_TO_STRING(IGTL_SCALARTYPE_INT32);
+        PIXEL_TO_STRING(IGTL_SCALARTYPE_UINT32);
+        PIXEL_TO_STRING(IGTL_SCALARTYPE_FLOAT32);
+        PIXEL_TO_STRING(IGTL_SCALARTYPE_FLOAT64);
+        PIXEL_TO_STRING(IGTL_SCALARTYPE_COMPLEX);
+      default:
+        return L"IGTL_SCALARTYPE_UNKNOWN";
     }
   }
 #undef PIXEL_TO_STRING
+
+  //----------------------------------------------------------------------------
+  double VideoFrame::Timestamp::get()
+  {
+    if (m_image == nullptr)
+    {
+      return -1.0;
+    }
+    return m_image->Timestamp;
+  }
+
+  //----------------------------------------------------------------------------
+  void VideoFrame::Timestamp::set(double arg)
+  {
+    if (m_image != nullptr)
+    {
+      m_image->Timestamp = arg;
+    }
+  }
 
   //----------------------------------------------------------------------------
   FrameSizeABI^ VideoFrame::Dimensions::get()
@@ -500,6 +516,30 @@ namespace UWPOpenIGTLink
       return 0;
     }
     return m_image->NumberOfScalarComponents;
+  }
+
+  //----------------------------------------------------------------------------
+  float4x4 VideoFrame::EmbeddedImageTransform::get()
+  {
+    return m_embeddedImageTransform;
+  }
+
+  //----------------------------------------------------------------------------
+  void VideoFrame::EmbeddedImageTransform::set(float4x4 arg)
+  {
+    m_embeddedImageTransform = arg;
+  }
+
+  //----------------------------------------------------------------------------
+  TransformName^ VideoFrame::EmbeddedImageTransformName::get()
+  {
+    return m_embeddedImageTransformName;
+  }
+
+  //----------------------------------------------------------------------------
+  void VideoFrame::EmbeddedImageTransformName::set(TransformName^ arg)
+  {
+    m_embeddedImageTransformName = arg;
   }
 
   //----------------------------------------------------------------------------
@@ -540,15 +580,5 @@ namespace UWPOpenIGTLink
   UWPOpenIGTLink::Image^ VideoFrame::Image::get()
   {
     return m_image;
-  }
-
-  //----------------------------------------------------------------------------
-  IBuffer^ VideoFrame::ImageData::get()
-  {
-    if (!HasImage())
-    {
-      return nullptr;
-    }
-    return m_image->ImageData;
   }
 }

@@ -90,7 +90,6 @@ namespace UWPOpenIGTLink
 
     // Image related fields
     VideoFrame^               m_frame = ref new VideoFrame();
-    double                    m_timestamp = 0.0;
     FrameSize                 m_frameSize = { 0, 0, 0 };
   };
 }

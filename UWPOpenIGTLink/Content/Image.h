@@ -44,6 +44,7 @@ namespace UWPOpenIGTLink
     property Windows::Storage::Streams::IBuffer^ ImageData { Windows::Storage::Streams::IBuffer ^ get(); void set(Windows::Storage::Streams::IBuffer ^ data); }
     property uint16 NumberOfScalarComponents { uint16 get(); void set(uint16 arg); }
     property int ScalarType { int get(); void set(int arg); }
+    property double Timestamp { double get(); void set(double arg); }
 
     bool DeepCopy(Image^ otherImage);
     bool FillBlank();
@@ -66,5 +67,6 @@ namespace UWPOpenIGTLink
     std::shared_ptr<byte>                     m_imageData;
     uint16                                    m_numberOfScalarComponents;
     IGTL_SCALAR_TYPE                          m_scalarType;
+    double                                    m_timestamp = 0.0;
   };
 }
