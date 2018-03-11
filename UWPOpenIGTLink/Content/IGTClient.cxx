@@ -481,26 +481,58 @@ namespace UWPOpenIGTLink
     std::string result;
     if (!rtsCommandMsg->GetMetaDataElement("Result", result))
     {
-      // Message was not sent with metadata, abort
-      OutputDebugStringA("Command response was not sent using v3 style metadata. Cannot process.");
-      return nullptr;
+      // Message was not sent with metadata, try XML attributes
+      std::string content = rtsCommandMsg->GetCommandContent();
+      XmlDocument^ doc = ref new XmlDocument();
+      doc->LoadXml(ref new Platform::String(std::wstring(begin(content), end(content)).c_str()));
+      auto list = doc->SelectNodes(L"/CommandReply");
+      if (list->Length != 1)
+      {
+        OutputDebugStringA("Command response cannot be parsed. Aborting.");
+        return nullptr;
+      }
+
+      IXmlNode^ commandReplyNode = list->Item(0);
+
+      Platform::String^ statusAttr = dynamic_cast<Platform::String^>(commandReplyNode->Attributes->GetNamedItem(L"Status")->NodeValue);
+      if (statusAttr == nullptr)
+      {
+        OutputDebugStringA("Command response send without status.");
+      }
+      command->Result = IsEqualInsensitive(statusAttr, L"SUCCESS");
+      if (!command->Result)
+      {
+        Platform::String^ errorAttr = dynamic_cast<Platform::String^>(commandReplyNode->Attributes->GetNamedItem(L"Error")->NodeValue);
+        if (errorAttr == nullptr)
+        {
+          OutputDebugStringA("Command returned failure but no error message.");
+        }
+        else
+        {
+          command->ErrorString = errorAttr;
+        }
+      }
+    }
+    else
+    {
+      command->Result = IsEqualInsensitive(result, "SUCCESS");
+      if (!command->Result)
+      {
+        std::string cmdError;
+        if (!rtsCommandMsg->GetMetaDataElement("Error", cmdError))
+        {
+          cmdError = "Unknown error. Not sent in metadata.";
+        }
+        command->ErrorString = ref new Platform::String(std::wstring(begin(cmdError), end(cmdError)).c_str());
+      }
     }
 
-    command->Result = (result == "true" ? true : false);
     auto cmdName = rtsCommandMsg->GetCommandName();
     command->CommandName = ref new Platform::String(std::wstring(begin(cmdName), end(cmdName)).c_str());
     auto cmdContent = rtsCommandMsg->GetCommandContent();
     command->CommandContent = ref new Platform::String(std::wstring(begin(cmdContent), end(cmdContent)).c_str());
     command->OriginalCommandId = rtsCommandMsg->GetCommandId();
-    if (!command->Result)
-    {
-      std::string cmdError;
-      if (!rtsCommandMsg->GetMetaDataElement("Error", cmdError))
-      {
-        cmdError = "Unknown error. Not sent in metadata.";
-      }
-      command->ErrorString = ref new Platform::String(std::wstring(begin(cmdError), end(cmdError)).c_str());
-    }
+
     auto map = ref new Platform::Collections::Map<Platform::String^, Platform::String^>();
     for (auto& pair : rtsCommandMsg->GetMetaData())
     {
