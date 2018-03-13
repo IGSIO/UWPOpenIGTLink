@@ -269,9 +269,3 @@ namespace UWPOpenIGTLink
     virtual ~ItemNotAvailableYetException() {};
   };
 }
-
-#if defined(ENABLE_LOG_TRACE)
-  #define IGT_LOG_TRACE(msg) LogMessage(msg, __FILE__, __LINE__);
-#else
-  #define IGT_LOG_TRACE(x) do {} while (0)
-#endif

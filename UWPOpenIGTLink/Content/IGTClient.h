@@ -59,6 +59,10 @@ namespace UWPOpenIGTLink
     bool    SentSuccessfully;
   };
 
+  ref class IGTClient;
+  public delegate void ErrorMessageEventHandler(IGTClient^ sender, Platform::String^ s);
+  public delegate void WarningMessageEventHandler(IGTClient^ sender, Platform::String^ s);
+
   ///
   /// \class IGTLinkClient
   /// \brief This class provides an OpenIGTLink client. It has basic functionality for sending and receiving messages
@@ -76,6 +80,10 @@ namespace UWPOpenIGTLink
     property bool Connected { bool get(); }
     property float TrackerUnitScale { float get(); void set(float); }
     property TransformName^ EmbeddedImageTransformName { TransformName ^ get(); void set(TransformName^); }
+
+  public:
+    event ErrorMessageEventHandler^ ErrorMessage;
+    event WarningMessageEventHandler^ WarningMessage;
 
   public:
     IGTClient();

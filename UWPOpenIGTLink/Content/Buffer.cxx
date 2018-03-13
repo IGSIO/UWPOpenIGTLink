@@ -548,8 +548,6 @@ namespace UWPOpenIGTLink
   //----------------------------------------------------------------------------
   void Buffer::DeepCopy(Buffer^ buffer)
   {
-    IGT_LOG_TRACE("Buffer::DeepCopy");
-
     this->StreamBuffer->DeepCopy(buffer->StreamBuffer);
     if (buffer->GetFrameSize()[0] != -1 && buffer->GetFrameSize()[1] != -1 && buffer->GetFrameSize()[2] != -1)
     {
@@ -700,22 +698,22 @@ namespace UWPOpenIGTLink
     {
       switch (status)
       {
-      case ITEM_NOT_AVAILABLE_YET:
-      {
-        std::stringstream ss;
-        ss << "Buffer: Cannot get any item from the data buffer for time: " << std::fixed << time << ". Item is not available yet.";
-        OutputDebugStringA(ss.str().c_str());
-        break;
-      }
-      case ITEM_NOT_AVAILABLE_ANYMORE:
-      {
-        std::stringstream ss;
-        ss << "Buffer: Cannot get any item from the data buffer for time: " << std::fixed << time << ". Item is not available anymore.";
-        OutputDebugStringA(ss.str().c_str());
-        break;
-      }
-      default:
-        break;
+        case ITEM_NOT_AVAILABLE_YET:
+        {
+          std::stringstream ss;
+          ss << "Buffer: Cannot get any item from the data buffer for time: " << std::fixed << time << ". Item is not available yet.";
+          OutputDebugStringA(ss.str().c_str());
+          break;
+        }
+        case ITEM_NOT_AVAILABLE_ANYMORE:
+        {
+          std::stringstream ss;
+          ss << "Buffer: Cannot get any item from the data buffer for time: " << std::fixed << time << ". Item is not available anymore.";
+          OutputDebugStringA(ss.str().c_str());
+          break;
+        }
+        default:
+          break;
       }
       return nullptr;
     }
@@ -857,17 +855,17 @@ namespace UWPOpenIGTLink
   {
     switch ((DATA_ITEM_TEMPORAL_INTERPOLATION)interpolation)
     {
-    case EXACT_TIME:
-      return GetStreamBufferItemFromExactTime(time);
-    case INTERPOLATED:
-      return GetInterpolatedStreamBufferItemFromTime(time);
-    case CLOSEST_TIME:
-      return GetStreamBufferItemFromClosestTime(time);
-    default:
-      std::stringstream ss;
-      ss << "Unknown interpolation type: " << interpolation << ". Defaulting to exact time request.";
-      OutputDebugStringA(ss.str().c_str());
-      return GetStreamBufferItemFromExactTime(time);
+      case EXACT_TIME:
+        return GetStreamBufferItemFromExactTime(time);
+      case INTERPOLATED:
+        return GetInterpolatedStreamBufferItemFromTime(time);
+      case CLOSEST_TIME:
+        return GetStreamBufferItemFromClosestTime(time);
+      default:
+        std::stringstream ss;
+        ss << "Unknown interpolation type: " << interpolation << ". Defaulting to exact time request.";
+        OutputDebugStringA(ss.str().c_str());
+        return GetStreamBufferItemFromExactTime(time);
     }
   }
 
