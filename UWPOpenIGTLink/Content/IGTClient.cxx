@@ -480,7 +480,7 @@ namespace UWPOpenIGTLink
     // Extract result
     auto command = ref new Command();
     std::string result;
-    if (!rtsCommandMsg->GetMetaDataElement("Result", result))
+    if (!rtsCommandMsg->GetMetaDataElement("Status", result))
     {
       // Message was not sent with metadata, try XML attributes
       std::string content = rtsCommandMsg->GetCommandContent();
