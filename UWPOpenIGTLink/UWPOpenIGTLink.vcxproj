@@ -98,7 +98,7 @@
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
-      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -110,7 +110,7 @@
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
-      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -122,7 +122,7 @@
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
-      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -134,7 +134,7 @@
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
-      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

@@ -119,7 +119,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)UWPOpenIGTLink\Content;$(SolutionDir)UWPOpenIGTLink\Content\Data;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -129,7 +129,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)UWPOpenIGTLink\Content;$(SolutionDir)UWPOpenIGTLink\Content\Data;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -139,7 +139,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -149,7 +149,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)..\OpenIGTLink\Source\igtlutil;$(SolutionDir)..\OpenIGTLink\Source;$(SolutionDir)..\OpenIGTLink-bin;$(SolutionDir)UWPOpenIGTLink;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\bin\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\igtlutil.lib;$(ProjectDir)..\OpenIGTLink-bin-$(Platform)\lib\$(Configuration)\OpenIGTLink.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
